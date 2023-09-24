@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My First Parcel App</title>
+  </head>
+  <body>
+    <h1>Hello, World!</h1>
+    <div id="container">
+      <span style="vertical-align: middle"></span>
+      1行目あいうえおかきくけこさしすせそ
+      <br />
+      2行目麻雀
+      <code class="mjimage"
+        >-123s,1234m, d2s, _22_s,-2222s, -2-222m, 3-3-33s</code
+      >
+      <code class="mjimage">123s</code>
+      <br />
+      3行目あいうえおかきくけこさしすせそ
+    </div>
+    <script type="module">
+      import { initialize, InitializeProps } from "./index.ts";
+      initialize({
+        image_host_url: new URL("http://localhost:1234/svg/").toString(),
+      });
+    </script>
+  </body>
+</html>

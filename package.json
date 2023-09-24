@@ -1,0 +1,49 @@
+{
+    "name": "mjimage",
+    "version": "1.0.0",
+    "description": "",
+    "scripts": {
+        "start": "parcel",
+        "build": "parcel build",
+        "dev": "parcel src/index.html",
+        "test": "jest"
+    },
+    "targets": {
+        "global": {
+            "source": "src/index.ts",
+            "context": "browser",
+            "outputFormat": "global",
+            "optimize": true,
+            "distDir": "./dist/global/"
+        },
+        "main": {
+            "source": "src/index.ts",
+            "outputFormat": "commonjs",
+            "optimize": true
+        },
+        "webapp": {
+            "source": "src/index.html",
+            "distDir": "./dist/webapp/"
+        }
+    },
+    "staticFiles": {
+        "staticPath": "static"
+    },
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "@parcel/transformer-typescript-tsc": "^2.9.3",
+        "@parcel/validator-typescript": "^2.9.3",
+        "@types/jest": "^29.5.5",
+        "@types/svgdom": "^0.1.0",
+        "jest": "^29.7.0",
+        "parcel": "^2.9.3",
+        "parcel-reporter-static-files-copy": "^1.5.2",
+        "svgdom": "^0.1.16",
+        "ts-jest": "^29.1.1",
+        "typescript": "^5.2.2"
+    },
+    "dependencies": {
+        "@svgdotjs/svg.js": "^3.2.0"
+    }
+}
