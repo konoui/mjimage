@@ -1,3 +1,4 @@
+import assert from "assert";
 import { Pai, Operator, Block, BlockType, Kind } from "./parser";
 import { Svg, G } from "@svgdotjs/svg.js";
 
@@ -5,8 +6,8 @@ export const paiContext = { width: 66, height: 90 };
 
 export interface ImageHelperConfig {
   scale?: number;
-  image_host_path?: string;
-  image_host_url?: string;
+  imageHostPath?: string;
+  imageHostUrl?: string;
 }
 
 class BaseHelper {
@@ -18,8 +19,8 @@ class BaseHelper {
   readonly image_host_url: string;
   constructor(props: ImageHelperConfig = {}) {
     const scale = props.scale ? props.scale : 1;
-    this.image_host_path = props.image_host_path ? props.image_host_path : "";
-    this.image_host_url = props.image_host_url ? props.image_host_path : "";
+    this.image_host_path = props.imageHostPath ? props.imageHostPath : "";
+    this.image_host_url = props.imageHostUrl != null ? props.imageHostUrl : "";
     this.paiWidth = paiContext.width * scale;
     this.paiHeight = paiContext.height * scale;
     this.textAddHeight = this.paiHeight * 0.23;
@@ -184,6 +185,7 @@ const getBlockDrawers = (draw: Svg, h: ImageHelper) => {
       const zp = block.p.find((v) => {
         return v.k !== Kind.Back;
       });
+      assert(zp != null);
       const g = h.createBlockOther(draw, [
         new Pai(Kind.Back, 0),
         zp,

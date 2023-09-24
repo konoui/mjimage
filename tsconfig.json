@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
     "experimentalDecorators": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "strict": true
   },
-  "strict": true,
   "transformers": {
     "*.{ts,tsx}": ["@parcel/transformer-typescript-tsc"]
   },

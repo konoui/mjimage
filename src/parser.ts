@@ -53,7 +53,11 @@ export enum Operator {
 }
 
 export class Pai {
-  constructor(public k: Kind, public n: number, public op: Operator = null) {}
+  constructor(
+    public k: Kind,
+    public n: number,
+    public op: Operator | null = null
+  ) {}
 
   toString(): string {
     if (this.k === Kind.Back || this.k === Kind.Separator) return this.k;

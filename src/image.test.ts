@@ -17,7 +17,7 @@ test("svg1", () => {
     "-123s,1234m, d2s, _22_s,-2222s, -2-222m, 3-3-33s"
   ).parse();
   drawBlocks(draw, blocks, {
-    image_host_url: new URL("http://localhost:1234/svg/").toString(),
+    imageHostUrl: "http://localhost:1234/svg/",
   });
   const got = draw.svg();
   const gotPath = "testdata/svg1.svg";
