@@ -36,3 +36,29 @@
 ### 牌画像
 
 [【保存版】商用無料の高クオリティーの麻雀画像の無料素材まとめ](https://majandofu.com/mahjong-images)
+
+## 使い方
+
+```html
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <h1>Example</h1>
+    <div id="container">
+      手配1:
+      <code class="mjimage">123s123m123p, -1-111z, t3d, d4m</code>
+      <br />
+      <code class="mjimage">123s</code>は3色です。
+    </div>
+    <script src="https://d257lmna3z6el8.cloudfront.net/global.js"></script>
+    <script>
+      mjimage.initialize({
+        imageHostUrl: "https://d257lmna3z6el8.cloudfront.net/svg/",
+      });
+    </script>
+  </body>
+</html>
+```
