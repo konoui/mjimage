@@ -20,7 +20,7 @@ class BaseHelper {
   constructor(props: ImageHelperConfig = {}) {
     const scale = props.scale ? props.scale : 1;
     this.image_host_path = props.imageHostPath ? props.imageHostPath : "";
-    this.image_host_url = props.imageHostUrl != null ? props.imageHostUrl : "";
+    this.image_host_url = props.imageHostUrl ? props.imageHostUrl : "";
     this.paiWidth = paiContext.width * scale;
     this.paiHeight = paiContext.height * scale;
     this.textAddHeight = this.paiHeight * 0.23;

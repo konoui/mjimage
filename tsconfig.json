@@ -2,7 +2,9 @@
   "compilerOptions": {
     "experimentalDecorators": true,
     "esModuleInterop": true,
-    "strict": true
+    "strict": true,
+    "removeComments": true,
+    "isolatedModules": true
   },
   "transformers": {
     "*.{ts,tsx}": ["@parcel/transformer-typescript-tsc"]

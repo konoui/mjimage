@@ -21,28 +21,32 @@ function getTextHeight(font: string) {
   return fontHeight;
 }
 
-export const initialize = (props: InitializeConfig = {}) => {
-  const className = props.className ? props.className : defaultClassName;
-  const targets = document.getElementsByClassName(
-    className
-  ) as HTMLCollectionOf<HTMLElement>;
-  for (let i = 0; i < targets.length; i++) {
-    const target = targets[i];
-    const input = target.textContent || "";
+export class mjimage {
+  static initialize = (props: InitializeConfig = {}) => {
+    console.debug("initializing....");
+    const className = props.className ? props.className : defaultClassName;
+    const targets = document.getElementsByClassName(
+      className
+    ) as HTMLCollectionOf<HTMLElement>;
+    for (let i = 0; i < targets.length; i++) {
+      const target = targets[i];
+      const input = target.textContent || "";
 
-    target.textContent = ""; // remove first
+      console.debug("found target class", className);
+      target.textContent = ""; // remove first
 
-    const font = target.style.font;
-    const height = getTextHeight(font);
-    const scale = (height + paiContext.height * 0.25) / paiContext.height;
-    const blocks = new Parser(input).parse();
-    const svg = SVG();
-    // TODO {...props, scale: scale } not work for global compile
-    drawBlocks(svg, blocks, {
-      imageHostUrl: props.imageHostPath,
-      imageHostPath: props.imageHostPath,
-      scale: scale,
-    });
-    svg.addTo(target);
-  }
-};
+      const font = target.style.font;
+      const height = getTextHeight(font);
+      const scale = (height + paiContext.height * 0.25) / paiContext.height;
+      const blocks = new Parser(input).parse();
+      const svg = SVG();
+      // TODO {...props, scale: scale } not work for global compile
+      drawBlocks(svg, blocks, {
+        imageHostUrl: props.imageHostUrl,
+        imageHostPath: props.imageHostPath,
+        scale: scale,
+      });
+      svg.addTo(target);
+    }
+  };
+}

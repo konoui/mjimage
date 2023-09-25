@@ -10,12 +10,24 @@
     },
     "targets": {
         "global": {
-            "source": "src/index.ts",
+            "source": "src/global.ts",
             "context": "browser",
-            "outputFormat": "global",
             "includeNodeModules": true,
+            "isLibrary": false,
             "optimize": true,
-            "distDir": "./dist/global/"
+            "distDir": "./dist/global/",
+            "engines": {
+                "browsers": "> 0.5%, last 2 versions, not dead"
+            }
+        },
+        "module": {
+            "source": "src/index.ts",
+            "includeNodeModules": true,
+            "outputFormat": "esmodule",
+            "engines": {
+                "browsers": "> 0.5%, last 2 versions, not dead"
+            },
+            "optimize": true
         },
         "main": {
             "source": "src/index.ts",
@@ -27,6 +39,7 @@
             "distDir": "./dist/webapp/"
         }
     },
+    "alias": {},
     "staticFiles": {
         "staticPath": "static"
     },
