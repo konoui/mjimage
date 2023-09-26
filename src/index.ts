@@ -40,10 +40,8 @@ export class mjimage {
       const scale = (height + paiContext.height * 0.25) / paiContext.height;
       const blocks = new Parser(input).parse();
       const svg = SVG();
-      // TODO {...props, scale: scale } not work for global compile
       drawBlocks(svg, blocks, {
-        imageHostUrl: props.imageHostUrl,
-        imageHostPath: props.imageHostPath,
+        ...props,
         scale: scale,
       });
       svg.addTo(target);

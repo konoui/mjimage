@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>My First Parcel App</title>
   </head>
+  <script type="module">
+    import { mjimage } from "./index.ts";
+    window.onload = function () {
+      mjimage.initialize({
+        imageHostUrl: "http://localhost:1234/svg/",
+      });
+    };
+  </script>
   <body>
     <h1>Hello, World!</h1>
     <div id="container">
@@ -19,11 +27,5 @@
       <br />
       3行目あいうえおかきくけこさしすせそ
     </div>
-    <script type="module">
-      import { mjimage } from "./index.ts";
-      mjimage.initialize({
-        imageHostUrl: "http://localhost:1234/svg/",
-      });
-    </script>
   </body>
 </html>
