@@ -241,7 +241,7 @@ export const drawBlocks = (
   const helper = new ImageHelper(config);
   const lookup = getBlockDrawers(svg, helper);
 
-  let baseHeight = helper.paiWidth * 2;
+  let baseHeight = helper.paiWidth;
   let sumOfWidth = 0;
   const elms: MySVGElement[] = [];
   for (let block of blocks) {
