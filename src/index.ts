@@ -4,10 +4,10 @@ import { drawBlocks, paiContext, ImageHelperConfig } from "./image";
 import { SVG } from "@svgdotjs/svg.js";
 
 interface InitializeConfig extends Omit<ImageHelperConfig, "scale"> {
-  className?: string;
+  querySelector?: string;
 }
 
-const defaultClassName = "mjimage";
+const defaultQuerySelector = ".mjimage";
 
 function getTextHeight(font: string) {
   const ctx = document.createElement("canvas").getContext("2d");
@@ -24,15 +24,17 @@ function getTextHeight(font: string) {
 export class mjimage {
   static initialize = (props: InitializeConfig = {}) => {
     console.debug("initializing....");
-    const className = props.className ? props.className : defaultClassName;
-    const targets = document.getElementsByClassName(
-      className
-    ) as HTMLCollectionOf<HTMLElement>;
+    const querySelector = props.querySelector
+      ? props.querySelector
+      : defaultQuerySelector;
+    const targets = document.querySelectorAll(
+      querySelector
+    ) as NodeListOf<HTMLElement>;
     for (let i = 0; i < targets.length; i++) {
       const target = targets[i];
       const input = target.textContent || "";
 
-      console.debug("found target class", className);
+      console.debug("found target class", querySelector);
       target.textContent = ""; // remove first
 
       const font = target.style.font;
