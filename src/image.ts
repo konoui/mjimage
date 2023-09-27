@@ -105,7 +105,6 @@ class ImageHelper extends BaseHelper {
     return g;
   }
 
-  // not handle kankan
   createBlockPonChiKan(draw: Svg, block: Block) {
     const idx = block.p.findIndex((d) => {
       return d.op === Operator.Horizontal;
