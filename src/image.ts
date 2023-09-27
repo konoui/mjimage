@@ -14,7 +14,7 @@ class BaseHelper {
   readonly paiWidth: number;
   readonly paiHeight: number;
   readonly diffPaiHeightWidth: number;
-  readonly textAddHeight: number;
+  readonly textWidth: number;
   readonly image_host_path: string;
   readonly image_host_url: string;
   constructor(props: ImageHelperConfig = {}) {
@@ -23,7 +23,7 @@ class BaseHelper {
     this.image_host_url = props.imageHostUrl ? props.imageHostUrl : "";
     this.paiWidth = paiContext.width * scale;
     this.paiHeight = paiContext.height * scale;
-    this.textAddHeight = this.paiHeight * 0.23;
+    this.textWidth = this.paiWidth * 0.8; // sum of 4 string
     this.diffPaiHeightWidth = (this.paiHeight - this.paiWidth) / 2;
   }
 
@@ -39,8 +39,8 @@ class BaseHelper {
     const fontSize = this.paiHeight * 0.2;
     // FIXME
     // const textWidth = text.getComputedTextLength();
-    const textX = (this.paiWidth - this.paiWidth * 0.6) / 2;
-    const textY = this.paiHeight + this.textAddHeight;
+    const textX = this.paiWidth;
+    const textY = this.paiHeight;
     const text = draw.text(t);
     text
       .width(this.paiWidth)
@@ -56,6 +56,7 @@ class BaseHelper {
     g.add(image).add(text).translate(x, y);
     return g;
   }
+
   createStackImage(draw: Svg, pai: Pai, x: number, y: number) {
     const base = this.createRotate90Image(draw, pai, 0, 0, true);
     const up = this.createRotate90Image(draw, pai, 0, this.paiWidth, true);
@@ -194,18 +195,18 @@ const getBlockDrawers = (draw: Svg, h: ImageHelper) => {
       return { width: width, height: height, e: g };
     },
     [BlockType.Dora]: function (block: Block) {
-      const width = h.paiWidth;
+      const width = h.paiWidth + h.textWidth;
       const height = h.paiHeight; // note not contains text height
       const g = draw.group();
-      const img = h.createTextImage(draw, block.p[0], 0, 0, "ツモ");
+      const img = h.createTextImage(draw, block.p[0], 0, 0, "(ツモ)");
       g.add(img);
       return { width: width, height: height, e: g };
     },
     [BlockType.Tsumo]: function (block: Block) {
-      const width = h.paiWidth;
+      const width = h.paiWidth + h.textWidth;
       const height = h.paiHeight; // note not contains text height
       const g = draw.group();
-      const img = h.createTextImage(draw, block.p[0], 0, 0, "ドラ");
+      const img = h.createTextImage(draw, block.p[0], 0, 0, "(ドラ)");
       g.add(img);
       return { width: width, height: height, e: g };
     },
@@ -251,7 +252,7 @@ export const drawBlocks = (
     if (elm.height > baseHeight) baseHeight = elm.height;
   }
 
-  const maxHeight = baseHeight + helper.textAddHeight;
+  const maxHeight = baseHeight;
   svg.size(sumOfWidth + (blocks.length - 1) * helper.blockMargin, maxHeight);
 
   let pos = 0;
