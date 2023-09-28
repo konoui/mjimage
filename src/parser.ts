@@ -159,6 +159,9 @@ export class Parser {
       }
       l.readChar();
     }
+
+    if (cluster.length > 0)
+      throw new Error(`remaining values ${cluster.toString()}`);
     return res;
   }
 
