@@ -5,10 +5,11 @@ import { SVG } from "@svgdotjs/svg.js";
 
 interface InitializeConfig extends Omit<ImageHelperConfig, "scale"> {
   querySelector?: string | string[];
+  scale?: number;
 }
 
 const defaultQuerySelector = ".mjimage";
-
+const defaultScale = 1.6;
 function getTextHeight(font: string) {
   const ctx = document.createElement("canvas").getContext("2d");
   assert(ctx != null);
@@ -18,7 +19,7 @@ function getTextHeight(font: string) {
     metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
   let actualHeight =
     metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-  return fontHeight;
+  return actualHeight;
 }
 
 export class mjimage {
@@ -27,8 +28,10 @@ export class mjimage {
     let querySelector = props.querySelector
       ? props.querySelector
       : defaultQuerySelector;
+    let scale = props.scale ? props.scale : defaultScale;
     if (typeof querySelector === "string") querySelector = [querySelector];
 
+    const maxPaiHeight = paiContext.width * 2;
     querySelector.forEach((qs) => {
       console.log("try to find", qs);
       const targets = document.querySelectorAll(qs) as NodeListOf<HTMLElement>;
@@ -41,7 +44,7 @@ export class mjimage {
 
         const font = target.style.font;
         const height = getTextHeight(font);
-        const scale = (height + paiContext.height * 0.25) / paiContext.height;
+        scale = (height / maxPaiHeight) * scale;
         const blocks = new Parser(input).parse();
         const svg = SVG();
         drawBlocks(svg, blocks, {
