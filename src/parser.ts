@@ -114,7 +114,7 @@ export class Parser {
     return this.makeBlocks(parsed);
   }
 
-  parseInput() {
+  private parseInput() {
     const l = new Lexer(this.input);
     const res: Pai[] = [];
     let cluster: Pai[] = [];
@@ -162,7 +162,7 @@ export class Parser {
     return res;
   }
 
-  makeBlocks(pp: Pai[]): Block[] {
+  private makeBlocks(pp: Pai[]): Block[] {
     let cluster: Pai[] = [];
     const res: Block[] = [];
 

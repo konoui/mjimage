@@ -33,29 +33,30 @@ export class mjimage {
 
     const maxPaiHeight = paiContext.width * 2;
     querySelector.forEach((qs) => {
-      console.log("try to find", qs);
+      console.debug("try to find", qs);
       const targets = document.querySelectorAll(qs) as NodeListOf<HTMLElement>;
       for (let i = 0; i < targets.length; i++) {
         const target = targets[i];
         const input = target.textContent || "";
 
         if (input == "") {
-          console.debug("found target class but not input");
+          console.debug("skip due to not input");
           continue;
         }
 
-        console.debug("found target class", input);
+        console.debug("found input", input);
         target.textContent = ""; // remove first
 
         const font = target.style.font;
         const height = getTextHeight(font);
-        scale = (height / maxPaiHeight) * scale;
+        const calculatedScale = (height / maxPaiHeight) * scale;
+        console.debug("input scale/calculated scale", scale, calculatedScale);
         try {
           const blocks = new Parser(input).parse();
           const svg = SVG();
           drawBlocks(svg, blocks, {
             ...props,
-            scale: scale,
+            scale: calculatedScale,
           });
           svg.addTo(target);
         } catch (e) {

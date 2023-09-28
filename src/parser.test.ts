@@ -10,13 +10,13 @@ import {
 } from "./parser";
 
 test("parseInput1", () => {
-  const got = new Parser("1s").parseInput();
+  const got = (new Parser("1s") as any).parseInput();
   const want = [new Pai(Kind.S, 1)];
   expect(got).toStrictEqual(want);
 });
 
 test("parseInput2", () => {
-  const got = new Parser("12s34m1z2d,t1s,_-1s").parseInput();
+  const got = (new Parser("12s34m1z2d,t1s,_-1s") as any).parseInput();
   const want = [
     new Pai(Kind.S, 1),
     new Pai(Kind.S, 2),
@@ -78,7 +78,7 @@ test("makeBlocks", () => {
 });
 
 test("sortPai", () => {
-  const got = new Parser("13p5s786m1z").parseInput();
+  const got = (new Parser("13p5s786m1z") as any).parseInput();
   got.sort(paiSortFunc);
   const want: Pai[] = [
     new Pai(Kind.M, 6),
