@@ -44,7 +44,7 @@ export class mjimage {
           continue;
         }
 
-        console.debug("found input", input);
+        console.debug("found", input);
         target.textContent = ""; // remove first
 
         const font = target.style.font;
