@@ -1,23 +1,22 @@
 import { describe, test, expect } from "@jest/globals";
 import {
   Kind,
-  parseInput,
-  makeBlocks,
   Pai,
   Operator,
   Block,
   BlockType,
   paiSortFunc,
+  Parser,
 } from "./parser";
 
 test("parseInput1", () => {
-  const got = parseInput("1s");
+  const got = new Parser("1s").parseInput();
   const want = [new Pai(Kind.S, 1)];
   expect(got).toStrictEqual(want);
 });
 
 test("parseInput2", () => {
-  const got = parseInput("12s34m1z2d,t1s,_-1s");
+  const got = new Parser("12s34m1z2d,t1s,_-1s").parseInput();
   const want = [
     new Pai(Kind.S, 1),
     new Pai(Kind.S, 2),
@@ -34,9 +33,15 @@ test("parseInput2", () => {
   expect(got).toStrictEqual(want);
 });
 
+test("parseInputWithError", () => {
+  const p = new Parser("1");
+  expect(() => {
+    p.parse();
+  }).toThrow(/last character.*? is not kind value/);
+});
+
 test("makeBlocks", () => {
-  const parsed = parseInput("12s34m1z2d,t1s,_11s_,-123s");
-  const got = makeBlocks(parsed);
+  const got = new Parser("12s34m1z2d,t1s,_11s_,-123s").parse();
   const want = [
     new Block(
       [
@@ -73,7 +78,7 @@ test("makeBlocks", () => {
 });
 
 test("sortPai", () => {
-  const got = parseInput("13p5s786m1z");
+  const got = new Parser("13p5s786m1z").parseInput();
   got.sort(paiSortFunc);
   const want: Pai[] = [
     new Pai(Kind.M, 6),

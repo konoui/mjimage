@@ -104,81 +104,97 @@ export class Block {
 }
 
 export class Parser {
-  constructor(readonly input: string) {}
+  readonly maxInputLength = 128;
+  constructor(readonly input: string) {
+    this.input = input.replace(/\s/g, "");
+  }
+
   parse() {
-    const parsed = parseInput(this.input);
-    return makeBlocks(parsed);
+    const parsed = this.parseInput();
+    return this.makeBlocks(parsed);
   }
-}
 
-export const parseInput = (input: string) => {
-  const l = new Lexer(input.replace(/\s/g, ""));
-  const res: Pai[] = [];
-  let cluster: Pai[] = [];
+  parseInput() {
+    const l = new Lexer(this.input);
+    const res: Pai[] = [];
+    let cluster: Pai[] = [];
 
-  // TODO Validate
+    this.validate(this.input);
 
-  for (;;) {
-    l.skipWhitespace();
-    let char = l.char;
-    if (char === l.eof) break;
+    for (;;) {
+      l.skipWhitespace();
+      let char = l.char;
+      if (char === l.eof) break;
 
-    let [k, isKind] = isKindAlias(char, cluster);
-    if (isKind) {
-      if (k == Kind.Back) {
-        res.push(new Pai(k, 0));
+      let [k, isKind] = isKindAlias(char, cluster);
+      if (isKind) {
+        if (k == Kind.Back) {
+          res.push(new Pai(k, 0));
+          l.readChar(); // for continue
+          continue;
+        }
+        if (k == Kind.Separator) {
+          res.push(new Pai(k, -1));
+          l.readChar(); // for continue
+          continue;
+        }
+
+        res.push(...makeTiles(cluster, k));
+        cluster = []; // clear for zero length slice
         l.readChar(); // for continue
         continue;
+      } else {
+        const [p, isOp] = isOperator(l);
+        if (isOp) {
+          l.readChar(); // for peek
+          cluster.push(p);
+          l.readChar(); // for continue
+          continue;
+        }
+        const [n, isNum] = isNumber(char);
+        if (!isNum)
+          throw new Error(`encounter unexpected number: ${n} ${char}`);
+        // dummy kind
+        cluster.push(new Pai(Kind.Back, n));
       }
-      if (k == Kind.Separator) {
-        res.push(new Pai(k, -1));
-        l.readChar(); // for continue
-        continue;
-      }
-
-      res.push(...makeTiles(cluster, k));
-      cluster = []; // clear for zero length slice
-      l.readChar(); // for continue
-      continue;
-    } else {
-      const [p, isOp] = isOperator(l);
-      if (isOp) {
-        l.readChar(); // for peek
-        cluster.push(p);
-        l.readChar(); // for continue
-        continue;
-      }
-      const [n, isNum] = isNumber(char);
-      if (!isNum) throw `unexpected number: ${n} ${char}`;
-      // dummy kind
-      cluster.push(new Pai(Kind.Back, n));
+      l.readChar();
     }
-    l.readChar();
+    return res;
   }
-  return res;
-};
 
-export function makeBlocks(pp: Pai[]): Block[] {
-  let cluster: Pai[] = [];
-  const res: Block[] = [];
+  makeBlocks(pp: Pai[]): Block[] {
+    let cluster: Pai[] = [];
+    const res: Block[] = [];
 
-  for (const p of pp) {
-    if (p.k === Kind.Separator) {
-      const type = detectBlockType(cluster);
-      const b = new Block(cluster, type);
-      res.push(b);
-      cluster = [];
-      continue;
+    for (const p of pp) {
+      if (p.k === Kind.Separator) {
+        const type = detectBlockType(cluster);
+        const b = new Block(cluster, type);
+        res.push(b);
+        cluster = [];
+        continue;
+      }
+      cluster.push(p);
     }
-    cluster.push(p);
+
+    // handle last block
+    const type = detectBlockType(cluster);
+    const b = new Block(cluster, type);
+    res.push(b);
+    cluster = [];
+    return res;
   }
 
-  // handle last block
-  const type = detectBlockType(cluster);
-  const b = new Block(cluster, type);
-  res.push(b);
-  cluster = [];
-  return res;
+  validate(input: string) {
+    const maxInputLength = 128;
+    if (input.length == 0) throw new Error("no input");
+    if (input.length > maxInputLength)
+      throw new Error("exceeded maximum input length");
+    const lastChar = input.charAt(input.length - 1);
+    const [_, isKind] = isKindAlias(lastChar, []);
+    if (!isKind)
+      throw new Error(`last character(${lastChar}) is not kind value`);
+  }
 }
 
 function detectBlockType(pp: Pai[]): BlockType {
@@ -242,8 +258,8 @@ function isKindAlias(s: string, cluster: Pai[]): [Kind, boolean] {
 }
 
 function isNumber(v: string): [number, boolean] {
-  const n: number = parseInt(v, 10);
-  return [n, !isNaN(n)];
+  const valid = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+  return [Number(v), valid.includes(v)];
 }
 
 // FIXME

@@ -1,6 +1,8 @@
 import { describe, test, expect } from "@jest/globals";
 import { SVG, registerWindow } from "@svgdotjs/svg.js";
 import { createHTMLWindow } from "svgdom";
+// @ts-ignore, https://github.com/DefinitelyTyped/DefinitelyTyped/pull/66501/files
+import { config } from "svgdom";
 import fs from "fs";
 import { Parser } from "./parser";
 import { drawBlocks } from "./image";
@@ -8,6 +10,8 @@ import { drawBlocks } from "./image";
 const window = createHTMLWindow();
 const document = window.document;
 registerWindow(window, document);
+
+config.setFontDir("./node_modules/svgdom/fonts/");
 
 const update = false;
 

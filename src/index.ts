@@ -39,19 +39,29 @@ export class mjimage {
         const target = targets[i];
         const input = target.textContent || "";
 
+        if (input == "") {
+          console.debug("found target class but not input");
+          continue;
+        }
+
         console.debug("found target class", input);
         target.textContent = ""; // remove first
 
         const font = target.style.font;
         const height = getTextHeight(font);
         scale = (height / maxPaiHeight) * scale;
-        const blocks = new Parser(input).parse();
-        const svg = SVG();
-        drawBlocks(svg, blocks, {
-          ...props,
-          scale: scale,
-        });
-        svg.addTo(target);
+        try {
+          const blocks = new Parser(input).parse();
+          const svg = SVG();
+          drawBlocks(svg, blocks, {
+            ...props,
+            scale: scale,
+          });
+          svg.addTo(target);
+        } catch (e) {
+          target.textContent = input;
+          console.error("encounter unexpected error", e);
+        }
       }
     });
   };
