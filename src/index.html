@@ -7,11 +7,13 @@
   </head>
   <script type="module">
     import { mjimage } from "./index.ts";
+    import { handle } from "./table";
     window.onload = function () {
       mjimage.initialize({
         imageHostUrl: "http://localhost:1234/svg/",
-        scale: 1.4,
+        scale: 4,
       });
+      handle();
     };
   </script>
   <body>

@@ -28,7 +28,7 @@ class BaseHelper {
   }
 
   createImage(draw: Svg, pai: Pai, x: number, y: number) {
-    const image = draw.image(this.makeImageHref(pai));
+    const image = draw.image(this.makeImagePaiHref(pai));
     image.dx(x).dy(y).size(this.paiWidth, this.paiHeight);
     return image;
   }
@@ -84,16 +84,19 @@ class BaseHelper {
     return g;
   }
 
-  makeImageHref(pai: Pai) {
-    const file = `${pai.k}${pai.n}.svg`;
+  makeImagePaiHref(pai: Pai) {
+    return this.makeImageHref(`${pai.k}${pai.n}.svg`);
+  }
+
+  makeImageHref(filename: string) {
     if (this.image_host_url != "") {
-      return `${this.image_host_url.toString()}${file}`;
+      return `${this.image_host_url.toString()}${filename}`;
     }
-    return `${this.image_host_path}${file}`;
+    return `${this.image_host_path}${filename}`;
   }
 }
 
-class ImageHelper extends BaseHelper {
+export class ImageHelper extends BaseHelper {
   readonly blockMargin = this.paiWidth * 0.3;
   createBlockOther(draw: Svg, pp: Pai[]) {
     const g = draw.group();
@@ -198,7 +201,7 @@ const getBlockDrawers = (draw: Svg, h: ImageHelper) => {
       const width = h.paiWidth + h.textWidth;
       const height = h.paiHeight; // note not contains text height
       const g = draw.group();
-      const img = h.createTextImage(draw, block.p[0], 0, 0, "(ツモ)");
+      const img = h.createTextImage(draw, block.p[0], 0, 0, "(ドラ)");
       g.add(img);
       return { width: width, height: height, e: g };
     },
@@ -206,7 +209,7 @@ const getBlockDrawers = (draw: Svg, h: ImageHelper) => {
       const width = h.paiWidth + h.textWidth;
       const height = h.paiHeight; // note not contains text height
       const g = draw.group();
-      const img = h.createTextImage(draw, block.p[0], 0, 0, "(ドラ)");
+      const img = h.createTextImage(draw, block.p[0], 0, 0, "(ツモ)");
       g.add(img);
       return { width: width, height: height, e: g };
     },
@@ -233,13 +236,8 @@ interface MySVGElement {
   height: number;
 }
 
-export const drawBlocks = (
-  svg: Svg,
-  blocks: Block[],
-  config: ImageHelperConfig = {}
-) => {
-  const helper = new ImageHelper(config);
-  const lookup = getBlockDrawers(svg, helper);
+export const createHand = (draw: Svg, blocks: Block[], helper: ImageHelper) => {
+  const lookup = getBlockDrawers(draw, helper);
 
   let baseHeight = helper.paiWidth;
   let sumOfWidth = 0;
@@ -252,16 +250,29 @@ export const drawBlocks = (
     if (elm.height > baseHeight) baseHeight = elm.height;
   }
 
-  const maxHeight = baseHeight;
-  svg.size(sumOfWidth + (blocks.length - 1) * helper.blockMargin, maxHeight);
+  const sizeHeight = baseHeight;
+  const sizeWidth = sumOfWidth + (blocks.length - 1) * helper.blockMargin;
+  const hand = draw.group();
 
   let pos = 0;
   for (let elm of elms) {
     const diff = baseHeight - elm.height;
     // TODO elm.e.translate(pos, diff);
-    const g = svg.group().translate(pos, diff);
+    const g = draw.group().translate(pos, diff);
     g.add(elm.e);
-    svg.add(g);
+    hand.add(g);
     pos += elm.width + helper.blockMargin;
   }
+  return { e: hand, width: sizeWidth, height: sizeHeight };
+};
+
+export const drawBlocks = (
+  svg: Svg,
+  blocks: Block[],
+  config: ImageHelperConfig = {}
+) => {
+  const helper = new ImageHelper(config);
+  const hand = createHand(svg, blocks, helper);
+  svg.size(hand.width, hand.height);
+  svg.add(hand.e);
 };
