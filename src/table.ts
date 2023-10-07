@@ -1,7 +1,37 @@
 import { Pai, Operator, Parser, Kind } from "./parser";
 import { ImageHelper, createHand } from "./image";
-import { Svg, SVG, Element, Text, G, Rect, Image } from "@svgdotjs/svg.js";
+import { SVG, Element, Text, G, Rect, Image } from "@svgdotjs/svg.js";
 import assert from "assert";
+
+interface FontContext {
+  font: { family: string; size: number };
+  textWidth: number;
+  textHeight: number;
+}
+
+let contextFunc = (s: string, font: string | null = null) => {
+  return () => {
+    const ctx = document.createElement("canvas").getContext("2d");
+    assert(ctx != null);
+    if (font != null) ctx.font = font;
+    const metrics = ctx.measureText(s);
+    let width = metrics.width;
+    let height =
+      metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+    return [width, height];
+  };
+};
+
+const getTableFontContext = (helper: ImageHelper): FontContext => {
+  const font = { family: "メイリオ,ＭＳ Ｐゴシック", size: 45 * helper.scale };
+  const fontString = `${font.size}px ${font.family}`;
+  const [textWidth, textHeight] = contextFunc("東", fontString)();
+  return {
+    font: font,
+    textWidth: textWidth,
+    textHeight: textHeight,
+  };
+};
 
 const splitTiles = (input: Pai[]) => {
   const chunkSize = 6;
@@ -42,58 +72,41 @@ const simpleRotate = (
   return g;
 };
 
-let contextFunc = (s: string, font: string | null = null) => {
-  return () => {
-    const ctx = document.createElement("canvas").getContext("2d");
-    assert(ctx != null);
-    if (font != null) ctx.font = font;
-    const metrics = ctx.measureText(s);
-    let width = metrics.width;
-    let height =
-      metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-    return [width, height];
-  };
-};
-
-const createBoard = (helper: ImageHelper, width: number) => {
-  // FIXME merge drawRect and consider helper.scale
-  const font = { family: "メイリオ,ＭＳ Ｐゴシック", size: 15 };
-  const fontString = `${font.size}px ${font.family}`;
-  const [textWidth, textHeight] = contextFunc("東", fontString)();
+const createBoard = (helper: ImageHelper, fontCtx: FontContext) => {
+  const font = fontCtx.font;
+  const textWidth = fontCtx.textWidth;
+  const textHeight = fontCtx.textHeight;
 
   const g = new G();
 
   const num100 = 1;
   const num1000 = 1;
-  const stickWidth = 50;
-  const stickHeight = 11;
+  const stickWidth = 125 * helper.scale;
+  const stickHeight = 27.5 * helper.scale;
 
   let roundWidth = textWidth * 3;
   let roundHeight = textHeight;
-  const roundX = (stickWidth + helper.paiWidth - roundWidth) / 2;
+  const roundX = (stickWidth + helper.paiWidth + textWidth - roundWidth) / 2;
 
-  const roundText = new Text()
-    .text("東１局")
-    .font({ font: 15, family: font.family })
-    .move(roundX, 0);
+  const roundText = new Text().text("東１局").font(font).move(roundX, 0);
   g.add(roundText);
 
-  roundHeight += 10; // margin
+  roundHeight += 25 * helper.scale; // margin
 
   const stickGroupHeight = helper.paiHeight;
   const stickGroup = new G()
     .size(stickWidth, stickGroupHeight)
     .translate(0, roundHeight);
 
+  const stickFont = { family: font.family, size: font.size * 0.86 };
   const stick1000 = new Image()
     .load(helper.makeImageHref("stick1000.svg"))
     .size(stickWidth, stickHeight)
     .move(0, 0);
   const text1000 = new Text()
-    .text(num1000.toString())
-    // margin -3
-    .move(stickWidth, -3)
-    .font({ size: 13, family: font.family });
+    .plain(num1000.toString())
+    .font(stickFont)
+    .move(stickWidth, 0);
   stickGroup.add(stick1000);
   stickGroup.add(text1000);
 
@@ -102,9 +115,9 @@ const createBoard = (helper: ImageHelper, width: number) => {
     .size(stickWidth, stickHeight)
     .move(0, stickHeight + stickHeight);
   const text100 = new Text()
-    .text(num100.toString())
-    .move(stickWidth, stickHeight - 3 + stickHeight)
-    .font({ size: 13, family: font.family });
+    .plain(num100.toString())
+    .font(stickFont)
+    .move(stickWidth, stickHeight + stickHeight);
   stickGroup.add(stick100);
   stickGroup.add(text100);
 
@@ -139,7 +152,6 @@ const createHands = (helper: ImageHelper) => {
 
   const blocks = new Parser(input).parse();
   const z1e = createHand(blocks, helper);
-
   const z2e = createHand(blocks, helper);
   const z3e = createHand(blocks, helper);
   const z4e = createHand(blocks, helper);
@@ -168,17 +180,18 @@ const createHands = (helper: ImageHelper) => {
   return { e: g, width: sizeWidth, height: sizeHeight };
 };
 
-const drawRect = (helper: ImageHelper, width: number) => {
+// FIXME rename function name
+const drawRect = (helper: ImageHelper, fontCtx: FontContext, width: number) => {
   const g = new G();
   const rect = new Rect()
     .size(width, width)
     .attr({ fill: "none", stroke: "#000000" });
   g.add(rect);
 
-  const font = { family: "メイリオ,ＭＳ Ｐゴシック", size: 15 };
-  const fontString = `${font.size}px ${font.family}`;
-  let [textWidth, textHeight] = contextFunc("東", fontString)();
-  const boardRect = createBoard(helper, width / 1.1);
+  const font = fontCtx.font;
+  const textWidth = fontCtx.textWidth;
+  const textHeight = fontCtx.textHeight;
+  const boardRect = createBoard(helper, fontCtx);
   boardRect.e.translate(
     width / 2 - boardRect.width / 2,
     width / 2 - boardRect.height / 2
@@ -186,25 +199,25 @@ const drawRect = (helper: ImageHelper, width: number) => {
   g.add(boardRect.e);
 
   const w1Text = new Text()
-    .text("東")
+    .plain("東")
     .font(font)
     .move(width / 2 - textWidth / 2, width - textHeight);
   g.add(w1Text);
 
   const w3Text = new Text()
-    .text("西")
+    .plain("西")
     .font(font)
     .move(width / 2 - textWidth / 2, 0);
   g.add(w3Text);
 
   const w2Text = new Text()
-    .text("南")
+    .plain("南")
     .font(font)
     .move(width - textWidth, width / 2 - textHeight / 2);
   g.add(w2Text);
 
   const w4Text = new Text()
-    .text("北")
+    .plain("北")
     .font(font)
     .move(0, width / 2 - textHeight / 2);
   g.add(w4Text);
@@ -212,7 +225,7 @@ const drawRect = (helper: ImageHelper, width: number) => {
   return g;
 };
 
-const drawDiscards = (helper: ImageHelper, p: any) => {
+const drawDiscards = (helper: ImageHelper, fontCtx: FontContext, p: any) => {
   const discardWidth = helper.paiWidth * 5 + helper.paiHeight * 1; // 11111-1
   const discardHeight = helper.paiHeight * 4;
 
@@ -223,7 +236,10 @@ const drawDiscards = (helper: ImageHelper, p: any) => {
 
   const centerX = sizeWidth / 2 - discardWidth / 2;
   const centerY = sizeHeight / 2 - discardWidth / 2;
-  const rect = drawRect(helper, discardWidth).translate(centerX, centerY);
+  const rect = drawRect(helper, fontCtx, discardWidth).translate(
+    centerX,
+    centerY
+  );
   g.add(rect);
 
   let z1 = handleDiscard(p, helper);
@@ -254,13 +270,14 @@ export const handle = () => {
   const input = "123456789s12-3456789m1234p";
   const p = (new Parser(input) as any).parseInput();
   const helper = new ImageHelper({ imageHostPath: "svg/", scale: 0.4 });
+  const fontCtx = getTableFontContext(helper);
 
   const draw = SVG().size(1000, 1000);
 
   const hg = createHands(helper);
   draw.add(hg.e);
 
-  const dg = drawDiscards(helper, p);
+  const dg = drawDiscards(helper, fontCtx, p);
   dg.e.translate((hg.width - dg.width) / 2, (hg.height - dg.height) / 2);
   draw.add(dg.e);
 
