@@ -1,6 +1,7 @@
 import { Pai, Operator, Parser, Kind } from "./parser";
 import { ImageHelper, createHand } from "./image";
 import { SVG, Element, Text, G, Rect, Image } from "@svgdotjs/svg.js";
+import { FONT_FAMILY } from "./constants";
 import assert from "assert";
 
 interface FontContext {
@@ -9,12 +10,12 @@ interface FontContext {
   textHeight: number;
 }
 
-let contextFunc = (s: string, font: string | null = null) => {
+let contextFunc = (str: string, font: string | null = null) => {
   return () => {
     const ctx = document.createElement("canvas").getContext("2d");
     assert(ctx != null);
     if (font != null) ctx.font = font;
-    const metrics = ctx.measureText(s);
+    const metrics = ctx.measureText(str);
     let width = metrics.width;
     let height =
       metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
@@ -23,7 +24,7 @@ let contextFunc = (s: string, font: string | null = null) => {
 };
 
 const getTableFontContext = (helper: ImageHelper): FontContext => {
-  const font = { family: "メイリオ,ＭＳ Ｐゴシック", size: 45 * helper.scale };
+  const font = { family: FONT_FAMILY, size: 45 * helper.scale };
   const fontString = `${font.size}px ${font.family}`;
   const [textWidth, textHeight] = contextFunc("東", fontString)();
   return {
@@ -72,7 +73,30 @@ const simpleRotate = (
   return g;
 };
 
-const createBoard = (helper: ImageHelper, fontCtx: FontContext) => {
+const handleDiscard = (pp: Pai[], helper: ImageHelper) => {
+  const g = new G();
+  const chunks = splitTiles(pp);
+
+  for (let i = 0; i < chunks.length; i++) {
+    let chunk = chunks[i];
+    let posY = i * helper.paiHeight;
+    let posX = 0;
+    for (let p of chunk) {
+      if (p.op == Operator.Horizontal) {
+        const img = helper.createRotate90Image(p, posX, posY);
+        g.add(img);
+        posX += helper.paiHeight;
+        continue;
+      }
+      const img = helper.createImage(p, posX, posY);
+      g.add(img);
+      posX += helper.paiWidth;
+    }
+  }
+  return g;
+};
+
+const createStickAndDora = (helper: ImageHelper, fontCtx: FontContext) => {
   const font = fontCtx.font;
   const textWidth = fontCtx.textWidth;
   const textHeight = fontCtx.textHeight;
@@ -151,37 +175,40 @@ const createHands = (helper: ImageHelper) => {
   const g = new G().size(sizeWidth, sizeHeight);
 
   const blocks = new Parser(input).parse();
-  const z1e = createHand(blocks, helper);
-  const z2e = createHand(blocks, helper);
-  const z3e = createHand(blocks, helper);
-  const z4e = createHand(blocks, helper);
-  const z1g = simpleRotate(z1e.e, z1e.width, z1e.height, 0).translate(
-    (sizeWidth - z1e.width) / 2,
-    sizeHeight - z1e.height
+  const fe = createHand(blocks, helper);
+  const re = createHand(blocks, helper);
+  const oe = createHand(blocks, helper);
+  const le = createHand(blocks, helper);
+  const front = simpleRotate(fe.e, fe.width, fe.height, 0).translate(
+    (sizeWidth - fe.width) / 2,
+    sizeHeight - fe.height
   );
-  const z2g = simpleRotate(z2e.e, z2e.width, z2e.height, 270).translate(
-    sizeWidth - z2e.height,
-    (sizeWidth - z2e.width) / 2
+  const right = simpleRotate(re.e, re.width, re.height, 270).translate(
+    sizeWidth - re.height,
+    (sizeWidth - re.width) / 2
   );
-  const z3g = simpleRotate(z3e.e, z3e.width, z3e.height, 180).translate(
-    (sizeWidth - z3e.width) / 2,
+  const opposite = simpleRotate(oe.e, oe.width, oe.height, 180).translate(
+    (sizeWidth - oe.width) / 2,
     0
   );
-  const z4g = simpleRotate(z4e.e, z4e.width, z4e.height, 90).translate(
+  const left = simpleRotate(le.e, le.width, le.height, 90).translate(
     0,
-    (sizeWidth - z4e.width) / 2
+    (sizeWidth - le.width) / 2
   );
 
-  g.add(z1g);
-  g.add(z2g);
-  g.add(z3g);
-  g.add(z4g);
+  g.add(front);
+  g.add(right);
+  g.add(opposite);
+  g.add(left);
 
   return { e: g, width: sizeWidth, height: sizeHeight };
 };
 
-// FIXME rename function name
-const drawRect = (helper: ImageHelper, fontCtx: FontContext, width: number) => {
+const createScoreRect = (
+  helper: ImageHelper,
+  fontCtx: FontContext,
+  width: number
+) => {
   const g = new G();
   const rect = new Rect()
     .size(width, width)
@@ -191,41 +218,41 @@ const drawRect = (helper: ImageHelper, fontCtx: FontContext, width: number) => {
   const font = fontCtx.font;
   const textWidth = fontCtx.textWidth;
   const textHeight = fontCtx.textHeight;
-  const boardRect = createBoard(helper, fontCtx);
+  const boardRect = createStickAndDora(helper, fontCtx);
   boardRect.e.translate(
     width / 2 - boardRect.width / 2,
     width / 2 - boardRect.height / 2
   );
   g.add(boardRect.e);
 
-  const w1Text = new Text()
+  const frontText = new Text()
     .plain("東")
     .font(font)
     .move(width / 2 - textWidth / 2, width - textHeight);
-  g.add(w1Text);
+  g.add(frontText);
 
-  const w3Text = new Text()
-    .plain("西")
-    .font(font)
-    .move(width / 2 - textWidth / 2, 0);
-  g.add(w3Text);
-
-  const w2Text = new Text()
+  const rightText = new Text()
     .plain("南")
     .font(font)
     .move(width - textWidth, width / 2 - textHeight / 2);
-  g.add(w2Text);
+  g.add(rightText);
 
-  const w4Text = new Text()
+  const oppositeText = new Text()
+    .plain("西")
+    .font(font)
+    .move(width / 2 - textWidth / 2, 0);
+  g.add(oppositeText);
+
+  const leftText = new Text()
     .plain("北")
     .font(font)
     .move(0, width / 2 - textHeight / 2);
-  g.add(w4Text);
+  g.add(leftText);
 
   return g;
 };
 
-const drawDiscards = (helper: ImageHelper, fontCtx: FontContext, p: any) => {
+const createDiscards = (helper: ImageHelper, fontCtx: FontContext, p: any) => {
   const discardWidth = helper.paiWidth * 5 + helper.paiHeight * 1; // 11111-1
   const discardHeight = helper.paiHeight * 4;
 
@@ -236,33 +263,39 @@ const drawDiscards = (helper: ImageHelper, fontCtx: FontContext, p: any) => {
 
   const centerX = sizeWidth / 2 - discardWidth / 2;
   const centerY = sizeHeight / 2 - discardWidth / 2;
-  const rect = drawRect(helper, fontCtx, discardWidth).translate(
+  const rect = createScoreRect(helper, fontCtx, discardWidth).translate(
     centerX,
     centerY
   );
   g.add(rect);
 
-  let z1 = handleDiscard(p, helper);
-  z1 = simpleRotate(z1, discardWidth, discardHeight, 0).translate(
+  let front = handleDiscard(p, helper);
+  front = simpleRotate(front, discardWidth, discardHeight, 0).translate(
     centerX,
     sizeHeight - discardHeight
   );
-  g.add(z1);
+  g.add(front);
 
-  let z2 = handleDiscard(p, helper);
-  z2 = simpleRotate(z2, discardWidth, discardHeight, 270).translate(
+  let right = handleDiscard(p, helper);
+  right = simpleRotate(right, discardWidth, discardHeight, 270).translate(
     sizeWidth - discardHeight,
     centerY
   );
-  g.add(z2);
+  g.add(right);
 
-  let z3 = handleDiscard(p, helper);
-  z3 = simpleRotate(z3, discardWidth, discardHeight, 180).translate(centerX, 0);
-  g.add(z3);
+  let opposite = handleDiscard(p, helper);
+  opposite = simpleRotate(opposite, discardWidth, discardHeight, 180).translate(
+    centerX,
+    0
+  );
+  g.add(opposite);
 
-  let z4 = handleDiscard(p, helper);
-  z4 = simpleRotate(z4, discardWidth, discardHeight, 90).translate(0, centerY);
-  g.add(z4);
+  let left = handleDiscard(p, helper);
+  left = simpleRotate(left, discardWidth, discardHeight, 90).translate(
+    0,
+    centerY
+  );
+  g.add(left);
   return { e: g, width: sizeWidth, height: sizeHeight };
 };
 
@@ -277,33 +310,10 @@ export const handle = () => {
   const hg = createHands(helper);
   draw.add(hg.e);
 
-  const dg = drawDiscards(helper, fontCtx, p);
+  const dg = createDiscards(helper, fontCtx, p);
   dg.e.translate((hg.width - dg.width) / 2, (hg.height - dg.height) / 2);
   draw.add(dg.e);
 
   console.debug("handling");
   draw.addTo("#container");
-};
-
-const handleDiscard = (pp: Pai[], helper: ImageHelper) => {
-  const g = new G();
-  const chunks = splitTiles(pp);
-
-  for (let i = 0; i < chunks.length; i++) {
-    let chunk = chunks[i];
-    let posY = i * helper.paiHeight;
-    let posX = 0;
-    for (let p of chunk) {
-      if (p.op == Operator.Horizontal) {
-        const img = helper.createRotate90Image(p, posX, posY);
-        g.add(img);
-        posX += helper.paiHeight;
-        continue;
-      }
-      const img = helper.createImage(p, posX, posY);
-      g.add(img);
-      posX += helper.paiWidth;
-    }
-  }
-  return g;
 };

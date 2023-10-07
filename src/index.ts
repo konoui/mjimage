@@ -10,6 +10,7 @@ interface InitializeConfig extends Omit<ImageHelperConfig, "scale"> {
 
 const defaultQuerySelector = ".mjimage";
 const defaultScale = 1.6;
+// FIXME merge table contextFunc
 function getTextHeight(font: string) {
   const ctx = document.createElement("canvas").getContext("2d");
   assert(ctx != null);
