@@ -54,6 +54,7 @@ export class mjimage {
         try {
           const blocks = new Parser(input).parse();
           const svg = SVG();
+          svg.image("test");
           drawBlocks(svg, blocks, {
             ...props,
             scale: calculatedScale,
