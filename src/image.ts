@@ -1,7 +1,7 @@
 import assert from "assert";
 import { Pai, Operator, Block, BlockType, Kind } from "./parser";
 import { Svg, G, Image, Text } from "@svgdotjs/svg.js";
-
+import { FONT_FAMILY } from "./constants";
 export const paiContext = { width: 66, height: 90 };
 
 export interface ImageHelperConfig {
@@ -48,7 +48,7 @@ class BaseHelper {
       .width(this.paiWidth)
       .height(this.paiHeight)
       .font({
-        family: "メイリオ,ＭＳ Ｐゴシック,sans-serif",
+        family: FONT_FAMILY,
         size: fontSize,
       })
       .dx(textX)
@@ -156,7 +156,7 @@ export class ImageHelper extends BaseHelper {
   }
 }
 
-const getBlockDrawers = (h: ImageHelper) => {
+const getBlockCreators = (h: ImageHelper) => {
   const lookup = {
     [BlockType.Chi]: function (block: Block) {
       const width = h.paiWidth * 2 + h.paiHeight;
@@ -237,13 +237,13 @@ interface MySVGElement {
 }
 
 export const createHand = (blocks: Block[], helper: ImageHelper) => {
-  const lookup = getBlockDrawers(helper);
+  const creators = getBlockCreators(helper);
 
   let baseHeight = helper.paiWidth;
   let sumOfWidth = 0;
   const elms: MySVGElement[] = [];
   for (let block of blocks) {
-    const fn = lookup[block.type];
+    const fn = creators[block.type];
     const elm = fn(block);
     elms.push(elm);
     sumOfWidth += elm.width;
