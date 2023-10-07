@@ -17,12 +17,13 @@ class BaseHelper {
   readonly textWidth: number;
   readonly image_host_path: string;
   readonly image_host_url: string;
+  readonly scale: number;
   constructor(props: ImageHelperConfig = {}) {
-    const scale = props.scale ? props.scale : 1;
+    this.scale = props.scale ? props.scale : 1;
     this.image_host_path = props.imageHostPath ? props.imageHostPath : "";
     this.image_host_url = props.imageHostUrl ? props.imageHostUrl : "";
-    this.paiWidth = paiContext.width * scale;
-    this.paiHeight = paiContext.height * scale;
+    this.paiWidth = paiContext.width * this.scale;
+    this.paiHeight = paiContext.height * this.scale;
     this.textWidth = this.paiWidth * 0.8; // sum of 4 string
     this.diffPaiHeightWidth = (this.paiHeight - this.paiWidth) / 2;
   }
@@ -42,6 +43,7 @@ class BaseHelper {
     const textX = this.paiWidth;
     const textY = this.paiHeight;
     const text = new Text().text(t);
+    // FIXME merge table font
     text
       .width(this.paiWidth)
       .height(this.paiHeight)
