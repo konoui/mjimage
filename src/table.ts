@@ -1,8 +1,22 @@
-import { Pai, Operator, Parser, Kind } from "./parser";
+import { Pai, Operator, Parser, Kind, Block } from "./parser";
 import { ImageHelper, createHand } from "./image";
 import { SVG, Element, Text, G, Rect, Image } from "@svgdotjs/svg.js";
 import { FONT_FAMILY } from "./constants";
 import assert from "assert";
+
+interface Discards {
+  front: Pai[];
+  right: Pai[];
+  opposite: Pai[];
+  left: Pai[];
+}
+
+interface Hands {
+  front: Block[];
+  right: Block[];
+  opposite: Block[];
+  left: Block[];
+}
 
 interface FontContext {
   font: { family: string; size: number };
@@ -160,8 +174,7 @@ const createStickAndDora = (helper: ImageHelper, fontCtx: FontContext) => {
   };
 };
 
-const createHands = (helper: ImageHelper) => {
-  const input = "2s, -1111p, -1111s, -1111m, -2222m, t3s";
+const createHands = (helper: ImageHelper, hands: Hands) => {
   // max case: "2s, -1111p, 1111s, -1111m, -2222m t3s"
   const sizeWidth =
     helper.paiWidth +
@@ -174,11 +187,10 @@ const createHands = (helper: ImageHelper) => {
 
   const g = new G().size(sizeWidth, sizeHeight);
 
-  const blocks = new Parser(input).parse();
-  const fe = createHand(blocks, helper);
-  const re = createHand(blocks, helper);
-  const oe = createHand(blocks, helper);
-  const le = createHand(blocks, helper);
+  const fe = createHand(hands.front, helper);
+  const re = createHand(hands.right, helper);
+  const oe = createHand(hands.opposite, helper);
+  const le = createHand(hands.left, helper);
   const front = simpleRotate(fe.e, fe.width, fe.height, 0).translate(
     (sizeWidth - fe.width) / 2,
     sizeHeight - fe.height
@@ -204,14 +216,12 @@ const createHands = (helper: ImageHelper) => {
   return { e: g, width: sizeWidth, height: sizeHeight };
 };
 
-const createScoreRect = (
-  helper: ImageHelper,
-  fontCtx: FontContext,
-  width: number
-) => {
+const createScoreRect = (helper: ImageHelper, fontCtx: FontContext) => {
+  const sizeWidth = helper.paiWidth * 5 + helper.paiHeight * 1; // 11111-1
+
   const g = new G();
   const rect = new Rect()
-    .size(width, width)
+    .size(sizeWidth, sizeWidth)
     .attr({ fill: "none", stroke: "#000000" });
   g.add(rect);
 
@@ -220,77 +230,72 @@ const createScoreRect = (
   const textHeight = fontCtx.textHeight;
   const boardRect = createStickAndDora(helper, fontCtx);
   boardRect.e.translate(
-    width / 2 - boardRect.width / 2,
-    width / 2 - boardRect.height / 2
+    sizeWidth / 2 - boardRect.width / 2,
+    sizeWidth / 2 - boardRect.height / 2
   );
   g.add(boardRect.e);
 
   const frontText = new Text()
     .plain("東")
     .font(font)
-    .move(width / 2 - textWidth / 2, width - textHeight);
+    .move(sizeWidth / 2 - textWidth / 2, sizeWidth - textHeight);
   g.add(frontText);
 
   const rightText = new Text()
     .plain("南")
     .font(font)
-    .move(width - textWidth, width / 2 - textHeight / 2);
+    .move(sizeWidth - textWidth, sizeWidth / 2 - textHeight / 2);
   g.add(rightText);
 
   const oppositeText = new Text()
     .plain("西")
     .font(font)
-    .move(width / 2 - textWidth / 2, 0);
+    .move(sizeWidth / 2 - textWidth / 2, 0);
   g.add(oppositeText);
 
   const leftText = new Text()
     .plain("北")
     .font(font)
-    .move(0, width / 2 - textHeight / 2);
+    .move(0, sizeWidth / 2 - textHeight / 2);
   g.add(leftText);
 
-  return g;
+  return { e: g, width: sizeWidth, height: sizeWidth };
 };
 
-const createDiscards = (helper: ImageHelper, fontCtx: FontContext, p: any) => {
+const createDiscards = (helper: ImageHelper, discards: Discards) => {
   const discardWidth = helper.paiWidth * 5 + helper.paiHeight * 1; // 11111-1
   const discardHeight = helper.paiHeight * 4;
 
   const sizeWidth = helper.paiWidth * 18;
-  const sizeHeight = helper.paiWidth * 18;
+  const sizeHeight = sizeWidth;
 
   const g = new G().size(sizeWidth, sizeHeight);
 
   const centerX = sizeWidth / 2 - discardWidth / 2;
   const centerY = sizeHeight / 2 - discardWidth / 2;
-  const rect = createScoreRect(helper, fontCtx, discardWidth).translate(
-    centerX,
-    centerY
-  );
-  g.add(rect);
 
-  let front = handleDiscard(p, helper);
+  let front = handleDiscard(discards.front, helper);
   front = simpleRotate(front, discardWidth, discardHeight, 0).translate(
     centerX,
     sizeHeight - discardHeight
   );
   g.add(front);
 
-  let right = handleDiscard(p, helper);
+  let right = handleDiscard(discards.right, helper);
   right = simpleRotate(right, discardWidth, discardHeight, 270).translate(
     sizeWidth - discardHeight,
     centerY
   );
   g.add(right);
 
-  let opposite = handleDiscard(p, helper);
+  let opposite = handleDiscard(discards.opposite, helper);
   opposite = simpleRotate(opposite, discardWidth, discardHeight, 180).translate(
     centerX,
     0
   );
   g.add(opposite);
 
-  let left = handleDiscard(p, helper);
+  let left = handleDiscard(discards.left, helper);
   left = simpleRotate(left, discardWidth, discardHeight, 90).translate(
     0,
     centerY
@@ -300,19 +305,46 @@ const createDiscards = (helper: ImageHelper, fontCtx: FontContext, p: any) => {
 };
 
 export const handle = () => {
-  const input = "123456789s12-3456789m1234p";
-  const p = (new Parser(input) as any).parseInput();
-  const helper = new ImageHelper({ imageHostPath: "svg/", scale: 0.4 });
-  const fontCtx = getTableFontContext(helper);
+  const sampleDiscard = "123456789s12-3456789m1234p";
+  const p = new Parser(sampleDiscard).parseInput();
+
+  const sampleHand = "2s, -1111p, -1111s, -1111m, -2222m, t3s";
+  const blocks = new Parser(sampleHand).parse();
 
   const draw = SVG().size(1000, 1000);
 
-  const hg = createHands(helper);
-  draw.add(hg.e);
+  const helper = new ImageHelper({ imageHostPath: "svg/", scale: 0.4 });
+  const fontCtx = getTableFontContext(helper);
 
-  const dg = createDiscards(helper, fontCtx, p);
-  dg.e.translate((hg.width - dg.width) / 2, (hg.height - dg.height) / 2);
-  draw.add(dg.e);
+  const hands: Hands = {
+    front: blocks,
+    right: blocks,
+    opposite: blocks,
+    left: blocks,
+  };
+  const discards: Discards = {
+    front: p,
+    right: p,
+    opposite: p,
+    left: p,
+  };
+
+  const handsGroup = createHands(helper, hands);
+  const discardsGroup = createDiscards(helper, discards);
+  discardsGroup.e.translate(
+    (handsGroup.width - discardsGroup.width) / 2,
+    (handsGroup.height - discardsGroup.height) / 2
+  );
+
+  const scoreGroup = createScoreRect(helper, fontCtx);
+  scoreGroup.e.translate(
+    (discardsGroup.width - scoreGroup.width) / 2,
+    handsGroup.height - discardsGroup.height
+  );
+
+  handsGroup.e.add(discardsGroup.e);
+  discardsGroup.e.add(scoreGroup.e);
+  draw.add(handsGroup.e);
 
   console.debug("handling");
   draw.addTo("#container");
