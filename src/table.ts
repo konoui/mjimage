@@ -18,6 +18,27 @@ interface Hands {
   left: Block[];
 }
 
+interface ScoreBoard {
+  doras: Pai[];
+  round:
+    | "東１局"
+    | "東２局"
+    | "東３局"
+    | "東４局"
+    | "南１局"
+    | "南２局"
+    | "南３局"
+    | "南４局";
+  sticks: { reach: number; dead: number };
+  score: {
+    front: number;
+    right: number;
+    opposite: number;
+    left: number;
+  };
+  frontPlace: "東" | "南" | "西" | "北";
+}
+
 interface FontContext {
   font: { family: string; size: number };
   textWidth: number;
@@ -110,15 +131,19 @@ const handleDiscard = (pp: Pai[], helper: ImageHelper) => {
   return g;
 };
 
-const createStickAndDora = (helper: ImageHelper, fontCtx: FontContext) => {
+const createStickAndDora = (
+  helper: ImageHelper,
+  fontCtx: FontContext,
+  scoreBoard: ScoreBoard
+) => {
   const font = fontCtx.font;
   const textWidth = fontCtx.textWidth;
   const textHeight = fontCtx.textHeight;
 
   const g = new G();
 
-  const num100 = 1;
-  const num1000 = 1;
+  const num100 = scoreBoard.sticks.dead;
+  const num1000 = scoreBoard.sticks.reach;
   const stickWidth = 125 * helper.scale;
   const stickHeight = 27.5 * helper.scale;
 
@@ -126,7 +151,10 @@ const createStickAndDora = (helper: ImageHelper, fontCtx: FontContext) => {
   let roundHeight = textHeight;
   const roundX = (stickWidth + helper.paiWidth + textWidth - roundWidth) / 2;
 
-  const roundText = new Text().text("東１局").font(font).move(roundX, 0);
+  const roundText = new Text()
+    .text(scoreBoard.round)
+    .font(font)
+    .move(roundX, 0);
   g.add(roundText);
 
   roundHeight += 25 * helper.scale; // margin
@@ -160,7 +188,7 @@ const createStickAndDora = (helper: ImageHelper, fontCtx: FontContext) => {
   stickGroup.add(text100);
 
   const doraImg = helper
-    .createImage(new Pai(Kind.M, 2), 0, 0)
+    .createImage(scoreBoard.doras[0], 0, 0)
     .move(stickWidth + textWidth, 0);
   stickGroup.add(doraImg);
 
@@ -216,7 +244,18 @@ const createHands = (helper: ImageHelper, hands: Hands) => {
   return { e: g, width: sizeWidth, height: sizeHeight };
 };
 
-const createScoreRect = (helper: ImageHelper, fontCtx: FontContext) => {
+const getPlaces = (front: "東" | "南" | "西" | "北") => {
+  if (front == "東") return ["東", "南", "西", "北"];
+  if (front == "南") return ["南", "西", "北", "東"];
+  if (front == "西") return ["西", "北", "東", "南"];
+  return ["北", "東", "南", "西"];
+};
+
+const createScoreBoard = (
+  helper: ImageHelper,
+  fontCtx: FontContext,
+  scoreBoard: ScoreBoard
+) => {
   const sizeWidth = helper.paiWidth * 5 + helper.paiHeight * 1; // 11111-1
 
   const g = new G();
@@ -228,33 +267,36 @@ const createScoreRect = (helper: ImageHelper, fontCtx: FontContext) => {
   const font = fontCtx.font;
   const textWidth = fontCtx.textWidth;
   const textHeight = fontCtx.textHeight;
-  const boardRect = createStickAndDora(helper, fontCtx);
+  const boardRect = createStickAndDora(helper, fontCtx, scoreBoard);
   boardRect.e.translate(
     sizeWidth / 2 - boardRect.width / 2,
     sizeWidth / 2 - boardRect.height / 2
   );
   g.add(boardRect.e);
 
+  const [frontPlace, rightPlace, oppositePlace, leftPlace] = getPlaces(
+    scoreBoard.frontPlace
+  );
   const frontText = new Text()
-    .plain("東")
+    .plain(frontPlace)
     .font(font)
     .move(sizeWidth / 2 - textWidth / 2, sizeWidth - textHeight);
   g.add(frontText);
 
   const rightText = new Text()
-    .plain("南")
+    .plain(rightPlace)
     .font(font)
     .move(sizeWidth - textWidth, sizeWidth / 2 - textHeight / 2);
   g.add(rightText);
 
   const oppositeText = new Text()
-    .plain("西")
+    .plain(oppositePlace)
     .font(font)
     .move(sizeWidth / 2 - textWidth / 2, 0);
   g.add(oppositeText);
 
   const leftText = new Text()
-    .plain("北")
+    .plain(leftPlace)
     .font(font)
     .move(0, sizeWidth / 2 - textHeight / 2);
   g.add(leftText);
@@ -328,6 +370,21 @@ export const handle = () => {
     opposite: p,
     left: p,
   };
+  const scoreBoard: ScoreBoard = {
+    round: "南４局",
+    score: {
+      front: 0,
+      right: 0,
+      opposite: 0,
+      left: 0,
+    },
+    frontPlace: "西",
+    sticks: {
+      reach: 1,
+      dead: 3,
+    },
+    doras: [new Pai(Kind.M, 3)],
+  };
 
   const handsGroup = createHands(helper, hands);
   const discardsGroup = createDiscards(helper, discards);
@@ -336,7 +393,7 @@ export const handle = () => {
     (handsGroup.height - discardsGroup.height) / 2
   );
 
-  const scoreGroup = createScoreRect(helper, fontCtx);
+  const scoreGroup = createScoreBoard(helper, fontCtx, scoreBoard);
   scoreGroup.e.translate(
     (discardsGroup.width - scoreGroup.width) / 2,
     handsGroup.height - discardsGroup.height
