@@ -4,21 +4,21 @@ import { SVG, Element, Text, G, Rect, Image } from "@svgdotjs/svg.js";
 import { FONT_FAMILY } from "./constants";
 import assert from "assert";
 
-interface Discards {
+export interface Discards {
   front: Pai[];
   right: Pai[];
   opposite: Pai[];
   left: Pai[];
 }
 
-interface Hands {
+export interface Hands {
   front: Block[];
   right: Block[];
   opposite: Block[];
   left: Block[];
 }
 
-interface ScoreBoard {
+export interface ScoreBoard {
   doras: Pai[];
   round:
     | "東１局"
@@ -39,7 +39,7 @@ interface ScoreBoard {
   frontPlace: "東" | "南" | "西" | "北";
 }
 
-interface FontContext {
+export interface FontContext {
   font: { family: string; size: number };
   textWidth: number;
   textHeight: number;
@@ -58,15 +58,17 @@ let contextFunc = (str: string, font: string | null = null) => {
   };
 };
 
-const getTableFontContext = (helper: ImageHelper): FontContext => {
+export const getTableFontContext = (helper: ImageHelper): FontContext => {
   const font = { family: FONT_FAMILY, size: 45 * helper.scale };
   const fontString = `${font.size}px ${font.family}`;
   const [textWidth, textHeight] = contextFunc("東", fontString)();
-  return {
+  const ctx = {
     font: font,
     textWidth: textWidth,
     textHeight: textHeight,
   };
+  console.debug("table font context", ctx);
+  return ctx;
 };
 
 const splitTiles = (input: Pai[]) => {
@@ -152,7 +154,7 @@ const createStickAndDora = (
   const roundX = (stickWidth + helper.paiWidth + textWidth - roundWidth) / 2;
 
   const roundText = new Text()
-    .text(scoreBoard.round)
+    .plain(scoreBoard.round)
     .font(font)
     .move(roundX, 0);
   g.add(roundText);
@@ -346,6 +348,33 @@ const createDiscards = (helper: ImageHelper, discards: Discards) => {
   return { e: g, width: sizeWidth, height: sizeHeight };
 };
 
+export const createTable = (
+  helper: ImageHelper,
+  fontCtx: FontContext,
+  handsProps: Hands,
+  discardsProps: Discards,
+  scoreBoardProps: ScoreBoard
+) => {
+  const g = new G();
+  const hands = createHands(helper, handsProps);
+  const discards = createDiscards(helper, discardsProps);
+  discards.e.translate(
+    (hands.width - discards.width) / 2,
+    (hands.height - discards.height) / 2
+  );
+
+  const scoreBoard = createScoreBoard(helper, fontCtx, scoreBoardProps);
+  scoreBoard.e.translate(
+    (hands.width - scoreBoard.width) / 2,
+    (hands.height - scoreBoard.height) / 2
+  );
+
+  g.add(hands.e);
+  g.add(discards.e);
+  g.add(scoreBoard.e);
+  return g;
+};
+
 export const handle = () => {
   const sampleDiscard = "123456789s12-3456789m1234p";
   const p = new Parser(sampleDiscard).parseInput();
@@ -386,23 +415,9 @@ export const handle = () => {
     doras: [new Pai(Kind.M, 3)],
   };
 
-  const handsGroup = createHands(helper, hands);
-  const discardsGroup = createDiscards(helper, discards);
-  discardsGroup.e.translate(
-    (handsGroup.width - discardsGroup.width) / 2,
-    (handsGroup.height - discardsGroup.height) / 2
-  );
+  const g = createTable(helper, fontCtx, hands, discards, scoreBoard);
 
-  const scoreGroup = createScoreBoard(helper, fontCtx, scoreBoard);
-  scoreGroup.e.translate(
-    (discardsGroup.width - scoreGroup.width) / 2,
-    handsGroup.height - discardsGroup.height
-  );
-
-  handsGroup.e.add(discardsGroup.e);
-  discardsGroup.e.add(scoreGroup.e);
-  draw.add(handsGroup.e);
-
+  draw.add(g);
   console.debug("handling");
   draw.addTo("#container");
 };
