@@ -33,6 +33,8 @@ test("table-svg1", () => {
     font: { family: FONT_FAMILY, size: 16 },
     textWidth: 16.040000915527344,
     textHeight: 16.040000915527344,
+    numWidth: 11.84,
+    numHeight: 11.84,
   };
 
   const hands: Hands = {
@@ -50,10 +52,10 @@ test("table-svg1", () => {
   const scoreBoard: ScoreBoard = {
     round: "南４局",
     score: {
-      front: 0,
-      right: 0,
-      opposite: 0,
-      left: 0,
+      front: 100,
+      right: 200,
+      opposite: 25000,
+      left: 9000,
     },
     frontPlace: "西",
     sticks: {

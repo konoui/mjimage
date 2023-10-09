@@ -43,6 +43,8 @@ export interface FontContext {
   font: { family: string; size: number };
   textWidth: number;
   textHeight: number;
+  numWidth: number;
+  numHeight: number;
 }
 
 let contextFunc = (str: string, font: string | null = null) => {
@@ -59,13 +61,16 @@ let contextFunc = (str: string, font: string | null = null) => {
 };
 
 export const getTableFontContext = (helper: ImageHelper): FontContext => {
-  const font = { family: FONT_FAMILY, size: 45 * helper.scale };
+  const font = { family: FONT_FAMILY, size: 40 * helper.scale };
   const fontString = `${font.size}px ${font.family}`;
   const [textWidth, textHeight] = contextFunc("東", fontString)();
+  const [numWidth, numHeight] = contextFunc("2", fontString)();
   const ctx = {
     font: font,
     textWidth: textWidth,
     textHeight: textHeight,
+    numWidth: numWidth,
+    numHeight: numHeight,
   };
   console.debug("table font context", ctx);
   return ctx;
@@ -85,7 +90,7 @@ const simpleRotate = (
   e: Element,
   width: number,
   height: number,
-  degree: 0 | 90 | 180 | 270 = 90
+  degree: 0 | 90 | 180 | 270
 ) => {
   const g = new G().add(e);
   if (degree == 90) {
@@ -260,9 +265,10 @@ const createScoreBoard = (
 ) => {
   const sizeWidth = helper.paiWidth * 5 + helper.paiHeight * 1; // 11111-1
 
-  const g = new G().size(sizeWidth, sizeWidth);
+  const g = new G();
   const rect = new Rect()
     .size(sizeWidth, sizeWidth)
+    .move(0, 0)
     .fill("none")
     .stroke("#000000");
   g.add(rect);
@@ -270,38 +276,56 @@ const createScoreBoard = (
   const font = fontCtx.font;
   const textWidth = fontCtx.textWidth;
   const textHeight = fontCtx.textHeight;
+  const numWidth = fontCtx.numWidth;
   const boardRect = createStickAndDora(helper, fontCtx, scoreBoard);
   boardRect.e.translate(
     sizeWidth / 2 - boardRect.width / 2,
     sizeWidth / 2 - boardRect.height / 2
   );
-  g.add(boardRect.e);
+
+  const createScore = (place: string, score: number) => {
+    const s = `${place} ${score}`;
+    const t = new Text().plain(s).font(font).move(0, 0);
+    const g = new G().add(t);
+    return {
+      e: g,
+      width: textWidth + numWidth * score.toString().length,
+      height: textHeight,
+    };
+  };
 
   const [frontPlace, rightPlace, oppositePlace, leftPlace] = getPlaces(
     scoreBoard.frontPlace
   );
-  const frontText = new Text()
-    .plain(frontPlace)
-    .font(font)
-    .move(sizeWidth / 2 - textWidth / 2, sizeWidth - textHeight);
+
+  let ft = createScore(frontPlace, scoreBoard.score.front);
+  const frontText = simpleRotate(ft.e, ft.width, ft.height, 0).translate(
+    sizeWidth / 2 - ft.width / 2,
+    sizeWidth - textHeight
+  );
+
+  let rt = createScore(rightPlace, scoreBoard.score.right);
+  const rightText = simpleRotate(rt.e, rt.width, rt.height, 270).translate(
+    sizeWidth - textWidth,
+    sizeWidth / 2 - rt.width / 2
+  );
+
+  let ot = createScore(oppositePlace, scoreBoard.score.opposite);
+  const oppositeText = simpleRotate(ot.e, ot.width, ot.height, 180).translate(
+    sizeWidth / 2 - ot.width / 2,
+    0
+  );
+
+  let lt = createScore(leftPlace, scoreBoard.score.left);
+  const leftText = simpleRotate(lt.e, lt.width, lt.height, 90).translate(
+    0,
+    sizeWidth / 2 - lt.width / 2
+  );
+
+  g.add(boardRect.e);
   g.add(frontText);
-
-  const rightText = new Text()
-    .plain(rightPlace)
-    .font(font)
-    .move(sizeWidth - textWidth, sizeWidth / 2 - textHeight / 2);
   g.add(rightText);
-
-  const oppositeText = new Text()
-    .plain(oppositePlace)
-    .font(font)
-    .move(sizeWidth / 2 - textWidth / 2, 0);
   g.add(oppositeText);
-
-  const leftText = new Text()
-    .plain(leftPlace)
-    .font(font)
-    .move(0, sizeWidth / 2 - textHeight / 2);
   g.add(leftText);
 
   return { e: g, width: sizeWidth, height: sizeWidth };
@@ -403,9 +427,9 @@ export const handle = () => {
   const scoreBoard: ScoreBoard = {
     round: "南４局",
     score: {
-      front: 0,
+      front: 25000,
       right: 0,
-      opposite: 0,
+      opposite: 30000,
       left: 0,
     },
     frontPlace: "西",
