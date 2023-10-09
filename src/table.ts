@@ -54,7 +54,7 @@ let contextFunc = (str: string, font: string | null = null) => {
     let width = metrics.width;
     let height =
       metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-    return [width, height];
+    return [width, width];
   };
 };
 
@@ -166,7 +166,7 @@ const createStickAndDora = (
     .size(stickWidth, stickGroupHeight)
     .translate(0, roundHeight);
 
-  const stickFont = { family: font.family, size: font.size * 0.86 };
+  const stickFont = { family: font.family, size: font.size * 0.7 };
   const stick1000 = new Image()
     .load(helper.makeImageHref("stick1000.svg"))
     .size(stickWidth, stickHeight)
@@ -174,7 +174,7 @@ const createStickAndDora = (
   const text1000 = new Text()
     .plain(num1000.toString())
     .font(stickFont)
-    .move(stickWidth, 0);
+    .attr({ x: stickWidth, y: stickHeight });
   stickGroup.add(stick1000);
   stickGroup.add(text1000);
 
@@ -185,7 +185,7 @@ const createStickAndDora = (
   const text100 = new Text()
     .plain(num100.toString())
     .font(stickFont)
-    .move(stickWidth, stickHeight + stickHeight);
+    .attr({ x: stickWidth, y: stickHeight * 3 });
   stickGroup.add(stick100);
   stickGroup.add(text100);
 
@@ -260,10 +260,11 @@ const createScoreBoard = (
 ) => {
   const sizeWidth = helper.paiWidth * 5 + helper.paiHeight * 1; // 11111-1
 
-  const g = new G();
+  const g = new G().size(sizeWidth, sizeWidth);
   const rect = new Rect()
     .size(sizeWidth, sizeWidth)
-    .attr({ fill: "none", stroke: "#000000" });
+    .fill("none")
+    .stroke("#000000");
   g.add(rect);
 
   const font = fontCtx.font;

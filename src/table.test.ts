@@ -30,9 +30,9 @@ test("table-svg1", () => {
   });
   // FIXME using node canvas
   const fontCtx: FontContext = {
-    font: { family: FONT_FAMILY, size: 18 },
-    textWidth: 18,
-    textHeight: 16.289998779296877,
+    font: { family: FONT_FAMILY, size: 16 },
+    textWidth: 16.040000915527344,
+    textHeight: 16.040000915527344,
   };
 
   const hands: Hands = {
