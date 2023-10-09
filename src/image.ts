@@ -20,8 +20,8 @@ class BaseHelper {
   readonly scale: number;
   constructor(props: ImageHelperConfig = {}) {
     this.scale = props.scale ? props.scale : 1;
-    this.image_host_path = props.imageHostPath ? props.imageHostPath : "";
-    this.image_host_url = props.imageHostUrl ? props.imageHostUrl : "";
+    this.image_host_path = props.imageHostPath ?? "";
+    this.image_host_url = props.imageHostUrl ?? "";
     this.paiWidth = paiContext.width * this.scale;
     this.paiHeight = paiContext.height * this.scale;
     this.textWidth = this.paiWidth * 0.8; // sum of 4 string
@@ -91,7 +91,7 @@ class BaseHelper {
 
   makeImageHref(filename: string) {
     if (this.image_host_url != "") {
-      return `${this.image_host_url.toString()}${filename}`;
+      return `${this.image_host_url}${filename}`;
     }
     return `${this.image_host_path}${filename}`;
   }
@@ -223,7 +223,7 @@ const getBlockCreators = (h: ImageHelper) => {
       const width = 0;
       const height = 0;
       const g = new G();
-      return { width: width, height: height, e: g };
+      throw new Error("found unknown block");
     },
   };
 
