@@ -90,24 +90,26 @@ const simpleRotate = (
   e: Element,
   width: number,
   height: number,
-  degree: 0 | 90 | 180 | 270
+  degree: 0 | 90 | 180 | 270,
+  x: number = 0,
+  y: number = 0
 ) => {
   const g = new G().add(e);
   if (degree == 90) {
-    const translatedX = 0;
-    const translatedY = 0 - height;
+    const translatedX = x;
+    const translatedY = y - height;
     g.rotate(degree, 0, height).translate(translatedX, translatedY);
     return g;
   }
   if (degree == 180) {
-    const translatedX = 0 + width;
-    const translatedY = 0 - height;
+    const translatedX = x + width;
+    const translatedY = y - height;
     g.rotate(degree, 0, height).translate(translatedX, translatedY);
     return g;
   }
   if (degree == 270) {
-    const translatedX = 0 + height;
-    const translatedY = 0 + (width - height);
+    const translatedX = x + height;
+    const translatedY = y + (width - height);
     g.rotate(degree, 0, height).translate(translatedX, translatedY);
     return g;
   }
@@ -283,9 +285,10 @@ const createScoreBoard = (
     sizeWidth / 2 - boardRect.height / 2
   );
 
-  const createScore = (place: string, score: number) => {
+  const createScore = (place: string, score: number, attr: any) => {
+    // http://defghi1977.html.xdomain.jp/tech/svgMemo/svgMemo_08.htm
     const s = `${place} ${score}`;
-    const t = new Text().plain(s).font(font).move(0, 0);
+    const t = new Text().plain(s).font(font).attr(attr);
     const g = new G().add(t);
     return {
       e: g,
@@ -298,28 +301,39 @@ const createScoreBoard = (
     scoreBoard.frontPlace
   );
 
-  let ft = createScore(frontPlace, scoreBoard.score.front);
-  const frontText = simpleRotate(ft.e, ft.width, ft.height, 0).translate(
-    sizeWidth / 2 - ft.width / 2,
-    sizeWidth - textHeight
-  );
+  let ft = createScore(frontPlace, scoreBoard.score.front, {
+    x: sizeWidth / 2,
+    y: sizeWidth,
+    "dominant-baseline": "text-after-edge",
+    "text-anchor": "middle",
+  });
+  const frontText = ft.e;
 
-  let rt = createScore(rightPlace, scoreBoard.score.right);
+  let rt = createScore(rightPlace, scoreBoard.score.right, {
+    "dominant-baseline": "text-after-edge",
+    "text-anchor": "middle",
+  });
   const rightText = simpleRotate(rt.e, rt.width, rt.height, 270).translate(
-    sizeWidth - textWidth,
-    sizeWidth / 2 - rt.width / 2
+    sizeWidth,
+    sizeWidth / 2 - rt.width
   );
 
-  let ot = createScore(oppositePlace, scoreBoard.score.opposite);
+  let ot = createScore(oppositePlace, scoreBoard.score.opposite, {
+    "text-anchor": "middle",
+    "dominant-baseline": "text-after-edge",
+  });
   const oppositeText = simpleRotate(ot.e, ot.width, ot.height, 180).translate(
-    sizeWidth / 2 - ot.width / 2,
-    0
+    sizeWidth / 2 - ot.width,
+    -ot.height
   );
 
-  let lt = createScore(leftPlace, scoreBoard.score.left);
+  let lt = createScore(leftPlace, scoreBoard.score.left, {
+    "dominant-baseline": "ideographic",
+    "text-anchor": "middle",
+  });
   const leftText = simpleRotate(lt.e, lt.width, lt.height, 90).translate(
-    0,
-    sizeWidth / 2 - lt.width / 2
+    -lt.height,
+    sizeWidth / 2
   );
 
   g.add(boardRect.e);
