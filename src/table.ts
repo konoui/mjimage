@@ -1,43 +1,15 @@
-import { Pai, Operator, Parser, Kind, Block } from "./parser";
+import { Pai, Operator } from "./parser";
 import { ImageHelper, createHand } from "./image";
 import { SVG, Element, Text, G, Rect, Image } from "@svgdotjs/svg.js";
 import { FONT_FAMILY } from "./constants";
+import {
+  Discards,
+  ScoreBoard,
+  Hands,
+  parserTableInput,
+  convertInput,
+} from "./table-parser";
 import assert from "assert";
-
-export interface Discards {
-  front: Pai[];
-  right: Pai[];
-  opposite: Pai[];
-  left: Pai[];
-}
-
-export interface Hands {
-  front: Block[];
-  right: Block[];
-  opposite: Block[];
-  left: Block[];
-}
-
-export interface ScoreBoard {
-  doras: Pai[];
-  round:
-    | "東１局"
-    | "東２局"
-    | "東３局"
-    | "東４局"
-    | "南１局"
-    | "南２局"
-    | "南３局"
-    | "南４局";
-  sticks: { reach: number; dead: number };
-  score: {
-    front: number;
-    right: number;
-    opposite: number;
-    left: number;
-  };
-  frontPlace: "東" | "南" | "西" | "北";
-}
 
 export interface FontContext {
   font: { family: string; size: number };
@@ -301,7 +273,8 @@ const createScoreBoard = (
     scoreBoard.frontPlace
   );
 
-  let ft = createScore(frontPlace, scoreBoard.score.front, {
+  const scores = scoreBoard.scores;
+  let ft = createScore(frontPlace, scores.front, {
     x: sizeWidth / 2,
     y: sizeWidth,
     "dominant-baseline": "text-after-edge",
@@ -309,7 +282,8 @@ const createScoreBoard = (
   });
   const frontText = ft.e;
 
-  let rt = createScore(rightPlace, scoreBoard.score.right, {
+  // Note TODO why it works
+  let rt = createScore(rightPlace, scores.right, {
     "dominant-baseline": "text-after-edge",
     "text-anchor": "middle",
   });
@@ -318,7 +292,7 @@ const createScoreBoard = (
     sizeWidth / 2 - rt.width
   );
 
-  let ot = createScore(oppositePlace, scoreBoard.score.opposite, {
+  let ot = createScore(oppositePlace, scores.opposite, {
     "text-anchor": "middle",
     "dominant-baseline": "text-after-edge",
   });
@@ -327,7 +301,7 @@ const createScoreBoard = (
     -ot.height
   );
 
-  let lt = createScore(leftPlace, scoreBoard.score.left, {
+  let lt = createScore(leftPlace, scores.left, {
     "dominant-baseline": "ideographic",
     "text-anchor": "middle",
   });
@@ -411,52 +385,46 @@ export const createTable = (
   g.add(hands.e);
   g.add(discards.e);
   g.add(scoreBoard.e);
-  return g;
+  return { e: g, weight: hands.width, height: hands.height };
 };
 
 export const handle = () => {
-  const sampleDiscard = "123456789s12-3456789m1234p";
-  const p = new Parser(sampleDiscard).parseInput();
-
-  const sampleHand = "2s, -1111p, -1111s, -1111m, -2222m, t3s";
-  const blocks = new Parser(sampleHand).parse();
-
-  const draw = SVG().size(1000, 1000);
-
   const helper = new ImageHelper({ imageHostPath: "svg/", scale: 0.4 });
   const fontCtx = getTableFontContext(helper);
 
-  const hands: Hands = {
-    front: blocks,
-    right: blocks,
-    opposite: blocks,
-    left: blocks,
-  };
-  const discards: Discards = {
-    front: p,
-    right: p,
-    opposite: p,
-    left: p,
-  };
-  const scoreBoard: ScoreBoard = {
-    round: "南４局",
-    score: {
-      front: 25000,
-      right: 0,
-      opposite: 30000,
-      left: 0,
-    },
-    frontPlace: "西",
-    sticks: {
-      reach: 1,
-      dead: 3,
-    },
-    doras: [new Pai(Kind.M, 3)],
-  };
+  const input = `
+table:
+  discards:
+    1w: 1m
+    2w: 2m
+    3w: 3m
+    4w: 4m
+  hands:
+    1w: 123456789m12345s,t3s
+    2w: 123456789m12345s
+    3w: 123456789m12345s
+    4w: 123456789m12345s
+  scores:
+    1w: 0
+    2w: 3000
+    3w: 25000
+    4w: 12000
+  board:
+    doras:
+      - 1m
+    sticks:
+      reach: 1
+      dead: 3
+    round: 1w1
+  `;
+
+  const i = parserTableInput(input);
+  const [discards, hands, scoreBoard] = convertInput(i);
 
   const g = createTable(helper, fontCtx, hands, discards, scoreBoard);
 
-  draw.add(g);
+  const draw = SVG().size(g.weight, g.height).move(0, 0);
+  draw.add(g.e);
   console.debug("handling");
   draw.addTo("#container");
 };

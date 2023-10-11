@@ -6,7 +6,8 @@ import { config } from "svgdom";
 import fs from "fs";
 import { Pai, Parser, Kind } from "./parser";
 import { ImageHelper } from "./image";
-import { createTable, Discards, Hands, ScoreBoard, FontContext } from "./table";
+import { createTable, FontContext } from "./table";
+import { Discards, ScoreBoard, Hands } from "./table-parser";
 import { FONT_FAMILY } from "./constants";
 
 const window = createHTMLWindow();
@@ -51,7 +52,7 @@ test("table-svg1", () => {
   };
   const scoreBoard: ScoreBoard = {
     round: "南４局",
-    score: {
+    scores: {
       front: 100,
       right: 200,
       opposite: 25000,
@@ -69,7 +70,7 @@ test("table-svg1", () => {
 
   const g = createTable(helper, fontCtx, hands, discards, scoreBoard);
 
-  draw.add(g);
+  draw.add(g.e);
   const got = draw.svg();
   const gotPath = "testdata/table-svg1.svg";
   if (update) fs.writeFileSync("testdata/table-svg1.svg", got);
