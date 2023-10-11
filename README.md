@@ -42,39 +42,37 @@
 1. 4 人の捨て牌
 2. 4 人の手配
 3. 東、南、西、北
-4. ドラ
+4. ドラ（複数）
 5. リーチ棒、供託
 6. 点数状況
 7. 南 4 局など
 8. 手前が東、南など
 
-discard: {
-1w: {}
-2w: {}
-3w: {}
-4w: {}
-}
-
-hand: {
-1w: {}
-2w: {}
-3w: {}
-4w: {}
-}
-
-score: {
-1w:
-2w:
-3w:
-4w:
-}
-
-table: {
-dora:
-reach:
-dead:
-round: 1z1
-}
+```yaml
+table:
+  discards:
+    1w: a
+    2w: b
+    3w: c
+    4w: d
+  hands:
+    1w: a
+    2w: b
+    3w: c
+    4w: d
+  scores:
+    1w: 1
+    2w: 2
+    3w: 3
+    4w: 4
+  board:
+    doras:
+      - 1m
+    sticks:
+      reach: 1
+      dead: 3
+    round: 1z1
+```
 
 ### 牌画像
 
