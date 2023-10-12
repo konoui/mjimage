@@ -109,7 +109,12 @@ const handleDiscard = (pp: Pai[], helper: ImageHelper) => {
       posX += helper.paiWidth;
     }
   }
-  return g;
+  // width is 11111-1
+  return {
+    e: g,
+    width: helper.paiWidth * 5 + helper.paiHeight * 1,
+    height: helper.paiHeight * chunks.length,
+  };
 };
 
 const createStickAndDora = (
@@ -183,23 +188,26 @@ const createStickAndDora = (
   };
 };
 
-const createHands = (helper: ImageHelper, hands: Hands) => {
-  // max case: "2s, -1111p, 1111s, -1111m, -2222m t3s"
-  const sizeWidth =
-    helper.paiWidth +
-    (helper.paiHeight + helper.paiWidth * 3) * 4 +
-    helper.paiWidth +
-    helper.textWidth +
-    helper.blockMargin * 5 +
-    helper.paiWidth * 2; // additional margin
-  const sizeHeight = sizeWidth;
-
-  const g = new G().size(sizeWidth, sizeHeight);
-
+const createHands = (
+  helper: ImageHelper,
+  hands: Hands,
+  minWidth: number = 0
+) => {
   const fe = createHand(hands.front, helper);
   const re = createHand(hands.right, helper);
   const oe = createHand(hands.opposite, helper);
   const le = createHand(hands.left, helper);
+  const maxWidth = [fe.width, re.width, oe.width, le.width].reduce((a, b) =>
+    Math.max(a, b)
+  );
+  const sizeWidth = Math.max(
+    minWidth + helper.paiHeight * 2 + helper.blockMargin * 2,
+    maxWidth + helper.paiWidth * 2 + helper.blockMargin
+  ); // additional margin
+  const sizeHeight = sizeWidth;
+
+  const g = new G().size(sizeWidth, sizeHeight);
+
   const front = simpleRotate(fe.e, fe.width, fe.height, 0).translate(
     (sizeWidth - fe.width) / 2,
     sizeHeight - fe.height
@@ -320,10 +328,19 @@ const createScoreBoard = (
 };
 
 const createDiscards = (helper: ImageHelper, discards: Discards) => {
-  const discardWidth = helper.paiWidth * 5 + helper.paiHeight * 1; // 11111-1
-  const discardHeight = helper.paiHeight * 4;
+  const fe = handleDiscard(discards.front, helper);
+  const re = handleDiscard(discards.right, helper);
+  const oe = handleDiscard(discards.opposite, helper);
+  const le = handleDiscard(discards.left, helper);
 
-  const sizeWidth = helper.paiWidth * 18;
+  const maxDiscardHeight = [fe.height, re.height, oe.height, le.height].reduce(
+    (a, b) => Math.max(a, b)
+  );
+
+  const discardWidth = helper.paiWidth * 5 + helper.paiHeight * 1; // 11111-1
+  const discardHeight = maxDiscardHeight; // using dynamic value. max value is pai height * 4
+
+  const sizeWidth = discardWidth + maxDiscardHeight * 2 + helper.blockMargin; // add margin
   const sizeHeight = sizeWidth;
 
   const g = new G().size(sizeWidth, sizeHeight);
@@ -331,32 +348,31 @@ const createDiscards = (helper: ImageHelper, discards: Discards) => {
   const centerX = sizeWidth / 2 - discardWidth / 2;
   const centerY = sizeHeight / 2 - discardWidth / 2;
 
-  let front = handleDiscard(discards.front, helper);
-  front = simpleRotate(front, discardWidth, discardHeight, 0).translate(
+  const front = simpleRotate(fe.e, discardWidth, discardHeight, 0).translate(
     centerX,
     sizeHeight - discardHeight
   );
-  g.add(front);
 
-  let right = handleDiscard(discards.right, helper);
-  right = simpleRotate(right, discardWidth, discardHeight, 270).translate(
+  const right = simpleRotate(re.e, discardWidth, discardHeight, 270).translate(
     sizeWidth - discardHeight,
     centerY
   );
-  g.add(right);
 
-  let opposite = handleDiscard(discards.opposite, helper);
-  opposite = simpleRotate(opposite, discardWidth, discardHeight, 180).translate(
-    centerX,
-    0
-  );
-  g.add(opposite);
+  const opposite = simpleRotate(
+    oe.e,
+    discardWidth,
+    discardHeight,
+    180
+  ).translate(centerX, 0);
 
-  let left = handleDiscard(discards.left, helper);
-  left = simpleRotate(left, discardWidth, discardHeight, 90).translate(
+  const left = simpleRotate(le.e, discardWidth, discardHeight, 90).translate(
     0,
     centerY
   );
+
+  g.add(front);
+  g.add(right);
+  g.add(opposite);
   g.add(left);
   return { e: g, width: sizeWidth, height: sizeHeight };
 };
@@ -369,14 +385,14 @@ export const createTable = (
   scoreBoardProps: ScoreBoard
 ) => {
   const g = new G();
-  const hands = createHands(helper, handsProps);
   const discards = createDiscards(helper, discardsProps);
+  const hands = createHands(helper, handsProps, discards.height);
+  const scoreBoard = createScoreBoard(helper, fontCtx, scoreBoardProps);
   discards.e.translate(
     (hands.width - discards.width) / 2,
     (hands.height - discards.height) / 2
   );
 
-  const scoreBoard = createScoreBoard(helper, fontCtx, scoreBoardProps);
   scoreBoard.e.translate(
     (hands.width - scoreBoard.width) / 2,
     (hands.height - scoreBoard.height) / 2
@@ -395,12 +411,12 @@ export const handle = () => {
   const input = `
 table:
   discards:
-    1w: 1m
+    1w: 11244444444444444m
     2w: 2m
     3w: 3m
     4w: 4m
   hands:
-    1w: 123456789m12345s,t3s
+    1w: 123456789m1234s,t3s
     2w: 123456789m12345s
     3w: 123456789m12345s
     4w: 123456789m12345s
