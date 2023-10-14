@@ -1,6 +1,6 @@
 import assert from "assert";
 import { Parser } from "./parser";
-import { drawBlocks, paiContext, ImageHelperConfig } from "./image";
+import { drawBlocks, tileContext, ImageHelperConfig } from "./image";
 import { SVG } from "@svgdotjs/svg.js";
 
 interface InitializeConfig extends Omit<ImageHelperConfig, "scale"> {
@@ -26,13 +26,11 @@ function getTextHeight(font: string) {
 export class mjimage {
   static initialize = (props: InitializeConfig = {}) => {
     console.debug("initializing....");
-    let querySelector = props.querySelector
-      ? props.querySelector
-      : defaultQuerySelector;
-    let scale = props.scale ? props.scale : defaultScale;
+    let querySelector = props.querySelector ?? defaultQuerySelector;
+    let scale = props.scale ?? defaultScale;
     if (typeof querySelector === "string") querySelector = [querySelector];
 
-    const maxPaiHeight = paiContext.width * 2;
+    const maxPaiHeight = tileContext.width * 2;
     querySelector.forEach((qs) => {
       console.debug("try to find", qs);
       const targets = document.querySelectorAll(qs) as NodeListOf<HTMLElement>;

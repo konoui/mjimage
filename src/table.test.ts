@@ -4,7 +4,7 @@ import { createHTMLWindow } from "svgdom";
 // @ts-ignore, https://github.com/DefinitelyTyped/DefinitelyTyped/pull/66501/files
 import { config } from "svgdom";
 import fs from "fs";
-import { Pai, Parser, Kind } from "./parser";
+import { Tile, Parser, Kind } from "./parser";
 import { ImageHelper } from "./image";
 import { createTable, FontContext } from "./table";
 import { Discards, ScoreBoard, Hands } from "./table-parser";
@@ -63,7 +63,7 @@ test("table-svg1", () => {
       reach: 1,
       dead: 3,
     },
-    doras: [new Pai(Kind.M, 3)],
+    doras: [new Tile(Kind.M, 3)],
   };
 
   const draw = SVG();
