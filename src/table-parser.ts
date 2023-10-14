@@ -1,15 +1,16 @@
 import { parse } from "yaml";
 import { Tile, Parser, Block } from "./parser";
+import { WIND_MAP, ROUND_MAP } from "./constants";
 
 export interface TableInput {
   discards: {
-    [K in tableWindow]: string;
+    [K in tableWind]: string;
   };
   hands: {
-    [K in tableWindow]: string;
+    [K in tableWind]: string;
   };
   scores: {
-    [K in tableWindow]: number;
+    [K in tableWind]: number;
   };
   board: {
     round: tableRound;
@@ -18,25 +19,25 @@ export interface TableInput {
       dead: number;
     };
     doras: string[];
-    front?: tableWindow;
+    front?: tableWind;
   };
 }
 
-export interface Discards {
+export interface DiscardsInput {
   front: Tile[];
   right: Tile[];
   opposite: Tile[];
   left: Tile[];
 }
 
-export interface Hands {
+export interface HandsInput {
   front: Block[];
   right: Block[];
   opposite: Block[];
   left: Block[];
 }
 
-export interface ScoreBoard {
+export interface ScoreBoardInput {
   doras: Tile[];
   round: boardRound;
   sticks: { reach: number; dead: number };
@@ -46,31 +47,13 @@ export interface ScoreBoard {
     opposite: number;
     left: number;
   };
-  frontPlace: boardWindow;
+  frontPlace: boardWind;
 }
 
-const ROUND_MAP = {
-  "1w1": "東１局",
-  "1w2": "東２局",
-  "1w3": "東３局",
-  "1w4": "東４局",
-  "2w1": "南１局",
-  "2w2": "南２局",
-  "2w3": "南３局",
-  "2w4": "南４局",
-} as const;
-
-const WINDOW_MAP = {
-  "1w": "東",
-  "2w": "南",
-  "3w": "西",
-  "4w": "北",
-} as const;
-
-type tableWindow = keyof typeof WINDOW_MAP;
+type tableWind = keyof typeof WIND_MAP;
 type tableRound = keyof typeof ROUND_MAP;
 type boardRound = (typeof ROUND_MAP)[keyof typeof ROUND_MAP];
-type boardWindow = (typeof WINDOW_MAP)[keyof typeof WINDOW_MAP];
+type boardWind = (typeof WIND_MAP)[keyof typeof WIND_MAP];
 
 export const parserTableInput = (s: string) => {
   const input = parse(s) as { table: TableInput };
@@ -78,26 +61,28 @@ export const parserTableInput = (s: string) => {
   return input.table;
 };
 
-export const convertInput = (i: TableInput): [Discards, Hands, ScoreBoard] => {
+export const convertInput = (
+  i: TableInput
+): [DiscardsInput, HandsInput, ScoreBoardInput] => {
   console.log("table input", i);
   const frontPlace = i.board.front || "1w";
   const m = createPlaceMap(frontPlace);
-  const discards: Discards = {
+  const discards: DiscardsInput = {
     front: new Parser(i.discards[m.front]).parseInput(),
     right: new Parser(i.discards[m.right]).parseInput(),
     opposite: new Parser(i.discards[m.opposite]).parseInput(),
     left: new Parser(i.discards[m.left]).parseInput(),
   };
-  const hands: Hands = {
+  const hands: HandsInput = {
     front: new Parser(i.hands[m.front]).parse(),
     right: new Parser(i.hands[m.right]).parse(),
     opposite: new Parser(i.hands[m.opposite]).parse(),
     left: new Parser(i.hands[m.left]).parse(),
   };
 
-  const scoreBoard: ScoreBoard = {
+  const scoreBoard: ScoreBoardInput = {
     round: ROUND_MAP[i.board.round],
-    frontPlace: WINDOW_MAP[frontPlace],
+    frontPlace: WIND_MAP[frontPlace],
     sticks: i.board.sticks,
     doras: i.board.doras.map((v) => {
       return new Parser(v).parseInput()[0];
@@ -113,17 +98,17 @@ export const convertInput = (i: TableInput): [Discards, Hands, ScoreBoard] => {
 };
 
 const createPlaceMap = (
-  front: tableWindow
+  front: tableWind
 ): {
-  front: tableWindow;
-  right: tableWindow;
-  opposite: tableWindow;
-  left: tableWindow;
+  front: tableWind;
+  right: tableWind;
+  opposite: tableWind;
+  left: tableWind;
 } => {
-  const f = (start: number, v: number): tableWindow => {
+  const f = (start: number, v: number): tableWind => {
     let ret = `${v}w`;
     if (v > 4) ret = `${v - start}w`;
-    return ret as tableWindow;
+    return ret as tableWind;
   };
 
   const start = Number(front[0]);

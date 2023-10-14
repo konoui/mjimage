@@ -4,11 +4,11 @@ import { createHTMLWindow } from "svgdom";
 // @ts-ignore, https://github.com/DefinitelyTyped/DefinitelyTyped/pull/66501/files
 import { config } from "svgdom";
 import fs from "fs";
-import { Tile, Parser, Kind } from "./parser";
+import { Tile, Parser } from "./parser";
 import { ImageHelper } from "./image";
 import { createTable, FontContext } from "./table";
-import { Discards, ScoreBoard, Hands } from "./table-parser";
-import { FONT_FAMILY } from "./constants";
+import { DiscardsInput, ScoreBoardInput, HandsInput } from "./table-parser";
+import { FONT_FAMILY, KIND } from "./constants";
 
 const window = createHTMLWindow();
 const document = window.document;
@@ -38,19 +38,19 @@ test("table-svg1", () => {
     numHeight: 11.84,
   };
 
-  const hands: Hands = {
+  const hands: HandsInput = {
     front: blocks,
     right: blocks,
     opposite: blocks,
     left: blocks,
   };
-  const discards: Discards = {
+  const discards: DiscardsInput = {
     front: p,
     right: p,
     opposite: p,
     left: p,
   };
-  const scoreBoard: ScoreBoard = {
+  const scoreBoard: ScoreBoardInput = {
     round: "南４局",
     scores: {
       front: 100,
@@ -63,7 +63,7 @@ test("table-svg1", () => {
       reach: 1,
       dead: 3,
     },
-    doras: [new Tile(Kind.M, 3)],
+    doras: [new Tile(KIND.M, 3)],
   };
 
   const draw = SVG();

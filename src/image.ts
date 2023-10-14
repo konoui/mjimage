@@ -1,7 +1,7 @@
 import assert from "assert";
-import { Tile, Operator, Block, BlockType, Kind } from "./parser";
+import { Tile, Block } from "./parser";
 import { Svg, G, Image, Text } from "@svgdotjs/svg.js";
-import { FONT_FAMILY, TILE_CONTEXT } from "./constants";
+import { FONT_FAMILY, TILE_CONTEXT, KIND, OPERATOR, BLOCK } from "./constants";
 
 export interface ImageHelperConfig {
   scale?: number;
@@ -18,11 +18,11 @@ class BaseHelper {
   readonly image_host_url: string;
   readonly scale: number;
   constructor(props: ImageHelperConfig = {}) {
-    this.scale = props.scale ? props.scale : 1;
+    this.scale = props.scale ?? 1;
     this.image_host_path = props.imageHostPath ?? "";
     this.image_host_url = props.imageHostUrl ?? "";
-    this.tileWidth = TILE_CONTEXT.width * this.scale;
-    this.tileHeight = TILE_CONTEXT.height * this.scale;
+    this.tileWidth = TILE_CONTEXT.WIDTH * this.scale;
+    this.tileHeight = TILE_CONTEXT.HEIGHT * this.scale;
     this.textWidth = this.tileWidth * 0.8; // sum of 4 string
     this.diffTileHeightWidth = (this.tileHeight - this.tileWidth) / 2;
   }
@@ -108,10 +108,10 @@ export class ImageHelper extends BaseHelper {
 
   createBlockPonChiKan(block: Block) {
     const idx = block.p.findIndex((d) => {
-      return d.op === Operator.Horizontal;
+      return d.op === OPERATOR.HORIZONTAL;
     });
 
-    if (block.type == BlockType.ShoKan) {
+    if (block.type == BLOCK.SHO_KAN) {
       let pos = 0;
       const diff = this.tileWidth * 2 - this.tileHeight;
       const g = new G();
@@ -154,46 +154,46 @@ export class ImageHelper extends BaseHelper {
 
 const getBlockCreators = (h: ImageHelper) => {
   const lookup = {
-    [BlockType.Chi]: function (block: Block) {
+    [BLOCK.CHI]: function (block: Block) {
       const width = h.tileWidth * 2 + h.tileHeight;
       const height = h.tileHeight;
       const g = h.createBlockPonChiKan(block);
       return { width: width, height: height, e: g };
     },
-    [BlockType.Pon]: function (block: Block) {
+    [BLOCK.PON]: function (block: Block) {
       const width = h.tileWidth * 2 + h.tileHeight;
       const height = h.tileHeight;
       const g = h.createBlockPonChiKan(block);
       return { width: width, height: height, e: g };
     },
-    [BlockType.DaiKan]: function (block: Block) {
+    [BLOCK.DAI_KAN]: function (block: Block) {
       const width = h.tileWidth * 3 + h.tileHeight;
       const height = h.tileHeight;
       const g = h.createBlockPonChiKan(block);
       return { width: width, height: height, e: g };
     },
-    [BlockType.ShoKan]: function (block: Block) {
+    [BLOCK.SHO_KAN]: function (block: Block) {
       const width = h.tileWidth * 2 + h.tileHeight;
       const height = h.tileWidth * 2;
       const g = h.createBlockPonChiKan(block);
       return { width: width, height: height, e: g };
     },
-    [BlockType.AnKan]: function (block: Block) {
+    [BLOCK.AN_KAN]: function (block: Block) {
       const width = h.tileWidth * 4;
       const height = h.tileHeight;
       const zp = block.p.find((v) => {
-        return v.k !== Kind.Back;
+        return v.k !== KIND.BACK;
       });
       assert(zp != null);
       const g = h.createBlockOther([
-        new Tile(Kind.Back, 0),
+        new Tile(KIND.BACK, 0),
         zp,
         zp,
-        new Tile(Kind.Back, 0),
+        new Tile(KIND.BACK, 0),
       ]);
       return { width: width, height: height, e: g };
     },
-    [BlockType.Dora]: function (block: Block) {
+    [BLOCK.DORA]: function (block: Block) {
       const width = h.tileWidth + h.textWidth;
       const height = h.tileHeight; // note not contains text height
       const g = new G();
@@ -201,7 +201,7 @@ const getBlockCreators = (h: ImageHelper) => {
       g.add(img);
       return { width: width, height: height, e: g };
     },
-    [BlockType.Tsumo]: function (block: Block) {
+    [BLOCK.TSUMO]: function (block: Block) {
       const width = h.tileWidth + h.textWidth;
       const height = h.tileHeight; // note not contains text height
       const g = new G();
@@ -209,13 +209,13 @@ const getBlockCreators = (h: ImageHelper) => {
       g.add(img);
       return { width: width, height: height, e: g };
     },
-    [BlockType.Other]: function (block: Block) {
+    [BLOCK.OTHER]: function (block: Block) {
       const width = h.tileWidth * block.p.length;
       const height = h.tileHeight;
       const g = h.createBlockOther(block.p);
       return { width: width, height: height, e: g };
     },
-    [BlockType.Unknown]: function (block: Block) {
+    [BLOCK.UNKNOWN]: function (block: Block) {
       const width = 0;
       const height = 0;
       const g = new G();
