@@ -1,4 +1,5 @@
 import { Lexer } from "./lexer";
+import { BLOCK, OPERATOR, KIND } from "./constants";
 
 export const tileSortFunc = (i: Tile, j: Tile) => {
   if (i.k == j.k) {
@@ -8,56 +9,34 @@ export const tileSortFunc = (i: Tile, j: Tile) => {
   }
 
   const lookup: Record<Kind, number> = {
-    [Kind.M]: 1,
-    [Kind.P]: 2,
-    [Kind.S]: 3,
-    [Kind.Z]: 4,
-    [Kind.Back]: 5,
-    [Kind.Separator]: 6,
+    [KIND.M]: 1,
+    [KIND.P]: 2,
+    [KIND.S]: 3,
+    [KIND.Z]: 4,
+    [KIND.BACK]: 5,
+    [KIND.SEPARATOR]: 6,
   };
   return lookup[i.k] - lookup[j.k];
 };
 
-export enum Kind {
-  M = "m",
-  P = "p",
-  S = "s",
-  Z = "z",
-  Back = "_",
-  Separator = ",",
-}
+type Kind = (typeof KIND)[keyof typeof KIND];
 
 export function isKind(v: string): [Kind, boolean] {
-  switch (v) {
-    case Kind.M:
-    case Kind.P:
-    case Kind.S:
-    case Kind.Z:
+  for (let k of Object.values(KIND)) {
+    if (k == v) {
       return [v, true];
-    case Kind.Back:
-      return [v, true];
-    case Kind.Separator:
-      return [v, true];
-    default:
-      return [Kind.Back, false];
+    }
   }
+  return [KIND.BACK, false];
 }
 
-export enum Operator {
-  Tsumo = "t",
-  Dora = "d",
-  Horizontal = "-",
-}
+type Operator = (typeof OPERATOR)[keyof typeof OPERATOR];
 
 export class Tile {
-  constructor(
-    public k: Kind,
-    public n: number,
-    public op: Operator | null = null
-  ) {}
+  constructor(public k: Kind, public n: number, public op?: Operator) {}
 
   toString(): string {
-    if (this.k === Kind.Back || this.k === Kind.Separator) return this.k;
+    if (this.k === KIND.BACK || this.k === KIND.SEPARATOR) return this.k;
     const op = this.op != null ? this.op : "";
     return `${op}${this.n}${this.k}`;
   }
@@ -67,24 +46,14 @@ export class Tile {
   }
 }
 
-export enum BlockType {
-  Pon = 1,
-  Chi,
-  ShoKan,
-  DaiKan,
-  AnKan,
-  Dora,
-  Tsumo,
-  Other,
-  Unknown,
-}
+type BLOCK = (typeof BLOCK)[keyof typeof BLOCK];
 
 export class Block {
-  constructor(public p: Tile[], public type: BlockType) {
-    if (type == BlockType.Chi) {
+  constructor(public p: Tile[], public type: BLOCK) {
+    if (type == BLOCK.CHI) {
       p.sort((a: Tile, b: Tile) => {
-        if (a.op == Operator.Horizontal) return -1;
-        if (b.op == Operator.Horizontal) return 1;
+        if (a.op == OPERATOR.HORIZONTAL) return -1;
+        if (b.op == OPERATOR.HORIZONTAL) return 1;
         return tileSortFunc(a, b);
       });
       return;
@@ -125,12 +94,12 @@ export class Parser {
 
       let [k, isKind] = isKindAlias(char, cluster);
       if (isKind) {
-        if (k == Kind.Back) {
+        if (k == KIND.BACK) {
           res.push(new Tile(k, 0));
           l.readChar(); // for continue
           continue;
         }
-        if (k == Kind.Separator) {
+        if (k == KIND.SEPARATOR) {
           res.push(new Tile(k, -1));
           l.readChar(); // for continue
           continue;
@@ -152,7 +121,7 @@ export class Parser {
         if (!isNum)
           throw new Error(`encounter unexpected number: ${n} ${char}`);
         // dummy kind
-        cluster.push(new Tile(Kind.Back, n));
+        cluster.push(new Tile(KIND.BACK, n));
       }
       l.readChar();
     }
@@ -167,7 +136,7 @@ export class Parser {
     const res: Block[] = [];
 
     for (const t of pp) {
-      if (t.k === Kind.Separator) {
+      if (t.k === KIND.SEPARATOR) {
         const type = detectBlockType(cluster);
         const b = new Block(cluster, type);
         res.push(b);
@@ -197,12 +166,12 @@ export class Parser {
   }
 }
 
-function detectBlockType(pp: Tile[]): BlockType {
-  if (pp.length === 0) return BlockType.Unknown;
+function detectBlockType(pp: Tile[]): BLOCK {
+  if (pp.length === 0) return BLOCK.UNKNOWN;
   if (pp.length === 1) {
-    if (pp[0].op === Operator.Dora) return BlockType.Dora;
-    if (pp[0].op === Operator.Tsumo) return BlockType.Tsumo;
-    return BlockType.Other; // 単騎
+    if (pp[0].op === OPERATOR.DORA) return BLOCK.DORA;
+    if (pp[0].op === OPERATOR.TSUMO) return BLOCK.TSUMO;
+    return BLOCK.OTHER; // 単騎
   }
 
   let same = true;
@@ -210,36 +179,34 @@ function detectBlockType(pp: Tile[]): BlockType {
   let prev: Tile | null = null;
 
   for (const t of pp) {
-    if (t.op === Operator.Horizontal) numOfHorizontal++;
-    if (t.k === Kind.Back) {
-      if (pp.length === 4) return BlockType.AnKan;
-      return BlockType.Unknown;
+    if (t.op === OPERATOR.HORIZONTAL) numOfHorizontal++;
+    if (t.k === KIND.BACK) {
+      if (pp.length === 4) return BLOCK.AN_KAN;
+      return BLOCK.UNKNOWN;
     }
     if (prev !== null && !t.equals(prev)) same = false;
     prev = t;
   }
 
-  if (numOfHorizontal === 0) return BlockType.Other;
+  if (numOfHorizontal === 0) return BLOCK.OTHER;
 
   if (pp.length === 3) {
-    if (same) return BlockType.Pon;
-    return BlockType.Chi;
+    if (same) return BLOCK.PON;
+    return BLOCK.CHI;
   }
 
   if (pp.length === 4 && same) {
-    if (numOfHorizontal === 1) return BlockType.DaiKan;
-    if (numOfHorizontal === 2) return BlockType.ShoKan;
-    return BlockType.Unknown;
+    if (numOfHorizontal === 1) return BLOCK.DAI_KAN;
+    if (numOfHorizontal === 2) return BLOCK.SHO_KAN;
+    return BLOCK.UNKNOWN;
   }
-  return BlockType.Unknown;
+  return BLOCK.UNKNOWN;
 }
 
 function makeTiles(cluster: Tile[], k: Kind): Tile[] {
-  const res: Tile[] = [];
-  for (const p of cluster) {
-    res.push(new Tile(k, p.n, p.op));
-  }
-  return res;
+  return cluster.map((v) => {
+    return new Tile(k, v.n, v.op);
+  });
 }
 
 function isKindAlias(s: string, cluster: Tile[]): [Kind, boolean] {
@@ -252,9 +219,9 @@ function isKindAlias(s: string, cluster: Tile[]): [Kind, boolean] {
       // convert alias
       if (s === "d") cluster[i].n += 4;
     }
-    return [Kind.Z, true];
+    return [KIND.Z, true];
   }
-  return [Kind.Back, false];
+  return [KIND.BACK, false];
 }
 
 function isNumber(v: string): [number, boolean] {
@@ -262,18 +229,13 @@ function isNumber(v: string): [number, boolean] {
   return [Number(v), valid.includes(v)];
 }
 
-// FIXME
-const operators: Record<string, Operator> = {
-  t: Operator.Tsumo,
-  d: Operator.Dora,
-  "-": Operator.Horizontal,
-};
-
 function isOperator(l: Lexer): [Tile, boolean] {
-  const op: Operator | undefined = operators[l.char];
-  if (op == undefined) return [new Tile(Kind.Back, 0), false];
-
-  const [n, ok]: [number, boolean] = isNumber(l.peekChar());
-  if (!ok) return [new Tile(Kind.Back, 0), false];
-  return [new Tile(Kind.Back, n, op), true];
+  for (let op of Object.values(OPERATOR)) {
+    if (op == l.char) {
+      const [n, ok] = isNumber(l.peekChar());
+      if (!ok) return [new Tile(KIND.BACK, 0), false];
+      return [new Tile(KIND.BACK, n, op), true];
+    }
+  }
+  return [new Tile(KIND.BACK, 0), false];
 }

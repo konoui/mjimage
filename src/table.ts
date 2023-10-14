@@ -1,11 +1,11 @@
-import { Tile, Operator } from "./parser";
+import { Tile } from "./parser";
 import { ImageHelper, createHand } from "./image";
 import { SVG, Element, Text, G, Rect, Image } from "@svgdotjs/svg.js";
-import { FONT_FAMILY } from "./constants";
+import { FONT_FAMILY, OPERATOR } from "./constants";
 import {
-  Discards,
-  ScoreBoard,
-  Hands,
+  DiscardsInput,
+  ScoreBoardInput,
+  HandsInput,
   parserTableInput,
   convertInput,
 } from "./table-parser";
@@ -98,7 +98,7 @@ const handleDiscard = (pp: Tile[], helper: ImageHelper) => {
     let posY = i * helper.tileHeight;
     let posX = 0;
     for (let p of chunk) {
-      if (p.op == Operator.Horizontal) {
+      if (p.op == OPERATOR.HORIZONTAL) {
         const img = helper.createRotate90Image(p, posX, posY);
         g.add(img);
         posX += helper.tileHeight;
@@ -120,7 +120,7 @@ const handleDiscard = (pp: Tile[], helper: ImageHelper) => {
 const createStickAndDora = (
   helper: ImageHelper,
   fontCtx: FontContext,
-  scoreBoard: ScoreBoard
+  scoreBoard: ScoreBoardInput
 ) => {
   const font = fontCtx.font;
   const textWidth = fontCtx.textWidth;
@@ -190,7 +190,7 @@ const createStickAndDora = (
 
 const createHands = (
   helper: ImageHelper,
-  hands: Hands,
+  hands: HandsInput,
   minWidth: number = 0
 ) => {
   const fe = createHand(helper, hands.front);
@@ -243,7 +243,7 @@ const getPlaces = (front: "東" | "南" | "西" | "北") => {
 const createScoreBoard = (
   helper: ImageHelper,
   fontCtx: FontContext,
-  scoreBoard: ScoreBoard
+  scoreBoard: ScoreBoardInput
 ) => {
   const sizeWidth = helper.tileWidth * 5 + helper.tileHeight * 1; // 11111-1
 
@@ -327,7 +327,7 @@ const createScoreBoard = (
   return { e: g, width: sizeWidth, height: sizeWidth };
 };
 
-const createDiscards = (helper: ImageHelper, discards: Discards) => {
+const createDiscards = (helper: ImageHelper, discards: DiscardsInput) => {
   const fe = handleDiscard(discards.front, helper);
   const re = handleDiscard(discards.right, helper);
   const oe = handleDiscard(discards.opposite, helper);
@@ -380,9 +380,9 @@ const createDiscards = (helper: ImageHelper, discards: Discards) => {
 export const createTable = (
   helper: ImageHelper,
   fontCtx: FontContext,
-  handsProps: Hands,
-  discardsProps: Discards,
-  scoreBoardProps: ScoreBoard
+  handsProps: HandsInput,
+  discardsProps: DiscardsInput,
+  scoreBoardProps: ScoreBoardInput
 ) => {
   const g = new G();
   const discards = createDiscards(helper, discardsProps);

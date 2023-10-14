@@ -31,7 +31,7 @@ export class mjimage {
     let scale = props.scale ?? defaultScale;
     if (typeof querySelector === "string") querySelector = [querySelector];
 
-    const maxPaiHeight = TILE_CONTEXT.width * 2;
+    const maxPaiHeight = TILE_CONTEXT.WIDTH * 2;
     querySelector.forEach((qs) => {
       console.debug("try to find", qs);
       const targets = document.querySelectorAll(qs) as NodeListOf<HTMLElement>;
