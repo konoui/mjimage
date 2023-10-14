@@ -30,17 +30,14 @@ export enum Kind {
 export function isKind(v: string): [Kind, boolean] {
   switch (v) {
     case Kind.M:
-      return [Kind.M, true];
     case Kind.P:
-      return [Kind.P, true];
     case Kind.S:
-      return [Kind.S, true];
     case Kind.Z:
-      return [Kind.Z, true];
+      return [v, true];
     case Kind.Back:
-      return [Kind.Back, true];
+      return [v, true];
     case Kind.Separator:
-      return [Kind.Separator, true];
+      return [v, true];
     default:
       return [Kind.Back, false];
   }
@@ -169,15 +166,15 @@ export class Parser {
     let cluster: Tile[] = [];
     const res: Block[] = [];
 
-    for (const p of pp) {
-      if (p.k === Kind.Separator) {
+    for (const t of pp) {
+      if (t.k === Kind.Separator) {
         const type = detectBlockType(cluster);
         const b = new Block(cluster, type);
         res.push(b);
         cluster = [];
         continue;
       }
-      cluster.push(p);
+      cluster.push(t);
     }
 
     // handle last block
@@ -212,14 +209,14 @@ function detectBlockType(pp: Tile[]): BlockType {
   let numOfHorizontal = 0;
   let prev: Tile | null = null;
 
-  for (const p of pp) {
-    if (p.op === Operator.Horizontal) numOfHorizontal++;
-    if (p.k === Kind.Back) {
+  for (const t of pp) {
+    if (t.op === Operator.Horizontal) numOfHorizontal++;
+    if (t.k === Kind.Back) {
       if (pp.length === 4) return BlockType.AnKan;
       return BlockType.Unknown;
     }
-    if (prev !== null && !p.equals(prev)) same = false;
-    prev = p;
+    if (prev !== null && !t.equals(prev)) same = false;
+    prev = t;
   }
 
   if (numOfHorizontal === 0) return BlockType.Other;
