@@ -1,6 +1,6 @@
 import { Lexer } from "./lexer";
 
-export const paiSortFunc = (i: Pai, j: Pai) => {
+export const tileSortFunc = (i: Tile, j: Tile) => {
   if (i.k == j.k) {
     if (i.n == 0) return 5 - j.n;
     if (j.n == 0) return i.n - 5;
@@ -52,7 +52,7 @@ export enum Operator {
   Horizontal = "-",
 }
 
-export class Pai {
+export class Tile {
   constructor(
     public k: Kind,
     public n: number,
@@ -65,7 +65,7 @@ export class Pai {
     return `${op}${this.n}${this.k}`;
   }
 
-  equals(t: Pai | null): boolean {
+  equals(t: Tile | null): boolean {
     return t !== null && this.k === t.k && this.n === t.n;
   }
 }
@@ -83,16 +83,16 @@ export enum BlockType {
 }
 
 export class Block {
-  constructor(public p: Pai[], public type: BlockType) {
+  constructor(public p: Tile[], public type: BlockType) {
     if (type == BlockType.Chi) {
-      p.sort((a: Pai, b: Pai) => {
+      p.sort((a: Tile, b: Tile) => {
         if (a.op == Operator.Horizontal) return -1;
         if (b.op == Operator.Horizontal) return 1;
-        return paiSortFunc(a, b);
+        return tileSortFunc(a, b);
       });
       return;
     }
-    p.sort(paiSortFunc);
+    p.sort(tileSortFunc);
   }
   toString(): string {
     let result = "";
@@ -116,8 +116,8 @@ export class Parser {
 
   parseInput() {
     const l = new Lexer(this.input);
-    const res: Pai[] = [];
-    let cluster: Pai[] = [];
+    const res: Tile[] = [];
+    let cluster: Tile[] = [];
 
     this.validate(this.input);
 
@@ -129,12 +129,12 @@ export class Parser {
       let [k, isKind] = isKindAlias(char, cluster);
       if (isKind) {
         if (k == Kind.Back) {
-          res.push(new Pai(k, 0));
+          res.push(new Tile(k, 0));
           l.readChar(); // for continue
           continue;
         }
         if (k == Kind.Separator) {
-          res.push(new Pai(k, -1));
+          res.push(new Tile(k, -1));
           l.readChar(); // for continue
           continue;
         }
@@ -155,7 +155,7 @@ export class Parser {
         if (!isNum)
           throw new Error(`encounter unexpected number: ${n} ${char}`);
         // dummy kind
-        cluster.push(new Pai(Kind.Back, n));
+        cluster.push(new Tile(Kind.Back, n));
       }
       l.readChar();
     }
@@ -165,8 +165,8 @@ export class Parser {
     return res;
   }
 
-  private makeBlocks(pp: Pai[]): Block[] {
-    let cluster: Pai[] = [];
+  private makeBlocks(pp: Tile[]): Block[] {
+    let cluster: Tile[] = [];
     const res: Block[] = [];
 
     for (const p of pp) {
@@ -200,7 +200,7 @@ export class Parser {
   }
 }
 
-function detectBlockType(pp: Pai[]): BlockType {
+function detectBlockType(pp: Tile[]): BlockType {
   if (pp.length === 0) return BlockType.Unknown;
   if (pp.length === 1) {
     if (pp[0].op === Operator.Dora) return BlockType.Dora;
@@ -210,7 +210,7 @@ function detectBlockType(pp: Pai[]): BlockType {
 
   let same = true;
   let numOfHorizontal = 0;
-  let prev: Pai | null = null;
+  let prev: Tile | null = null;
 
   for (const p of pp) {
     if (p.op === Operator.Horizontal) numOfHorizontal++;
@@ -237,15 +237,15 @@ function detectBlockType(pp: Pai[]): BlockType {
   return BlockType.Unknown;
 }
 
-function makeTiles(cluster: Pai[], k: Kind): Pai[] {
-  const res: Pai[] = [];
+function makeTiles(cluster: Tile[], k: Kind): Tile[] {
+  const res: Tile[] = [];
   for (const p of cluster) {
-    res.push(new Pai(k, p.n, p.op));
+    res.push(new Tile(k, p.n, p.op));
   }
   return res;
 }
 
-function isKindAlias(s: string, cluster: Pai[]): [Kind, boolean] {
+function isKindAlias(s: string, cluster: Tile[]): [Kind, boolean] {
   const [k, ok] = isKind(s);
   if (ok) return [k, true];
 
@@ -272,11 +272,11 @@ const operators: Record<string, Operator> = {
   "-": Operator.Horizontal,
 };
 
-function isOperator(l: Lexer): [Pai, boolean] {
+function isOperator(l: Lexer): [Tile, boolean] {
   const op: Operator | undefined = operators[l.char];
-  if (op == undefined) return [new Pai(Kind.Back, 0), false];
+  if (op == undefined) return [new Tile(Kind.Back, 0), false];
 
   const [n, ok]: [number, boolean] = isNumber(l.peekChar());
-  if (!ok) return [new Pai(Kind.Back, 0), false];
-  return [new Pai(Kind.Back, n, op), true];
+  if (!ok) return [new Tile(Kind.Back, 0), false];
+  return [new Tile(Kind.Back, n, op), true];
 }

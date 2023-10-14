@@ -1,8 +1,8 @@
 import assert from "assert";
-import { Pai, Operator, Block, BlockType, Kind } from "./parser";
+import { Tile, Operator, Block, BlockType, Kind } from "./parser";
 import { Svg, G, Image, Text } from "@svgdotjs/svg.js";
 import { FONT_FAMILY } from "./constants";
-export const paiContext = { width: 66, height: 90 };
+export const tileContext = { width: 66, height: 90 };
 
 export interface ImageHelperConfig {
   scale?: number;
@@ -11,9 +11,9 @@ export interface ImageHelperConfig {
 }
 
 class BaseHelper {
-  readonly paiWidth: number;
-  readonly paiHeight: number;
-  readonly diffPaiHeightWidth: number;
+  readonly tileWidth: number;
+  readonly tileHeight: number;
+  readonly diffTileHeightWidth: number;
   readonly textWidth: number;
   readonly image_host_path: string;
   readonly image_host_url: string;
@@ -22,31 +22,31 @@ class BaseHelper {
     this.scale = props.scale ? props.scale : 1;
     this.image_host_path = props.imageHostPath ?? "";
     this.image_host_url = props.imageHostUrl ?? "";
-    this.paiWidth = paiContext.width * this.scale;
-    this.paiHeight = paiContext.height * this.scale;
-    this.textWidth = this.paiWidth * 0.8; // sum of 4 string
-    this.diffPaiHeightWidth = (this.paiHeight - this.paiWidth) / 2;
+    this.tileWidth = tileContext.width * this.scale;
+    this.tileHeight = tileContext.height * this.scale;
+    this.textWidth = this.tileWidth * 0.8; // sum of 4 string
+    this.diffTileHeightWidth = (this.tileHeight - this.tileWidth) / 2;
   }
 
-  createImage(pai: Pai, x: number, y: number) {
-    const image = new Image().load(this.makeImagePaiHref(pai));
-    image.dx(x).dy(y).size(this.paiWidth, this.paiHeight);
+  createImage(tile: Tile, x: number, y: number) {
+    const image = new Image().load(this.makeImageTileHref(tile));
+    image.dx(x).dy(y).size(this.tileWidth, this.tileHeight);
     return image;
   }
 
-  createTextImage(pai: Pai, x: number, y: number, t: string) {
-    const image = this.createImage(pai, x, y);
+  createTextImage(tile: Tile, x: number, y: number, t: string) {
+    const image = this.createImage(tile, x, y);
 
-    const fontSize = this.paiHeight * 0.2;
+    const fontSize = this.tileHeight * 0.2;
     // FIXME
     // const textWidth = text.getComputedTextLength();
-    const textX = this.paiWidth;
-    const textY = this.paiHeight;
+    const textX = this.tileWidth;
+    const textY = this.tileHeight;
     const text = new Text().text(t);
     // FIXME merge table font
     text
-      .width(this.paiWidth)
-      .height(this.paiHeight)
+      .width(this.tileWidth)
+      .height(this.tileHeight)
       .font({
         family: FONT_FAMILY,
         size: fontSize,
@@ -59,25 +59,25 @@ class BaseHelper {
     return g;
   }
 
-  createStackImage(pai: Pai, x: number, y: number) {
-    const base = this.createRotate90Image(pai, 0, 0, true);
-    const up = this.createRotate90Image(pai, 0, this.paiWidth, true);
+  createStackImage(tile: Tile, x: number, y: number) {
+    const base = this.createRotate90Image(tile, 0, 0, true);
+    const up = this.createRotate90Image(tile, 0, this.tileWidth, true);
     const g = new G().translate(x, y).add(base).add(up);
     return g;
   }
 
   createRotate90Image(
-    pai: Pai,
+    tile: Tile,
     x: number,
     y: number,
     adjustY: boolean = false
   ) {
-    const image = this.createImage(pai, 0, 0);
+    const image = this.createImage(tile, 0, 0);
 
-    const centerX = this.paiWidth / 2;
-    const centerY = this.paiHeight / 2;
-    const translatedX = x + this.diffPaiHeightWidth;
-    const translatedY = adjustY ? y - this.diffPaiHeightWidth : y;
+    const centerX = this.tileWidth / 2;
+    const centerY = this.tileHeight / 2;
+    const translatedX = x + this.diffTileHeightWidth;
+    const translatedY = adjustY ? y - this.diffTileHeightWidth : y;
     const g = new G();
     g.add(image)
       .translate(translatedX, translatedY)
@@ -85,8 +85,8 @@ class BaseHelper {
     return g;
   }
 
-  makeImagePaiHref(pai: Pai) {
-    return this.makeImageHref(`${pai.k}${pai.n}.svg`);
+  makeImageTileHref(tile: Tile) {
+    return this.makeImageHref(`${tile.k}${tile.n}.svg`);
   }
 
   makeImageHref(filename: string) {
@@ -98,14 +98,14 @@ class BaseHelper {
 }
 
 export class ImageHelper extends BaseHelper {
-  readonly blockMargin = this.paiWidth * 0.3;
-  createBlockOther(pp: Pai[]) {
+  readonly blockMargin = this.tileWidth * 0.3;
+  createBlockOther(pp: Tile[]) {
     const g = new G();
     let pos = 0;
     for (let p of pp) {
       const img = this.createImage(p, pos, 0);
       g.add(img);
-      pos += this.paiWidth;
+      pos += this.tileWidth;
     }
     return g;
   }
@@ -117,19 +117,19 @@ export class ImageHelper extends BaseHelper {
 
     if (block.type == BlockType.ShoKan) {
       let pos = 0;
-      const diff = this.paiWidth * 2 - this.paiHeight;
+      const diff = this.tileWidth * 2 - this.tileHeight;
       const g = new G();
       for (let i = 0; i < block.p.length; i++) {
         if (i == idx + 1) continue;
         if (i == idx) {
           let img = this.createStackImage(block.p[idx], pos, 0);
-          pos += this.paiHeight;
+          pos += this.tileHeight;
           g.add(img);
           continue;
         }
 
         const img = this.createImage(block.p[i], pos, diff);
-        pos += this.paiWidth;
+        pos += this.tileWidth;
         g.add(img);
       }
       return g;
@@ -142,14 +142,14 @@ export class ImageHelper extends BaseHelper {
         const img = this.createRotate90Image(
           block.p[i],
           pos,
-          this.diffPaiHeightWidth
+          this.diffTileHeightWidth
         );
-        pos += this.paiHeight;
+        pos += this.tileHeight;
         g.add(img);
         continue;
       }
       const img = this.createImage(block.p[1], pos, 0);
-      pos += this.paiWidth;
+      pos += this.tileWidth;
       g.add(img);
     }
     return g;
@@ -159,63 +159,63 @@ export class ImageHelper extends BaseHelper {
 const getBlockCreators = (h: ImageHelper) => {
   const lookup = {
     [BlockType.Chi]: function (block: Block) {
-      const width = h.paiWidth * 2 + h.paiHeight;
-      const height = h.paiHeight;
+      const width = h.tileWidth * 2 + h.tileHeight;
+      const height = h.tileHeight;
       const g = h.createBlockPonChiKan(block);
       return { width: width, height: height, e: g };
     },
     [BlockType.Pon]: function (block: Block) {
-      const width = h.paiWidth * 2 + h.paiHeight;
-      const height = h.paiHeight;
+      const width = h.tileWidth * 2 + h.tileHeight;
+      const height = h.tileHeight;
       const g = h.createBlockPonChiKan(block);
       return { width: width, height: height, e: g };
     },
     [BlockType.DaiKan]: function (block: Block) {
-      const width = h.paiWidth * 3 + h.paiHeight;
-      const height = h.paiHeight;
+      const width = h.tileWidth * 3 + h.tileHeight;
+      const height = h.tileHeight;
       const g = h.createBlockPonChiKan(block);
       return { width: width, height: height, e: g };
     },
     [BlockType.ShoKan]: function (block: Block) {
-      const width = h.paiWidth * 2 + h.paiHeight;
-      const height = h.paiWidth * 2;
+      const width = h.tileWidth * 2 + h.tileHeight;
+      const height = h.tileWidth * 2;
       const g = h.createBlockPonChiKan(block);
       return { width: width, height: height, e: g };
     },
     [BlockType.AnKan]: function (block: Block) {
-      const width = h.paiWidth * 4;
-      const height = h.paiHeight;
+      const width = h.tileWidth * 4;
+      const height = h.tileHeight;
       const zp = block.p.find((v) => {
         return v.k !== Kind.Back;
       });
       assert(zp != null);
       const g = h.createBlockOther([
-        new Pai(Kind.Back, 0),
+        new Tile(Kind.Back, 0),
         zp,
         zp,
-        new Pai(Kind.Back, 0),
+        new Tile(Kind.Back, 0),
       ]);
       return { width: width, height: height, e: g };
     },
     [BlockType.Dora]: function (block: Block) {
-      const width = h.paiWidth + h.textWidth;
-      const height = h.paiHeight; // note not contains text height
+      const width = h.tileWidth + h.textWidth;
+      const height = h.tileHeight; // note not contains text height
       const g = new G();
       const img = h.createTextImage(block.p[0], 0, 0, "(ドラ)");
       g.add(img);
       return { width: width, height: height, e: g };
     },
     [BlockType.Tsumo]: function (block: Block) {
-      const width = h.paiWidth + h.textWidth;
-      const height = h.paiHeight; // note not contains text height
+      const width = h.tileWidth + h.textWidth;
+      const height = h.tileHeight; // note not contains text height
       const g = new G();
       const img = h.createTextImage(block.p[0], 0, 0, "(ツモ)");
       g.add(img);
       return { width: width, height: height, e: g };
     },
     [BlockType.Other]: function (block: Block) {
-      const width = h.paiWidth * block.p.length;
-      const height = h.paiHeight;
+      const width = h.tileWidth * block.p.length;
+      const height = h.tileHeight;
       const g = h.createBlockOther(block.p);
       return { width: width, height: height, e: g };
     },
@@ -239,7 +239,7 @@ interface MySVGElement {
 export const createHand = (blocks: Block[], helper: ImageHelper) => {
   const creators = getBlockCreators(helper);
 
-  let baseHeight = helper.paiWidth;
+  let baseHeight = helper.tileWidth;
   let sumOfWidth = 0;
   const elms: MySVGElement[] = [];
   for (let block of blocks) {

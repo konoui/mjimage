@@ -1,34 +1,34 @@
 import { describe, test, expect } from "@jest/globals";
 import {
   Kind,
-  Pai,
+  Tile,
   Operator,
   Block,
   BlockType,
-  paiSortFunc,
+  tileSortFunc,
   Parser,
 } from "./parser";
 
 test("parseInput1", () => {
   const got = new Parser("1s").parseInput();
-  const want = [new Pai(Kind.S, 1)];
+  const want = [new Tile(Kind.S, 1)];
   expect(got).toStrictEqual(want);
 });
 
 test("parseInput2", () => {
   const got = new Parser("12s34m1z2d,t1s,_-1s").parseInput();
   const want = [
-    new Pai(Kind.S, 1),
-    new Pai(Kind.S, 2),
-    new Pai(Kind.M, 3),
-    new Pai(Kind.M, 4),
-    new Pai(Kind.Z, 1),
-    new Pai(Kind.Z, 6),
-    new Pai(Kind.Separator, -1),
-    new Pai(Kind.S, 1, Operator.Tsumo),
-    new Pai(Kind.Separator, -1),
-    new Pai(Kind.Back, 0),
-    new Pai(Kind.S, 1, Operator.Horizontal),
+    new Tile(Kind.S, 1),
+    new Tile(Kind.S, 2),
+    new Tile(Kind.M, 3),
+    new Tile(Kind.M, 4),
+    new Tile(Kind.Z, 1),
+    new Tile(Kind.Z, 6),
+    new Tile(Kind.Separator, -1),
+    new Tile(Kind.S, 1, Operator.Tsumo),
+    new Tile(Kind.Separator, -1),
+    new Tile(Kind.Back, 0),
+    new Tile(Kind.S, 1, Operator.Horizontal),
   ];
   expect(got).toStrictEqual(want);
 });
@@ -45,30 +45,30 @@ test("makeBlocks", () => {
   const want = [
     new Block(
       [
-        new Pai(Kind.S, 1),
-        new Pai(Kind.S, 2),
-        new Pai(Kind.M, 3),
-        new Pai(Kind.M, 4),
-        new Pai(Kind.Z, 1),
-        new Pai(Kind.Z, 6),
+        new Tile(Kind.S, 1),
+        new Tile(Kind.S, 2),
+        new Tile(Kind.M, 3),
+        new Tile(Kind.M, 4),
+        new Tile(Kind.Z, 1),
+        new Tile(Kind.Z, 6),
       ],
       BlockType.Other
     ),
-    new Block([new Pai(Kind.S, 1, Operator.Tsumo)], BlockType.Tsumo),
+    new Block([new Tile(Kind.S, 1, Operator.Tsumo)], BlockType.Tsumo),
     new Block(
       [
-        new Pai(Kind.Back, 0),
-        new Pai(Kind.S, 1),
-        new Pai(Kind.S, 1),
-        new Pai(Kind.Back, 0),
+        new Tile(Kind.Back, 0),
+        new Tile(Kind.S, 1),
+        new Tile(Kind.S, 1),
+        new Tile(Kind.Back, 0),
       ],
       BlockType.AnKan
     ),
     new Block(
       [
-        new Pai(Kind.S, 1, Operator.Horizontal),
-        new Pai(Kind.S, 2),
-        new Pai(Kind.S, 3),
+        new Tile(Kind.S, 1, Operator.Horizontal),
+        new Tile(Kind.S, 2),
+        new Tile(Kind.S, 3),
       ],
       BlockType.Chi
     ),
@@ -77,17 +77,17 @@ test("makeBlocks", () => {
   expect(got).toStrictEqual(want);
 });
 
-test("sortPai", () => {
+test("sortTile", () => {
   const got = new Parser("13p5s786m1z").parseInput();
-  got.sort(paiSortFunc);
-  const want: Pai[] = [
-    new Pai(Kind.M, 6),
-    new Pai(Kind.M, 7),
-    new Pai(Kind.M, 8),
-    new Pai(Kind.P, 1),
-    new Pai(Kind.P, 3),
-    new Pai(Kind.S, 5),
-    new Pai(Kind.Z, 1),
+  got.sort(tileSortFunc);
+  const want: Tile[] = [
+    new Tile(Kind.M, 6),
+    new Tile(Kind.M, 7),
+    new Tile(Kind.M, 8),
+    new Tile(Kind.P, 1),
+    new Tile(Kind.P, 3),
+    new Tile(Kind.S, 5),
+    new Tile(Kind.Z, 1),
   ];
   expect(got).toStrictEqual(want);
 });

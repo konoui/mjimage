@@ -1,5 +1,5 @@
 import { parse } from "yaml";
-import { Pai, Parser, Block } from "./parser";
+import { Tile, Parser, Block } from "./parser";
 
 export interface TableInput {
   discards: {
@@ -23,10 +23,10 @@ export interface TableInput {
 }
 
 export interface Discards {
-  front: Pai[];
-  right: Pai[];
-  opposite: Pai[];
-  left: Pai[];
+  front: Tile[];
+  right: Tile[];
+  opposite: Tile[];
+  left: Tile[];
 }
 
 export interface Hands {
@@ -37,7 +37,7 @@ export interface Hands {
 }
 
 export interface ScoreBoard {
-  doras: Pai[];
+  doras: Tile[];
   round: boardRound;
   sticks: { reach: number; dead: number };
   scores: {
