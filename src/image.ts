@@ -1,8 +1,7 @@
 import assert from "assert";
 import { Tile, Operator, Block, BlockType, Kind } from "./parser";
 import { Svg, G, Image, Text } from "@svgdotjs/svg.js";
-import { FONT_FAMILY } from "./constants";
-export const tileContext = { width: 66, height: 90 };
+import { FONT_FAMILY, TILE_CONTEXT } from "./constants";
 
 export interface ImageHelperConfig {
   scale?: number;
@@ -22,8 +21,8 @@ class BaseHelper {
     this.scale = props.scale ? props.scale : 1;
     this.image_host_path = props.imageHostPath ?? "";
     this.image_host_url = props.imageHostUrl ?? "";
-    this.tileWidth = tileContext.width * this.scale;
-    this.tileHeight = tileContext.height * this.scale;
+    this.tileWidth = TILE_CONTEXT.width * this.scale;
+    this.tileHeight = TILE_CONTEXT.height * this.scale;
     this.textWidth = this.tileWidth * 0.8; // sum of 4 string
     this.diffTileHeightWidth = (this.tileHeight - this.tileWidth) / 2;
   }
@@ -38,12 +37,9 @@ class BaseHelper {
     const image = this.createImage(tile, x, y);
 
     const fontSize = this.tileHeight * 0.2;
-    // FIXME
-    // const textWidth = text.getComputedTextLength();
     const textX = this.tileWidth;
     const textY = this.tileHeight;
     const text = new Text().text(t);
-    // FIXME merge table font
     text
       .width(this.tileWidth)
       .height(this.tileHeight)
@@ -236,7 +232,7 @@ interface MySVGElement {
   height: number;
 }
 
-export const createHand = (blocks: Block[], helper: ImageHelper) => {
+export const createHand = (helper: ImageHelper, blocks: Block[]) => {
   const creators = getBlockCreators(helper);
 
   let baseHeight = helper.tileWidth;
@@ -272,7 +268,7 @@ export const drawBlocks = (
   config: ImageHelperConfig = {}
 ) => {
   const helper = new ImageHelper(config);
-  const hand = createHand(blocks, helper);
+  const hand = createHand(helper, blocks);
   svg.size(hand.width, hand.height);
   svg.add(hand.e);
 };

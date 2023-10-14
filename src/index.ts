@@ -1,6 +1,7 @@
 import assert from "assert";
 import { Parser } from "./parser";
-import { drawBlocks, tileContext, ImageHelperConfig } from "./image";
+import { drawBlocks, ImageHelperConfig } from "./image";
+import { TILE_CONTEXT } from "./constants";
 import { SVG } from "@svgdotjs/svg.js";
 
 interface InitializeConfig extends Omit<ImageHelperConfig, "scale"> {
@@ -30,7 +31,7 @@ export class mjimage {
     let scale = props.scale ?? defaultScale;
     if (typeof querySelector === "string") querySelector = [querySelector];
 
-    const maxPaiHeight = tileContext.width * 2;
+    const maxPaiHeight = TILE_CONTEXT.width * 2;
     querySelector.forEach((qs) => {
       console.debug("try to find", qs);
       const targets = document.querySelectorAll(qs) as NodeListOf<HTMLElement>;

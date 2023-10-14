@@ -193,10 +193,10 @@ const createHands = (
   hands: Hands,
   minWidth: number = 0
 ) => {
-  const fe = createHand(hands.front, helper);
-  const re = createHand(hands.right, helper);
-  const oe = createHand(hands.opposite, helper);
-  const le = createHand(hands.left, helper);
+  const fe = createHand(helper, hands.front);
+  const re = createHand(helper, hands.right);
+  const oe = createHand(helper, hands.opposite);
+  const le = createHand(helper, hands.left);
   const maxWidth = [fe.width, re.width, oe.width, le.width].reduce((a, b) =>
     Math.max(a, b)
   );
