@@ -67,11 +67,14 @@ export const convertInput = (
   console.log("table input", i);
   const frontPlace = i.board.front || "1w";
   const m = createPlaceMap(frontPlace);
+  const f = (w: tableWind) => {
+    return i.discards[w].replace(/\r?\n/g, "");
+  };
   const discards: DiscardsInput = {
-    front: new Parser(i.discards[m.front]).parseInput(),
-    right: new Parser(i.discards[m.right]).parseInput(),
-    opposite: new Parser(i.discards[m.opposite]).parseInput(),
-    left: new Parser(i.discards[m.left]).parseInput(),
+    front: new Parser(f(m.front)).parseInput(),
+    right: new Parser(f(m.right)).parseInput(),
+    opposite: new Parser(f(m.opposite)).parseInput(),
+    left: new Parser(f(m.left)).parseInput(),
   };
   const hands: HandsInput = {
     front: new Parser(i.hands[m.front]).parse(),
