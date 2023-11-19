@@ -89,9 +89,9 @@ const simpleRotate = (
   return g;
 };
 
-const handleDiscard = (pp: Tile[], helper: ImageHelper) => {
+const handleDiscard = (tiles: Tile[], helper: ImageHelper) => {
   const g = new G();
-  const chunks = splitTiles(pp);
+  const chunks = splitTiles(tiles);
 
   for (let i = 0; i < chunks.length; i++) {
     let chunk = chunks[i];
