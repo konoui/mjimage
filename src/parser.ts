@@ -49,21 +49,21 @@ export class Tile {
 type BLOCK = (typeof BLOCK)[keyof typeof BLOCK];
 
 export class Block {
-  constructor(public p: Tile[], public type: BLOCK) {
+  constructor(public tiles: Tile[], public type: BLOCK) {
     if (type == BLOCK.CHI) {
-      p.sort((a: Tile, b: Tile) => {
+      tiles.sort((a: Tile, b: Tile) => {
         if (a.op == OPERATOR.HORIZONTAL) return -1;
         if (b.op == OPERATOR.HORIZONTAL) return 1;
         return tileSortFunc(a, b);
       });
       return;
     }
-    p.sort(tileSortFunc);
+    tiles.sort(tileSortFunc);
   }
   toString(): string {
     let result = "";
-    for (const p of this.p) {
-      result += p.toString();
+    for (const t of this.tiles) {
+      result += t.toString();
     }
     return result;
   }
@@ -110,10 +110,10 @@ export class Parser {
         l.readChar(); // for continue
         continue;
       } else {
-        const [p, isOp] = isOperator(l);
+        const [t, isOp] = isOperator(l);
         if (isOp) {
           l.readChar(); // for peek
-          cluster.push(p);
+          cluster.push(t);
           l.readChar(); // for continue
           continue;
         }
@@ -131,11 +131,11 @@ export class Parser {
     return res;
   }
 
-  private makeBlocks(pp: Tile[]): Block[] {
+  private makeBlocks(tiles: Tile[]): Block[] {
     let cluster: Tile[] = [];
     const res: Block[] = [];
 
-    for (const t of pp) {
+    for (const t of tiles) {
       if (t.k === KIND.SEPARATOR) {
         const type = detectBlockType(cluster);
         const b = new Block(cluster, type);
@@ -166,40 +166,32 @@ export class Parser {
   }
 }
 
-function detectBlockType(pp: Tile[]): BLOCK {
-  if (pp.length === 0) return BLOCK.UNKNOWN;
-  if (pp.length === 1) {
-    if (pp[0].op === OPERATOR.DORA) return BLOCK.DORA;
-    if (pp[0].op === OPERATOR.TSUMO) return BLOCK.TSUMO;
+function detectBlockType(tiles: Tile[]): BLOCK {
+  if (tiles.length === 0) return BLOCK.UNKNOWN;
+  if (tiles.length === 1) {
+    if (tiles[0].op === OPERATOR.DORA) return BLOCK.DORA;
+    if (tiles[0].op === OPERATOR.TSUMO) return BLOCK.TSUMO;
     return BLOCK.OTHER; // 単騎
   }
 
-  let same = true;
-  let numOfHorizontal = 0;
-  let prev: Tile | null = null;
+  let sameAll = tiles.filter((v) => v.equals(tiles[0])).length == tiles.length;
+  let numOfHorizontals = tiles.filter(
+    (v) => v.op == OPERATOR.HORIZONTAL
+  ).length;
+  let numOfBackTiles = tiles.filter((v) => v.k == KIND.BACK).length;
 
-  for (const t of pp) {
-    if (t.op === OPERATOR.HORIZONTAL) numOfHorizontal++;
-    if (t.k === KIND.BACK) {
-      if (pp.length === 4) return BLOCK.AN_KAN;
-      return BLOCK.UNKNOWN;
-    }
-    if (prev !== null && !t.equals(prev)) same = false;
-    prev = t;
+  if (numOfHorizontals == 0 && numOfBackTiles == 0) return BLOCK.OTHER;
+
+  if (tiles.length === 3) {
+    return sameAll ? BLOCK.PON : BLOCK.CHI;
   }
 
-  if (numOfHorizontal === 0) return BLOCK.OTHER;
-
-  if (pp.length === 3) {
-    if (same) return BLOCK.PON;
-    return BLOCK.CHI;
+  if (tiles.length == 4 && numOfBackTiles > 0) return BLOCK.AN_KAN;
+  if (tiles.length == 4 && sameAll) {
+    if (numOfHorizontals === 1) return BLOCK.DAI_KAN;
+    if (numOfHorizontals === 2) return BLOCK.SHO_KAN;
   }
 
-  if (pp.length === 4 && same) {
-    if (numOfHorizontal === 1) return BLOCK.DAI_KAN;
-    if (numOfHorizontal === 2) return BLOCK.SHO_KAN;
-    return BLOCK.UNKNOWN;
-  }
   return BLOCK.UNKNOWN;
 }
 

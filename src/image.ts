@@ -95,11 +95,11 @@ class BaseHelper {
 
 export class ImageHelper extends BaseHelper {
   readonly blockMargin = this.tileWidth * 0.3;
-  createBlockOther(pp: Tile[]) {
+  createBlockOther(tiles: Tile[]) {
     const g = new G();
     let pos = 0;
-    for (let p of pp) {
-      const img = this.createImage(p, pos, 0);
+    for (let t of tiles) {
+      const img = this.createImage(t, pos, 0);
       g.add(img);
       pos += this.tileWidth;
     }
@@ -107,7 +107,7 @@ export class ImageHelper extends BaseHelper {
   }
 
   createBlockPonChiKan(block: Block) {
-    const idx = block.p.findIndex((d) => {
+    const idx = block.tiles.findIndex((d) => {
       return d.op === OPERATOR.HORIZONTAL;
     });
 
@@ -115,16 +115,16 @@ export class ImageHelper extends BaseHelper {
       let pos = 0;
       const diff = this.tileWidth * 2 - this.tileHeight;
       const g = new G();
-      for (let i = 0; i < block.p.length; i++) {
+      for (let i = 0; i < block.tiles.length; i++) {
         if (i == idx + 1) continue;
         if (i == idx) {
-          let img = this.createStackImage(block.p[idx], pos, 0);
+          let img = this.createStackImage(block.tiles[idx], pos, 0);
           pos += this.tileHeight;
           g.add(img);
           continue;
         }
 
-        const img = this.createImage(block.p[i], pos, diff);
+        const img = this.createImage(block.tiles[i], pos, diff);
         pos += this.tileWidth;
         g.add(img);
       }
@@ -133,10 +133,10 @@ export class ImageHelper extends BaseHelper {
 
     const g = new G();
     let pos = 0;
-    for (let i = 0; i < block.p.length; i++) {
+    for (let i = 0; i < block.tiles.length; i++) {
       if (i == idx) {
         const img = this.createRotate90Image(
-          block.p[i],
+          block.tiles[i],
           pos,
           this.diffTileHeightWidth
         );
@@ -144,7 +144,7 @@ export class ImageHelper extends BaseHelper {
         g.add(img);
         continue;
       }
-      const img = this.createImage(block.p[1], pos, 0);
+      const img = this.createImage(block.tiles[1], pos, 0);
       pos += this.tileWidth;
       g.add(img);
     }
@@ -181,7 +181,7 @@ const getBlockCreators = (h: ImageHelper) => {
     [BLOCK.AN_KAN]: function (block: Block) {
       const width = h.tileWidth * 4;
       const height = h.tileHeight;
-      const zp = block.p.find((v) => {
+      const zp = block.tiles.find((v) => {
         return v.k !== KIND.BACK;
       });
       assert(zp != null);
@@ -197,7 +197,7 @@ const getBlockCreators = (h: ImageHelper) => {
       const width = h.tileWidth + h.textWidth;
       const height = h.tileHeight; // note not contains text height
       const g = new G();
-      const img = h.createTextImage(block.p[0], 0, 0, "(ドラ)");
+      const img = h.createTextImage(block.tiles[0], 0, 0, "(ドラ)");
       g.add(img);
       return { width: width, height: height, e: g };
     },
@@ -205,14 +205,14 @@ const getBlockCreators = (h: ImageHelper) => {
       const width = h.tileWidth + h.textWidth;
       const height = h.tileHeight; // note not contains text height
       const g = new G();
-      const img = h.createTextImage(block.p[0], 0, 0, "(ツモ)");
+      const img = h.createTextImage(block.tiles[0], 0, 0, "(ツモ)");
       g.add(img);
       return { width: width, height: height, e: g };
     },
     [BLOCK.OTHER]: function (block: Block) {
-      const width = h.tileWidth * block.p.length;
+      const width = h.tileWidth * block.tiles.length;
       const height = h.tileHeight;
-      const g = h.createBlockOther(block.p);
+      const g = h.createBlockOther(block.tiles);
       return { width: width, height: height, e: g };
     },
     [BLOCK.UNKNOWN]: function (block: Block) {
