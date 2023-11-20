@@ -94,20 +94,10 @@ const handleDiscard = (tiles: Tile[], helper: ImageHelper) => {
   const chunks = splitTiles(tiles);
 
   for (let i = 0; i < chunks.length; i++) {
-    let chunk = chunks[i];
+    let tiles = chunks[i];
     let posY = i * helper.tileHeight;
-    let posX = 0;
-    for (let t of chunk) {
-      if (t.op == OPERATOR.HORIZONTAL) {
-        const img = helper.createRotate90Image(t, posX, posY);
-        g.add(img);
-        posX += helper.tileHeight;
-        continue;
-      }
-      const img = helper.createImage(t, posX, posY);
-      g.add(img);
-      posX += helper.tileWidth;
-    }
+    const e = helper.createBlockHandDiscard(tiles).translate(0, posY);
+    g.add(e);
   }
   // width is 11111-1
   return {
