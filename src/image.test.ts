@@ -25,7 +25,20 @@ test("svg1", () => {
   });
   const got = draw.svg();
   const gotPath = "testdata/svg1.svg";
-  if (update) fs.writeFileSync("testdata/svg1.svg", got);
+  if (update) fs.writeFileSync(gotPath, got);
+  const want = fs.readFileSync(gotPath);
+  expect(want.toString()).toBe(got);
+});
+
+test("svg2", () => {
+  const draw = SVG();
+  const blocks = new Parser("2s2w-1s2s").parse();
+  drawBlocks(draw, blocks, {
+    imageHostUrl: "http://localhost:1234/svg/",
+  });
+  const got = draw.svg();
+  const gotPath = "testdata/svg2.svg";
+  if (update) fs.writeFileSync(gotPath, got);
   const want = fs.readFileSync(gotPath);
   expect(want.toString()).toBe(got);
 });

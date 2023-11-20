@@ -45,7 +45,7 @@ test("makeBlocks", () => {
         new Tile(KIND.Z, 1),
         new Tile(KIND.Z, 6),
       ],
-      BLOCK.OTHER
+      BLOCK.HAND
     ),
     new Block([new Tile(KIND.S, 1, OPERATOR.TSUMO)], BLOCK.TSUMO),
     new Block(

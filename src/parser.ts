@@ -58,7 +58,9 @@ export class Block {
       });
       return;
     }
-    tiles.sort(tileSortFunc);
+    if (type != BLOCK.DISCARD) {
+      tiles.sort(tileSortFunc);
+    }
   }
   toString(): string {
     let result = "";
@@ -171,26 +173,34 @@ function detectBlockType(tiles: Tile[]): BLOCK {
   if (tiles.length === 1) {
     if (tiles[0].op === OPERATOR.DORA) return BLOCK.DORA;
     if (tiles[0].op === OPERATOR.TSUMO) return BLOCK.TSUMO;
-    return BLOCK.OTHER; // 単騎
+    return BLOCK.HAND; // 単騎
   }
 
   let sameAll = tiles.filter((v) => v.equals(tiles[0])).length == tiles.length;
   let numOfHorizontals = tiles.filter(
     (v) => v.op == OPERATOR.HORIZONTAL
   ).length;
+  let numOfTsumoDoraTiles = tiles.filter((v) => {
+    v.op == OPERATOR.TSUMO || v.op == OPERATOR.DORA;
+  }).length;
   let numOfBackTiles = tiles.filter((v) => v.k == KIND.BACK).length;
 
-  if (numOfHorizontals == 0 && numOfBackTiles == 0) return BLOCK.OTHER;
+  if (numOfTsumoDoraTiles > 0) return BLOCK.UNKNOWN;
+
+  if (numOfHorizontals == 0 && numOfBackTiles == 0) return BLOCK.HAND;
 
   if (tiles.length === 3) {
     return sameAll ? BLOCK.PON : BLOCK.CHI;
   }
 
-  if (tiles.length == 4 && numOfBackTiles > 0) return BLOCK.AN_KAN;
+  if (tiles.length == 4 && numOfBackTiles == 2) return BLOCK.AN_KAN;
   if (tiles.length == 4 && sameAll) {
     if (numOfHorizontals === 1) return BLOCK.DAI_KAN;
     if (numOfHorizontals === 2) return BLOCK.SHO_KAN;
   }
+
+  // handle a simple discard
+  if (numOfHorizontals == 1 && numOfBackTiles == 0) return BLOCK.DISCARD;
 
   return BLOCK.UNKNOWN;
 }

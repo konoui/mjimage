@@ -95,10 +95,16 @@ class BaseHelper {
 
 export class ImageHelper extends BaseHelper {
   readonly blockMargin = this.tileWidth * 0.3;
-  createBlockOther(tiles: Tile[]) {
+  createBlockHandDiscard(tiles: Tile[]) {
     const g = new G();
     let pos = 0;
     for (let t of tiles) {
+      if (t.op == OPERATOR.HORIZONTAL) {
+        const img = this.createRotate90Image(t, pos, this.diffTileHeightWidth);
+        g.add(img);
+        pos += this.tileHeight;
+        continue;
+      }
       const img = this.createImage(t, pos, 0);
       g.add(img);
       pos += this.tileWidth;
@@ -185,7 +191,7 @@ const getBlockCreators = (h: ImageHelper) => {
         return v.k !== KIND.BACK;
       });
       assert(zp != null);
-      const g = h.createBlockOther([
+      const g = h.createBlockHandDiscard([
         new Tile(KIND.BACK, 0),
         zp,
         zp,
@@ -209,10 +215,18 @@ const getBlockCreators = (h: ImageHelper) => {
       g.add(img);
       return { width: width, height: height, e: g };
     },
-    [BLOCK.OTHER]: function (block: Block) {
+    [BLOCK.HAND]: function (block: Block) {
       const width = h.tileWidth * block.tiles.length;
       const height = h.tileHeight;
-      const g = h.createBlockOther(block.tiles);
+      const g = h.createBlockHandDiscard(block.tiles);
+      return { width: width, height: height, e: g };
+    },
+    [BLOCK.DISCARD]: function (block: Block) {
+      const width = block.tiles
+        .map((v) => (v.op == OPERATOR.HORIZONTAL ? h.tileHeight : h.tileWidth))
+        .reduce((prev, v) => prev + v);
+      const height = h.tileHeight;
+      const g = h.createBlockHandDiscard(block.tiles);
       return { width: width, height: height, e: g };
     },
     [BLOCK.UNKNOWN]: function (block: Block) {
