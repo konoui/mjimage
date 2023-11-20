@@ -1,6 +1,6 @@
 import { describe, test, expect } from "@jest/globals";
 
-import { Lexer } from "./lexer";
+import { Lexer } from "./../lexer";
 
 test("lexer", () => {
   const l = new Lexer("0123456789");

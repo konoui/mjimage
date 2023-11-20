@@ -1,6 +1,6 @@
 import { describe, test, expect } from "@jest/globals";
-import { Tile, Block, tileSortFunc, Parser } from "./parser";
-import { FONT_FAMILY, KIND, OPERATOR, BLOCK } from "./constants";
+import { Tile, Block, tileSortFunc, Parser } from "./../parser";
+import { FONT_FAMILY, KIND, OPERATOR, BLOCK } from "./../constants";
 
 test("parseInput1", () => {
   const got = new Parser("1s").parseInput();

@@ -4,4 +4,7 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '/src/$1',
   },
+  testPathIgnorePatterns: [
+        "./src/__tests__/utils/"
+  ],
 };

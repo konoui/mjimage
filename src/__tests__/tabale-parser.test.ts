@@ -1,5 +1,5 @@
 import { describe, test, expect } from "@jest/globals";
-import { parserTableInput, TableInput } from "./table-parser";
+import { parserTableInput, TableInput } from "./../table-parser";
 
 test("parse-table", () => {
   const input = `
