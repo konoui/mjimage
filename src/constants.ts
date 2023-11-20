@@ -21,7 +21,8 @@ export const BLOCK = {
   AN_KAN: "ankan",
   DORA: "dora",
   TSUMO: "tsumo",
-  OTHER: "other",
+  HAND: "hand",
+  DISCARD: "simple-discard",
   UNKNOWN: "unknown",
 } as const;
 
