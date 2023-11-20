@@ -4,8 +4,10 @@ import { createHTMLWindow } from "svgdom";
 // @ts-ignore, https://github.com/DefinitelyTyped/DefinitelyTyped/pull/66501/files
 import { config } from "svgdom";
 import fs from "fs";
-import { Parser } from "./parser";
-import { drawBlocks } from "./image";
+import { Parser } from "./../parser";
+import { drawBlocks } from "./../image";
+
+import { loadTestData } from "./utils/helper";
 
 const window = createHTMLWindow();
 const document = window.document;
@@ -24,9 +26,7 @@ test("svg1", () => {
     imageHostUrl: "http://localhost:1234/svg/",
   });
   const got = draw.svg();
-  const gotPath = "testdata/svg1.svg";
-  if (update) fs.writeFileSync(gotPath, got);
-  const want = fs.readFileSync(gotPath);
+  const want = loadTestData("svg1.svg", got, update);
   expect(want.toString()).toBe(got);
 });
 
@@ -37,8 +37,6 @@ test("svg2", () => {
     imageHostUrl: "http://localhost:1234/svg/",
   });
   const got = draw.svg();
-  const gotPath = "testdata/svg2.svg";
-  if (update) fs.writeFileSync(gotPath, got);
-  const want = fs.readFileSync(gotPath);
+  const want = loadTestData("svg2.svg", got, update);
   expect(want.toString()).toBe(got);
 });

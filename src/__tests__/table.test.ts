@@ -3,12 +3,13 @@ import { SVG, registerWindow } from "@svgdotjs/svg.js";
 import { createHTMLWindow } from "svgdom";
 // @ts-ignore, https://github.com/DefinitelyTyped/DefinitelyTyped/pull/66501/files
 import { config } from "svgdom";
-import fs from "fs";
-import { Tile, Parser } from "./parser";
-import { ImageHelper } from "./image";
-import { createTable, FontContext } from "./table";
-import { DiscardsInput, ScoreBoardInput, HandsInput } from "./table-parser";
-import { FONT_FAMILY, KIND } from "./constants";
+import { Tile, Parser } from "./../parser";
+import { ImageHelper } from "./../image";
+import { createTable, FontContext } from "./../table";
+import { DiscardsInput, ScoreBoardInput, HandsInput } from "./../table-parser";
+import { FONT_FAMILY, KIND } from "./../constants";
+
+import { loadTestData } from "./utils/helper";
 
 const window = createHTMLWindow();
 const document = window.document;
@@ -73,7 +74,7 @@ test("max-table-size", () => {
 
   draw.add(g.e);
   const got = draw.svg();
-  const want = loadTestData("table-svg1.svg", update, got);
+  const want = loadTestData("table-svg1.svg", got, update);
   expect(want.toString()).toBe(got);
 });
 
@@ -117,17 +118,6 @@ test("dynamic-hands-size", () => {
 
   draw.add(g.e);
   const got = draw.svg();
-  const want = loadTestData("table-svg2.svg", update, got);
+  const want = loadTestData("table-svg2.svg", got, update);
   expect(want.toString()).toBe(got);
 });
-
-const loadTestData = (
-  filename: string,
-  update: boolean = false,
-  data: string = ""
-) => {
-  const gotPath = `testdata/${filename}`;
-  if (update) fs.writeFileSync(gotPath, data);
-  const want = fs.readFileSync(gotPath);
-  return want;
-};
