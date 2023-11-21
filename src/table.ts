@@ -3,11 +3,11 @@ import { ImageHelper, createHand } from "./image";
 import { SVG, Element, Text, G, Rect, Image } from "@svgdotjs/svg.js";
 import { FONT_FAMILY, OPERATOR } from "./constants";
 import {
-  DiscardsInput,
-  ScoreBoardInput,
-  HandsInput,
   parseTableInput,
   convertInput,
+  ScoreBoardInput,
+  DiscardsInput,
+  HandsInput,
 } from "./table-parser";
 import assert from "assert";
 

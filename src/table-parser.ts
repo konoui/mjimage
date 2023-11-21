@@ -1,6 +1,10 @@
 import { parse } from "yaml";
+import Ajv from "ajv";
+
 import { Tile, Parser, Block } from "./parser";
 import { WIND_MAP, ROUND_MAP } from "./constants";
+
+import TABLE_SCHEMA from "./table-schema.json";
 
 export interface TableInput {
   discards: {
@@ -56,8 +60,16 @@ type boardRound = (typeof ROUND_MAP)[keyof typeof ROUND_MAP];
 type boardWind = (typeof WIND_MAP)[keyof typeof WIND_MAP];
 
 export const parseTableInput = (s: string) => {
-  const input = parse(s) as { table: TableInput };
-  // TODO validate them
+  const rawInput = parse(s) as { table: TableInput };
+
+  const ajv = new Ajv();
+  const validate = ajv.compile(TABLE_SCHEMA);
+  const valid = validate(rawInput.table);
+  if (!valid) {
+    throw validate.errors;
+  }
+
+  const input = rawInput;
   return input.table;
 };
 
