@@ -5,21 +5,22 @@ describe("parse-table", () => {
   test("simple", () => {
     const input = `
   table:
-    discards:
-      1w: 1m
-      2w: 2m
-      3w: 3m
-      4w: 4m
-    hands:
-      1w: 1m
-      2w: 2m
-      3w: 3m
-      4w: 4m
-    scores:
-      1w: 0
-      2w: 3000
-      3w: 25000
-      4w: 12000
+    1w:
+      discard: 1m
+      hand: 1m
+      score: 0
+    2w:
+      discard: 2m
+      hand: 2m
+      score: 3000
+    3w:
+      discard: 3m
+      hand: 3m
+      score: 25000
+    4w:
+      discard: 4m
+      hand: 4m
+      score: 12000
     board:
       doras:
         - 1m
@@ -29,23 +30,25 @@ describe("parse-table", () => {
       round: 1w1
     `;
     const want: TableInput = {
-      discards: {
-        "1w": "1m",
-        "2w": "2m",
-        "3w": "3m",
-        "4w": "4m",
+      "1w": {
+        discard: "1m",
+        hand: "1m",
+        score: 0,
       },
-      hands: {
-        "1w": "1m",
-        "2w": "2m",
-        "3w": "3m",
-        "4w": "4m",
+      "2w": {
+        discard: "2m",
+        hand: "2m",
+        score: 3000,
       },
-      scores: {
-        "1w": 0,
-        "2w": 3000,
-        "3w": 25000,
-        "4w": 12000,
+      "3w": {
+        discard: "3m",
+        hand: "3m",
+        score: 25000,
+      },
+      "4w": {
+        discard: "4m",
+        hand: "4m",
+        score: 12000,
       },
       board: {
         round: "1w1",

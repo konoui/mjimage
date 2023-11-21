@@ -39,39 +39,31 @@
 
 ### WIP 卓全体
 
-1. 4 人の捨て牌
-2. 4 人の手配
-3. 東、南、西、北
-4. ドラ（複数）
-5. リーチ棒、供託
-6. 点数状況
-7. 南 4 局など
-8. 手前が東、南など
-
 ```yaml
 table:
-  discards:
-    1w: a
-    2w: b
-    3w: c
-    4w: d
-  hands:
-    1w: a
-    2w: b
-    3w: c
-    4w: d
-  scores:
-    1w: 1
-    2w: 2
-    3w: 3
-    4w: 4
+  1w:
+    discard: 1m
+    hand: 1m
+    score: 0
+  2w:
+    discard: 2m
+    hand: 2m
+    score: 3000
+  3w:
+    discard: 3m
+    hand: 3m
+    score: 25000
+  4w:
+    discard: 4m
+    hand: 4m
+    score: 12000
   board:
     doras:
       - 1m
     sticks:
       reach: 1
       dead: 3
-    round: 1z1
+    round: 1w1
 ```
 
 ### 牌画像
