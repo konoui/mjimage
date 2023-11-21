@@ -1,5 +1,5 @@
 import { describe, test, expect } from "@jest/globals";
-import { parserTableInput, TableInput } from "./../table-parser";
+import { parseTableInput, TableInput } from "./../table-parser";
 
 describe("parse-table", () => {
   test("simple", () => {
@@ -56,7 +56,7 @@ describe("parse-table", () => {
         doras: ["1m"],
       },
     };
-    const got = parserTableInput(input);
+    const got = parseTableInput(input);
     expect(got).toStrictEqual(want);
   });
 });

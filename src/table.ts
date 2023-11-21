@@ -6,7 +6,7 @@ import {
   DiscardsInput,
   ScoreBoardInput,
   HandsInput,
-  parserTableInput,
+  parseTableInput,
   convertInput,
 } from "./table-parser";
 import assert from "assert";
@@ -424,7 +424,7 @@ table:
     round: 1w1
   `;
 
-  const i = parserTableInput(input);
+  const i = parseTableInput(input);
   const [discards, hands, scoreBoard] = convertInput(i);
 
   const g = createTable(helper, fontCtx, hands, discards, scoreBoard);

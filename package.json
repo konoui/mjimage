@@ -6,7 +6,8 @@
         "start": "parcel",
         "build": "parcel build",
         "dev": "parcel src/index.html",
-        "test": "jest"
+        "test": "jest",
+        "gen": "npx typescript-json-schema src/table-parser.ts TableInput"
     },
     "targets": {
         "global": {
