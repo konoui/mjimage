@@ -6,16 +6,15 @@ import { WIND_MAP, ROUND_MAP } from "./constants";
 
 import TABLE_SCHEMA from "./table-schema.json";
 
-export interface TableInput {
-  discards: {
-    [K in tableWind]: string;
-  };
-  hands: {
-    [K in tableWind]: string;
-  };
-  scores: {
-    [K in tableWind]: number;
-  };
+interface WindInput {
+  discard: string;
+  hand: string;
+  score: number;
+}
+
+type WindInputs = { [K in tableWind]: WindInput };
+
+export interface TableInput extends WindInputs {
   board: {
     round: tableRound;
     sticks: {
@@ -77,10 +76,11 @@ export const convertInput = (
   i: TableInput
 ): [DiscardsInput, HandsInput, ScoreBoardInput] => {
   console.log("table input", i);
+
   const frontPlace = i.board.front || "1w";
   const m = createPlaceMap(frontPlace);
   const f = (w: tableWind) => {
-    return i.discards[w].replace(/\r?\n/g, "");
+    return i[w].discard.replace(/\r?\n/g, "");
   };
   const discards: DiscardsInput = {
     front: new Parser(f(m.front)).parseInput(),
@@ -89,10 +89,10 @@ export const convertInput = (
     left: new Parser(f(m.left)).parseInput(),
   };
   const hands: HandsInput = {
-    front: new Parser(i.hands[m.front]).parse(),
-    right: new Parser(i.hands[m.right]).parse(),
-    opposite: new Parser(i.hands[m.opposite]).parse(),
-    left: new Parser(i.hands[m.left]).parse(),
+    front: new Parser(i[m.front].hand).parse(),
+    right: new Parser(i[m.right].hand).parse(),
+    opposite: new Parser(i[m.opposite].hand).parse(),
+    left: new Parser(i[m.left].hand).parse(),
   };
 
   const scoreBoard: ScoreBoardInput = {
@@ -103,10 +103,10 @@ export const convertInput = (
       return new Parser(v).parseInput()[0];
     }),
     scores: {
-      front: i.scores[m.front],
-      right: i.scores[m.right],
-      opposite: i.scores[m.opposite],
-      left: i.scores[m.left],
+      front: i[m.front].score,
+      right: i[m.right].score,
+      opposite: i[m.opposite].score,
+      left: i[m.left].score,
     },
   };
   return [discards, hands, scoreBoard];
