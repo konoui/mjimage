@@ -41,8 +41,11 @@ export class Tile {
     return `${op}${this.n}${this.k}`;
   }
 
-  equals(t: Tile | null): boolean {
-    return t !== null && this.k === t.k && this.n === t.n;
+  equals(t: Tile, ignoreRed: boolean = false): boolean {
+    let ok = this.n === t.n;
+    if (ignoreRed)
+      ok ||= (this.n == 5 && t.n == 0) || (this.n == 0 && t.n == 5);
+    return this.k === t.k && ok;
   }
 }
 
@@ -176,14 +179,15 @@ function detectBlockType(tiles: Tile[]): BLOCK {
     return BLOCK.HAND; // 単騎
   }
 
-  let sameAll = tiles.filter((v) => v.equals(tiles[0])).length == tiles.length;
+  const sameAll =
+    tiles.filter((v) => v.equals(tiles[0], true)).length == tiles.length;
   let numOfHorizontals = tiles.filter(
     (v) => v.op == OPERATOR.HORIZONTAL
   ).length;
-  let numOfTsumoDoraTiles = tiles.filter((v) => {
-    v.op == OPERATOR.TSUMO || v.op == OPERATOR.DORA;
-  }).length;
-  let numOfBackTiles = tiles.filter((v) => v.k == KIND.BACK).length;
+  const numOfTsumoDoraTiles = tiles.filter(
+    (v) => v.op == OPERATOR.TSUMO || v.op == OPERATOR.DORA
+  ).length;
+  const numOfBackTiles = tiles.filter((v) => v.k == KIND.BACK).length;
 
   if (numOfTsumoDoraTiles > 0) return BLOCK.UNKNOWN;
 
@@ -195,12 +199,11 @@ function detectBlockType(tiles: Tile[]): BLOCK {
 
   if (tiles.length == 4 && numOfBackTiles == 2) return BLOCK.AN_KAN;
   if (tiles.length == 4 && sameAll) {
-    if (numOfHorizontals === 1) return BLOCK.DAI_KAN;
-    if (numOfHorizontals === 2) return BLOCK.SHO_KAN;
+    if (numOfHorizontals == 1) return BLOCK.DAI_KAN;
+    if (numOfHorizontals == 2) return BLOCK.SHO_KAN;
   }
 
-  // handle a simple discard
-  if (numOfHorizontals == 1 && numOfBackTiles == 0) return BLOCK.DISCARD;
+  if (numOfHorizontals == 1) return BLOCK.DISCARD;
 
   return BLOCK.UNKNOWN;
 }

@@ -187,14 +187,14 @@ const getBlockCreators = (h: ImageHelper) => {
     [BLOCK.AN_KAN]: function (block: Block) {
       const width = h.tileWidth * 4;
       const height = h.tileHeight;
-      const zp = block.tiles.find((v) => {
+      const zp = block.tiles.filter((v) => {
         return v.k !== KIND.BACK;
       });
-      assert(zp != null);
+      assert(zp != null && zp.length == 2);
       const g = h.createBlockHandDiscard([
         new Tile(KIND.BACK, 0),
-        zp,
-        zp,
+        zp[0],
+        zp[1],
         new Tile(KIND.BACK, 0),
       ]);
       return { width: width, height: height, e: g };
