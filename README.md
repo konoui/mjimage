@@ -37,7 +37,7 @@
 
 ※ スペースは無視されます。
 
-### 卓全体
+### WIP 卓全体
 
 1. 4 人の捨て牌
 2. 4 人の手配
@@ -79,5 +79,7 @@ table:
 [【保存版】商用無料の高クオリティーの麻雀画像の無料素材まとめ](https://majandofu.com/mahjong-images)
 
 ## 使い方
+
+[設定例](doc/configuration.md)
 
 [html の例](example/index.html)

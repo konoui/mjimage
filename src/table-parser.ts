@@ -55,7 +55,7 @@ type tableRound = keyof typeof ROUND_MAP;
 type boardRound = (typeof ROUND_MAP)[keyof typeof ROUND_MAP];
 type boardWind = (typeof WIND_MAP)[keyof typeof WIND_MAP];
 
-export const parserTableInput = (s: string) => {
+export const parseTableInput = (s: string) => {
   const input = parse(s) as { table: TableInput };
   // TODO validate them
   return input.table;
