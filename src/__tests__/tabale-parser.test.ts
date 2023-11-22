@@ -57,6 +57,7 @@ describe("parse-table", () => {
           dead: 3,
         },
         doras: ["1m"],
+        front: "1w",
       },
     };
     const got = parseTableInput(input);
