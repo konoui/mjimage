@@ -1,30 +1,66 @@
 import { parse } from "yaml";
-import Ajv from "ajv";
+import { z } from "zod";
 
 import { Tile, Parser, Block } from "./parser";
 import { WIND_MAP, ROUND_MAP } from "./constants";
 
-import TABLE_SCHEMA from "./table-schema.json";
+const windInputSchema = z
+  .object({
+    discard: z.string().max(50).optional().default(""),
+    hand: z.string().max(25).optional().default(""),
+    score: z.number().optional().default(25000),
+  })
+  .strict()
+  .optional()
+  .default({ discard: "", hand: "", score: 25000 });
 
-interface WindInput {
-  discard: string;
-  hand: string;
-  score: number;
+const windInputsSchema = z
+  .object({
+    // FIXME merge WIND_MAP
+    "1w": windInputSchema,
+    "2w": windInputSchema,
+    "3w": windInputSchema,
+    "4w": windInputSchema,
+  })
+  .strict();
+
+// https://github.com/colinhacks/zod/discussions/2790
+function unionOfLiterals<T extends TableRound | TableWind>(
+  constants: readonly T[]
+) {
+  const literals = constants.map((x) => z.literal(x)) as unknown as readonly [
+    z.ZodLiteral<T>,
+    z.ZodLiteral<T>,
+    ...z.ZodLiteral<T>[]
+  ];
+  return z.union(literals);
 }
 
-type WindInputs = { [K in tableWind]: WindInput };
+const boardInputSchema = z
+  .object({
+    round: unionOfLiterals(Object.keys(ROUND_MAP) as TableRound[])
+      .optional()
+      .default("1w1"),
+    sticks: z.object({
+      reach: z.number().max(9).positive().optional().default(0),
+      dead: z.number().max(9).positive().optional().default(0),
+    }),
+    doras: z.array(z.string()).max(4).optional().default(["3w"]),
+    front: unionOfLiterals(Object.keys(WIND_MAP) as TableWind[])
+      .optional()
+      .default("1w"),
+  })
+  .strict();
 
-export interface TableInput extends WindInputs {
-  board: {
-    round: tableRound;
-    sticks: {
-      reach: number;
-      dead: number;
-    };
-    doras: string[];
-    front?: tableWind;
-  };
-}
+const tableInputSchema = windInputsSchema.extend({
+  board: boardInputSchema,
+});
+
+type WindInput = z.infer<typeof windInputSchema>;
+type WindInputs = z.infer<typeof windInputsSchema>;
+type BoardInput = z.infer<typeof boardInputSchema>;
+
+export type TableInput = z.infer<typeof tableInputSchema>;
 
 export interface DiscardsInput {
   front: Tile[];
@@ -42,7 +78,7 @@ export interface HandsInput {
 
 export interface ScoreBoardInput {
   doras: Tile[];
-  round: boardRound;
+  round: BoardRound;
   sticks: { reach: number; dead: number };
   scores: {
     front: number;
@@ -50,26 +86,22 @@ export interface ScoreBoardInput {
     opposite: number;
     left: number;
   };
-  frontPlace: boardWind;
+  frontPlace: BoardWind;
 }
 
-type tableWind = keyof typeof WIND_MAP;
-type tableRound = keyof typeof ROUND_MAP;
-type boardRound = (typeof ROUND_MAP)[keyof typeof ROUND_MAP];
-type boardWind = (typeof WIND_MAP)[keyof typeof WIND_MAP];
+type TableWind = keyof typeof WIND_MAP;
+type TableRound = keyof typeof ROUND_MAP;
+type BoardRound = (typeof ROUND_MAP)[keyof typeof ROUND_MAP];
+type BoardWind = (typeof WIND_MAP)[keyof typeof WIND_MAP];
 
 export const parseTableInput = (s: string) => {
   const rawInput = parse(s) as { table: TableInput };
 
-  const ajv = new Ajv();
-  const validate = ajv.compile(TABLE_SCHEMA);
-  const valid = validate(rawInput.table);
-  if (!valid) {
-    throw validate.errors;
+  const ret = tableInputSchema.safeParse(rawInput.table);
+  if (!ret.success) {
+    throw ret.error;
   }
-
-  const input = rawInput;
-  return input.table;
+  return ret.data;
 };
 
 export const convertInput = (
@@ -77,9 +109,9 @@ export const convertInput = (
 ): [DiscardsInput, HandsInput, ScoreBoardInput] => {
   console.log("table input", i);
 
-  const frontPlace = i.board.front || "1w";
+  const frontPlace = i.board.front;
   const m = createPlaceMap(frontPlace);
-  const f = (w: tableWind) => {
+  const f = (w: TableWind) => {
     return i[w].discard.replace(/\r?\n/g, "");
   };
   const discards: DiscardsInput = {
@@ -113,17 +145,17 @@ export const convertInput = (
 };
 
 const createPlaceMap = (
-  front: tableWind
+  front: TableWind
 ): {
-  front: tableWind;
-  right: tableWind;
-  opposite: tableWind;
-  left: tableWind;
+  front: TableWind;
+  right: TableWind;
+  opposite: TableWind;
+  left: TableWind;
 } => {
-  const f = (start: number, v: number): tableWind => {
+  const f = (start: number, v: number): TableWind => {
     let ret = `${v}w`;
     if (v > 4) ret = `${v - start}w`;
-    return ret as tableWind;
+    return ret as TableWind;
   };
 
   const start = Number(front[0]);
