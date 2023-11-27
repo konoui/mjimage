@@ -2,9 +2,8 @@ import { describe, test, expect } from "@jest/globals";
 import { SVG } from "@svgdotjs/svg.js";
 import { Tile, Parser } from "./../parser";
 import { ImageHelper } from "./../image";
-import { createTable, FontContext } from "./../table";
+import { drawTable, createTable, FontContext } from "./../table";
 import { DiscardsInput, ScoreBoardInput, HandsInput } from "./../table-parser";
-import { parse } from "./../table-parser";
 import { FONT_FAMILY, KIND } from "./../constants";
 
 import { initSvgDOM, loadTestData, loadInputData } from "./utils/helper";
@@ -20,10 +19,10 @@ const fontCtx: FontContext = {
   numHeight: 11.84,
 };
 
-const helper = new ImageHelper({
+const helperConfig = {
   imageHostPath: "http://localhost:1234/svg/",
   scale: 0.4,
-});
+};
 
 const update = false;
 
@@ -44,11 +43,10 @@ describe("table yaml to svg", () => {
   for (const t of tests) {
     test(t.name, () => {
       const input = loadInputData(t.inputFilename);
-      const [discards, hands, scoreBoard] = parse(input.toString());
-      const g = createTable(helper, fontCtx, hands, discards, scoreBoard);
 
       const draw = SVG();
-      draw.add(g.e);
+      drawTable(draw, input, helperConfig, fontCtx);
+
       const got = draw.svg();
       const want = loadTestData(t.gotFilename, got, update);
       expect(want.toString()).toBe(got);
@@ -92,6 +90,7 @@ describe("createTable", () => {
       doras: [new Tile(KIND.M, 3)],
     };
 
+    const helper = new ImageHelper(helperConfig);
     const g = createTable(helper, fontCtx, hands, discards, scoreBoard);
 
     const draw = SVG();
@@ -135,6 +134,7 @@ describe("createTable", () => {
       doras: [new Tile(KIND.M, 3)],
     };
 
+    const helper = new ImageHelper(helperConfig);
     const g = createTable(helper, fontCtx, hands, discards, scoreBoard);
 
     const draw = SVG();

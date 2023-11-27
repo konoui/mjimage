@@ -1,6 +1,7 @@
 import assert from "assert";
 import { Parser } from "./parser";
 import { drawBlocks, ImageHelperConfig } from "./image";
+import { drawTable } from "./table";
 import { TILE_CONTEXT } from "./constants";
 import { SVG } from "@svgdotjs/svg.js";
 
@@ -11,6 +12,8 @@ interface InitializeConfig extends Omit<ImageHelperConfig, "scale"> {
 
 const defaultQuerySelector = ".mjimage";
 const defaultScale = 1.6;
+const tableRegex = /^\s*table/;
+
 // FIXME merge table contextFunc
 function getTextHeight(font: string) {
   const ctx = document.createElement("canvas").getContext("2d");
@@ -51,10 +54,28 @@ export class mjimage {
         const height = getTextHeight(font);
         const calculatedScale = (height / maxPaiHeight) * scale;
         console.debug("input scale/calculated scale", scale, calculatedScale);
+
+        const svg = SVG();
+
+        if (tableRegex.test(input)) {
+          try {
+            drawTable(svg, input, {
+              ...props,
+              scale: calculatedScale,
+            });
+            svg.addTo(target);
+          } catch (e) {
+            target.textContent = input;
+            console.error(
+              "encounter unexpected error when handling a table",
+              e
+            );
+          }
+          return;
+        }
+
         try {
           const blocks = new Parser(input).parse();
-          const svg = SVG();
-          svg.image("test");
           drawBlocks(svg, blocks, {
             ...props,
             scale: calculatedScale,
@@ -62,7 +83,7 @@ export class mjimage {
           svg.addTo(target);
         } catch (e) {
           target.textContent = input;
-          console.error("encounter unexpected error", e);
+          console.error("encounter unexpected error when handling a hand", e);
         }
       }
     });
