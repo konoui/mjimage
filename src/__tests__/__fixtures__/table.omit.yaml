@@ -1,0 +1,8 @@
+table:
+  2w:
+    hand: 123456789m1234s,t1p
+    discard: 12345m12345s12345p1234w
+  board:
+    doras:
+      - 1m
+    front: 2w

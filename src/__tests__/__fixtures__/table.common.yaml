@@ -1,0 +1,25 @@
+table:
+  1w:
+    hand: 123456789m1234s
+    discard: 12345m12345s12345p1234w
+    score: 0
+  2w:
+    hand: 123456789m1234s,t1p
+    discard: 12345m12345s12345p1234w
+    score: 3000
+  3w:
+    hand: 123456789m1234s
+    discard: 12345m12345s12345p1234w
+    score: 25000
+  4w:
+    hand: 123456789m1234s    
+    discard: 12345m12345s12345p1234w
+    score: 12000
+  board:
+    doras:
+      - 1m
+    sticks:
+      reach: 1
+      dead: 3
+    round: 1w1
+    front: 2w

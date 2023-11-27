@@ -6,8 +6,7 @@
         "start": "parcel",
         "build": "parcel build",
         "dev": "parcel src/index.html",
-        "test": "jest",
-        "gen": "typescript-json-schema tsconfig.json --required true --noExtraProps true TableInput --out src/table-schema.json"
+        "test": "jest"
     },
     "targets": {
         "global": {

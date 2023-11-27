@@ -4,9 +4,10 @@ import { Tile, Parser } from "./../parser";
 import { ImageHelper } from "./../image";
 import { createTable, FontContext } from "./../table";
 import { DiscardsInput, ScoreBoardInput, HandsInput } from "./../table-parser";
+import { parse } from "./../table-parser";
 import { FONT_FAMILY, KIND } from "./../constants";
 
-import { initSvgDOM, loadTestData } from "./utils/helper";
+import { initSvgDOM, loadTestData, loadInputData } from "./utils/helper";
 
 const { window, document } = initSvgDOM();
 
@@ -25,6 +26,35 @@ const helper = new ImageHelper({
 });
 
 const update = false;
+
+describe("table yaml to svg", () => {
+  const tests = [
+    {
+      name: "specify all params",
+      gotFilename: "yaml-to-svg.common.svg",
+      inputFilename: "table.common.yaml",
+    },
+    {
+      name: "omit params",
+      gotFilename: "yaml-to-svg.omit.svg",
+      inputFilename: "table.omit.yaml",
+    },
+  ];
+
+  for (const t of tests) {
+    test(t.name, () => {
+      const input = loadInputData(t.inputFilename);
+      const [discards, hands, scoreBoard] = parse(input.toString());
+      const g = createTable(helper, fontCtx, hands, discards, scoreBoard);
+
+      const draw = SVG();
+      draw.add(g.e);
+      const got = draw.svg();
+      const want = loadTestData(t.gotFilename, got, update);
+      expect(want.toString()).toBe(got);
+    });
+  }
+});
 
 describe("createTable", () => {
   test("max-table-size", () => {
@@ -62,13 +92,12 @@ describe("createTable", () => {
       doras: [new Tile(KIND.M, 3)],
     };
 
-    const draw = SVG();
-
     const g = createTable(helper, fontCtx, hands, discards, scoreBoard);
 
+    const draw = SVG();
     draw.add(g.e);
     const got = draw.svg();
-    const want = loadTestData("table-svg1.svg", got, update);
+    const want = loadTestData("table.max-size.svg", got, update);
     expect(want.toString()).toBe(got);
   });
 
@@ -106,13 +135,12 @@ describe("createTable", () => {
       doras: [new Tile(KIND.M, 3)],
     };
 
-    const draw = SVG();
-
     const g = createTable(helper, fontCtx, hands, discards, scoreBoard);
 
+    const draw = SVG();
     draw.add(g.e);
     const got = draw.svg();
-    const want = loadTestData("table-svg2.svg", got, update);
+    const want = loadTestData("table.dynamic-size.svg", got, update);
     expect(want.toString()).toBe(got);
   });
 });

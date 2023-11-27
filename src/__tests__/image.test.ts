@@ -20,7 +20,7 @@ describe("generate svg", () => {
       imageHostUrl: "http://localhost:1234/svg/",
     });
     const got = draw.svg();
-    const want = loadTestData("svg1.svg", got, update);
+    const want = loadTestData("image.common.svg", got, update);
     expect(want.toString()).toBe(got);
   });
 
@@ -32,7 +32,7 @@ describe("generate svg", () => {
       imageHostUrl: "http://localhost:1234/svg/",
     });
     const got = draw.svg();
-    const want = loadTestData("svg3.svg", got, update);
+    const want = loadTestData("image.05an-kan.svg", got, update);
     expect(want.toString()).toBe(got);
   });
 
@@ -44,7 +44,7 @@ describe("generate svg", () => {
       imageHostUrl: "http://localhost:1234/svg/",
     });
     const got = draw.svg();
-    const want = loadTestData("svg2.svg", got, update);
+    const want = loadTestData("image.simple-discard.svg", got, update);
     expect(want.toString()).toBe(got);
   });
 
