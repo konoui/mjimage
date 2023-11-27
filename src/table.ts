@@ -1,10 +1,9 @@
 import { Tile } from "./parser";
-import { ImageHelper, createHand } from "./image";
-import { SVG, Element, Text, G, Rect, Image } from "@svgdotjs/svg.js";
+import { ImageHelper, createHand, ImageHelperConfig } from "./image";
+import { Svg, SVG, Element, Text, G, Rect, Image } from "@svgdotjs/svg.js";
 import { FONT_FAMILY, OPERATOR } from "./constants";
 import {
-  parseTableInput,
-  convertInput,
+  parse,
   ScoreBoardInput,
   DiscardsInput,
   HandsInput,
@@ -391,46 +390,21 @@ export const createTable = (
   g.add(hands.e);
   g.add(discards.e);
   g.add(scoreBoard.e);
-  return { e: g, weight: hands.width, height: hands.height };
+  return { e: g, width: hands.width, height: hands.height };
 };
 
-export const handle = () => {
-  const helper = new ImageHelper({ imageHostPath: "svg/", scale: 0.4 });
-  const fontCtx = getTableFontContext(helper);
+export const drawTable = (
+  svg: Svg,
+  tableInput: string,
+  config: ImageHelperConfig = {},
+  fontCtx?: FontContext
+) => {
+  const helper = new ImageHelper(config);
+  const ctx = fontCtx || getTableFontContext(helper);
 
-  const input = `
-table:
-  discards:
-    1w: 11244444444444444m
-    2w: 2m
-    3w: 3m
-    4w: 4m
-  hands:
-    1w: 123456789m1234s,t3s
-    2w: 123456789m12345s
-    3w: 123456789m12345s
-    4w: 123456789m12345s
-  scores:
-    1w: 0
-    2w: 3000
-    3w: 25000
-    4w: 12000
-  board:
-    doras:
-      - 1m
-    sticks:
-      reach: 1
-      dead: 3
-    round: 1w1
-  `;
+  const [discards, hands, scoreBoard] = parse(tableInput);
+  const table = createTable(helper, ctx, hands, discards, scoreBoard);
 
-  const i = parseTableInput(input);
-  const [discards, hands, scoreBoard] = convertInput(i);
-
-  const g = createTable(helper, fontCtx, hands, discards, scoreBoard);
-
-  const draw = SVG().size(g.weight, g.height).move(0, 0);
-  draw.add(g.e);
-  console.debug("handling");
-  draw.addTo("#container");
+  svg.size(table.width, table.height);
+  svg.add(table.e);
 };

@@ -37,25 +37,27 @@
 
 ※ スペースは無視されます。
 
-### WIP 卓全体
+### 卓全体
+
+例）
 
 ```yaml
 table:
   1w:
-    discard: 1m
-    hand: 1m
+    hand: 123456789m1234s
+    discard: 12345m12345s12345p1234w
     score: 0
   2w:
-    discard: 2m
-    hand: 2m
+    hand: 123456789m1234s,t1p
+    discard: 12345m12345s12345p1234w
     score: 3000
   3w:
-    discard: 3m
-    hand: 3m
+    hand: 123456789m1234s
+    discard: 12345m12345s12345p1234w
     score: 25000
   4w:
-    discard: 4m
-    hand: 4m
+    hand: 123456789m1234s
+    discard: 12345m12345s12345p1234w
     score: 12000
   board:
     doras:
@@ -64,9 +66,10 @@ table:
       reach: 1
       dead: 3
     round: 1w1
+    front: 2w
 ```
 
-### 牌画像
+## 牌画像
 
 [【保存版】商用無料の高クオリティーの麻雀画像の無料素材まとめ](https://majandofu.com/mahjong-images)
 
