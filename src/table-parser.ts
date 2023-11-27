@@ -112,9 +112,7 @@ export const parseTableInput = (s: string) => {
   return ret.data;
 };
 
-export const convertInput = (
-  i: TableInput
-): [DiscardsInput, HandsInput, ScoreBoardInput] => {
+export const convertInput = (i: TableInput) => {
   console.log("table input", i);
 
   const frontPlace = i.board.front;
@@ -149,7 +147,7 @@ export const convertInput = (
       left: i[m.left].score,
     },
   };
-  return [discards, hands, scoreBoard];
+  return { discards, hands, scoreBoard };
 };
 
 const createPlaceMap = (
