@@ -161,9 +161,8 @@ export class Parser {
   }
 
   validate(input: string) {
-    const maxInputLength = 128;
     if (input.length == 0) return;
-    if (input.length > maxInputLength)
+    if (input.length > this.maxInputLength)
       throw new Error("exceeded maximum input length");
     const lastChar = input.charAt(input.length - 1);
     // Note: dummy tile for validation
