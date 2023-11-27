@@ -8,6 +8,7 @@ import { SVG } from "@svgdotjs/svg.js";
 interface InitializeConfig extends Omit<ImageHelperConfig, "scale"> {
   querySelector?: string | string[];
   scale?: number;
+  tableScale?: number;
 }
 
 const defaultQuerySelector = ".mjimage";
@@ -32,9 +33,10 @@ export class mjimage {
     console.debug("initializing....");
     let querySelector = props.querySelector ?? defaultQuerySelector;
     let scale = props.scale ?? defaultScale;
+    let tableScale = props.tableScale ?? scale;
     if (typeof querySelector === "string") querySelector = [querySelector];
 
-    const maxPaiHeight = TILE_CONTEXT.WIDTH * 2;
+    const maxPaiHeight = Math.max(TILE_CONTEXT.WIDTH * 2, TILE_CONTEXT.HEIGHT);
     querySelector.forEach((qs) => {
       console.debug("try to find", qs);
       const targets = document.querySelectorAll(qs) as NodeListOf<HTMLElement>;
@@ -52,16 +54,20 @@ export class mjimage {
 
         const font = target.style.font;
         const height = getTextHeight(font);
-        const calculatedScale = (height / maxPaiHeight) * scale;
-        console.debug("input scale/calculated scale", scale, calculatedScale);
 
         const svg = SVG();
 
         if (tableRegex.test(input)) {
           try {
+            const calculatedTableScale = (height / maxPaiHeight) * tableScale;
+            console.debug(
+              "input scale/calculated table scale",
+              scale,
+              calculatedTableScale
+            );
             drawTable(svg, input, {
               ...props,
-              scale: calculatedScale,
+              scale: calculatedTableScale,
             });
             svg.addTo(target);
           } catch (e) {
@@ -75,6 +81,8 @@ export class mjimage {
         }
 
         try {
+          const calculatedScale = (height / maxPaiHeight) * scale;
+          console.debug("input scale/calculated scale", scale, calculatedScale);
           const blocks = new Parser(input).parse();
           drawBlocks(svg, blocks, {
             ...props,
