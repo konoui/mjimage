@@ -91,7 +91,6 @@ export class Parser {
     let cluster: Tile[] = [];
 
     this.validate(this.input);
-
     for (;;) {
       l.skipWhitespace();
       let char = l.char;
@@ -140,6 +139,8 @@ export class Parser {
     let cluster: Tile[] = [];
     const res: Block[] = [];
 
+    if (tiles.length == 0) return res;
+
     for (const t of tiles) {
       if (t.k === KIND.SEPARATOR) {
         const type = detectBlockType(cluster);
@@ -161,11 +162,12 @@ export class Parser {
 
   validate(input: string) {
     const maxInputLength = 128;
-    if (input.length == 0) throw new Error("no input");
+    if (input.length == 0) return;
     if (input.length > maxInputLength)
       throw new Error("exceeded maximum input length");
     const lastChar = input.charAt(input.length - 1);
-    const [_, isKind] = isKindAlias(lastChar, []);
+    // Note: dummy tile for validation
+    const [_, isKind] = isKindAlias(lastChar, [new Tile(KIND.BACK, 1)]);
     if (!isKind)
       throw new Error(`last character(${lastChar}) is not kind value`);
   }

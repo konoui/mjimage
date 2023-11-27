@@ -1,4 +1,4 @@
-import { parse } from "yaml";
+import yaml from "yaml";
 import { z } from "zod";
 
 import { Tile, Parser, Block } from "./parser";
@@ -41,10 +41,13 @@ const boardInputSchema = z
     round: unionOfLiterals(Object.keys(ROUND_MAP) as TableRound[])
       .optional()
       .default("1w1"),
-    sticks: z.object({
-      reach: z.number().max(9).positive().optional().default(0),
-      dead: z.number().max(9).positive().optional().default(0),
-    }),
+    sticks: z
+      .object({
+        reach: z.number().max(9).gte(0).optional().default(0),
+        dead: z.number().max(9).gte(0).optional().default(0),
+      })
+      .optional()
+      .default({ reach: 0, dead: 0 }),
     doras: z.array(z.string()).max(4).optional().default(["3w"]),
     front: unionOfLiterals(Object.keys(WIND_MAP) as TableWind[])
       .optional()
@@ -94,8 +97,13 @@ type TableRound = keyof typeof ROUND_MAP;
 type BoardRound = (typeof ROUND_MAP)[keyof typeof ROUND_MAP];
 type BoardWind = (typeof WIND_MAP)[keyof typeof WIND_MAP];
 
+export const parse = (s: string) => {
+  const d = parseTableInput(s);
+  return convertInput(d);
+};
+
 export const parseTableInput = (s: string) => {
-  const rawInput = parse(s) as { table: TableInput };
+  const rawInput = yaml.parse(s) as { table: TableInput };
 
   const ret = tableInputSchema.safeParse(rawInput.table);
   if (!ret.success) {
