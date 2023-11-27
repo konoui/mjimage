@@ -1,51 +1,15 @@
 import { Tile } from "./parser";
 import { ImageHelper, createHand, ImageHelperConfig } from "./image";
 import { Svg, Element, Text, G, Rect, Image } from "@svgdotjs/svg.js";
-import { FONT_FAMILY } from "./constants";
+import { getTableFontContext, FontContext } from "./context";
 import {
   parse,
   ScoreBoardInput,
   DiscardsInput,
   HandsInput,
 } from "./table-parser";
+
 import assert from "assert";
-
-export interface FontContext {
-  font: { family: string; size: number };
-  textWidth: number;
-  textHeight: number;
-  numWidth: number;
-  numHeight: number;
-}
-
-let contextFunc = (str: string, font: string | null = null) => {
-  return () => {
-    const ctx = document.createElement("canvas").getContext("2d");
-    assert(ctx != null);
-    if (font != null) ctx.font = font;
-    const metrics = ctx.measureText(str);
-    let width = metrics.width;
-    let height =
-      metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-    return [width, width];
-  };
-};
-
-export const getTableFontContext = (helper: ImageHelper): FontContext => {
-  const font = { family: FONT_FAMILY, size: 40 * helper.scale };
-  const fontString = `${font.size}px ${font.family}`;
-  const [textWidth, textHeight] = contextFunc("東", fontString)();
-  const [numWidth, numHeight] = contextFunc("2", fontString)();
-  const ctx = {
-    font: font,
-    textWidth: textWidth,
-    textHeight: textHeight,
-    numWidth: numWidth,
-    numHeight: numHeight,
-  };
-  console.debug("table font context", ctx);
-  return ctx;
-};
 
 const splitTiles = (input: Tile[]) => {
   const chunkSize = 6;
@@ -402,7 +366,7 @@ export const drawTable = (
   const helper = new ImageHelper(config);
   const ctx = fontCtx || getTableFontContext(helper);
 
-  const [discards, hands, scoreBoard] = parse(tableInput);
+  const { discards, hands, scoreBoard } = parse(tableInput);
   const table = createTable(helper, ctx, hands, discards, scoreBoard);
 
   svg.size(table.width, table.height);

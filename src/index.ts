@@ -1,6 +1,6 @@
-import assert from "assert";
 import { Parser } from "./parser";
 import { drawBlocks, ImageHelperConfig } from "./image";
+import { getFontContext } from "./context";
 import { drawTable } from "./table";
 import { TILE_CONTEXT } from "./constants";
 import { SVG } from "@svgdotjs/svg.js";
@@ -14,19 +14,6 @@ interface InitializeConfig extends Omit<ImageHelperConfig, "scale"> {
 const defaultQuerySelector = ".mjimage";
 const defaultScale = 1.6;
 const tableRegex = /^\s*table/;
-
-// FIXME merge table contextFunc
-function getTextHeight(font: string) {
-  const ctx = document.createElement("canvas").getContext("2d");
-  assert(ctx != null);
-  ctx.font = font;
-  const metrics = ctx.measureText("あ");
-  let fontHeight =
-    metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
-  let actualHeight =
-    metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-  return actualHeight;
-}
 
 export class mjimage {
   static initialize = (props: InitializeConfig = {}) => {
@@ -53,13 +40,14 @@ export class mjimage {
         target.textContent = ""; // remove first
 
         const font = target.style.font;
-        const height = getTextHeight(font);
+        const { textHeight } = getFontContext(font);
 
         const svg = SVG();
 
         if (tableRegex.test(input)) {
           try {
-            const calculatedTableScale = (height / maxPaiHeight) * tableScale;
+            const calculatedTableScale =
+              (textHeight / maxPaiHeight) * tableScale;
             console.debug(
               "input scale/calculated table scale",
               scale,
@@ -81,7 +69,7 @@ export class mjimage {
         }
 
         try {
-          const calculatedScale = (height / maxPaiHeight) * scale;
+          const calculatedScale = (textHeight / maxPaiHeight) * scale;
           console.debug("input scale/calculated scale", scale, calculatedScale);
           const blocks = new Parser(input).parse();
           drawBlocks(svg, blocks, {
