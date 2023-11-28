@@ -33,7 +33,6 @@ export const getFontContext = (font: string) => {
     numWidth: numWidth,
     numHeight: numHeight,
   };
-  console.debug("font context", ctx);
   return ctx;
 };
 

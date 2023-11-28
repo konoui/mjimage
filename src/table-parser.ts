@@ -1,4 +1,4 @@
-import yaml from "yaml";
+import { load } from "js-yaml";
 import { z } from "zod";
 
 import { Tile, Parser, Block } from "./parser";
@@ -103,7 +103,7 @@ export const parse = (s: string) => {
 };
 
 export const parseTableInput = (s: string) => {
-  const rawInput = yaml.parse(s) as { table: TableInput };
+  const rawInput = load(s) as { table: TableInput };
 
   const ret = tableInputSchema.safeParse(rawInput.table);
   if (!ret.success) {

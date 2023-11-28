@@ -9,8 +9,6 @@ import {
   HandsInput,
 } from "./table-parser";
 
-import assert from "assert";
-
 const splitTiles = (input: Tile[]) => {
   const chunkSize = 6;
   const result: Tile[][] = [];

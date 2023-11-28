@@ -51,6 +51,7 @@
         "@parcel/transformer-typescript-tsc": "^2.9.3",
         "@parcel/validator-typescript": "^2.9.3",
         "@types/jest": "^29.5.5",
+        "@types/js-yaml": "^4.0.9",
         "@types/svgdom": "^0.1.0",
         "assert": "^2.1.0",
         "buffer": "^6.0.3",
@@ -66,7 +67,7 @@
     },
     "dependencies": {
         "@svgdotjs/svg.js": "^3.2.0",
-        "yaml": "^2.3.2",
+        "js-yaml": "^4.1.0",
         "zod": "^3.22.4"
     }
 }
