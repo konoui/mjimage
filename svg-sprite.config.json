@@ -1,0 +1,9 @@
+{
+    "dest": "src/",
+    "mode": {
+        "symbol": {
+            "dest": ".",
+            "sprite": "tiles.svg"
+        }
+    }
+}
