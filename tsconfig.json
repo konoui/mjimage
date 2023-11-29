@@ -10,5 +10,5 @@
   "transformers": {
     "*.{ts,tsx}": ["@parcel/transformer-typescript-tsc"]
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "src/custom.d.ts"]
 }
