@@ -113,8 +113,6 @@ export const parseTableInput = (s: string) => {
 };
 
 export const convertInput = (i: TableInput) => {
-  console.log("table input", i);
-
   const frontPlace = i.board.front;
   const m = createPlaceMap(frontPlace);
   const f = (w: TableWind) => {

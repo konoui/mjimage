@@ -48,6 +48,7 @@
     "author": "",
     "license": "ISC",
     "devDependencies": {
+        "@parcel/transformer-inline-string": "^2.9.3",
         "@parcel/transformer-typescript-tsc": "^2.9.3",
         "@parcel/validator-typescript": "^2.9.3",
         "@types/jest": "^29.5.5",

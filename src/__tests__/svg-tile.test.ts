@@ -1,6 +1,5 @@
 import { describe, test, expect } from "@jest/globals";
 import { SVG, Use } from "@svgdotjs/svg.js";
-import { tileImage } from "./../image-wrapper";
 import fs from "fs";
 
 import { loadTestData, initSvgDOM } from "./utils/helper";

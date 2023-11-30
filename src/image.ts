@@ -1,12 +1,13 @@
 import assert from "assert";
 import { Tile, Block } from "./parser";
-import { Svg, G, Image, Text } from "@svgdotjs/svg.js";
+import { Svg, G, Image, Text, Use } from "@svgdotjs/svg.js";
 import { FONT_FAMILY, TILE_CONTEXT, KIND, OPERATOR, BLOCK } from "./constants";
 
 export interface ImageHelperConfig {
   scale?: number;
   imageHostPath?: string;
   imageHostUrl?: string;
+  svgSprite?: boolean;
 }
 
 class BaseHelper {
@@ -17,6 +18,7 @@ class BaseHelper {
   readonly image_host_path: string;
   readonly image_host_url: string;
   readonly scale: number;
+  readonly svgSprite: boolean;
   constructor(props: ImageHelperConfig = {}) {
     this.scale = props.scale ?? 1;
     this.image_host_path = props.imageHostPath ?? "";
@@ -25,11 +27,22 @@ class BaseHelper {
     this.tileHeight = TILE_CONTEXT.HEIGHT * this.scale;
     this.textWidth = this.tileWidth * 0.8; // sum of 4 string
     this.diffTileHeightWidth = (this.tileHeight - this.tileWidth) / 2;
+    this.svgSprite = props.svgSprite ?? false;
+  }
+
+  // image wrapper
+  private image(tile: Tile | 100 | 1000) {
+    if (!this.svgSprite) {
+      return new Image().load(this.buildURL(tile));
+    }
+    return new Use().use(this.buildID(tile));
   }
 
   createImage(tile: Tile, x: number, y: number) {
-    const image = new Image().load(this.makeImageTileHref(tile));
-    image.dx(x).dy(y).size(this.tileWidth, this.tileHeight);
+    const image = this.image(tile)
+      .dx(x)
+      .dy(y)
+      .size(this.tileWidth, this.tileHeight);
     return image;
   }
 
@@ -81,11 +94,19 @@ class BaseHelper {
     return g;
   }
 
-  makeImageTileHref(tile: Tile) {
-    return this.makeImageHref(`${tile.k}${tile.n}.svg`);
+  createStick(v: 100 | 1000) {
+    return this.image(v);
   }
 
-  makeImageHref(filename: string) {
+  buildID(tile: Tile | 100 | 1000) {
+    if (tile == 100 || tile == 1000) {
+      return tile == 100 ? "stick100" : "stick1000";
+    }
+    return `${tile.k}${tile.n}`;
+  }
+
+  buildURL(tile: Tile | 100 | 1000) {
+    const filename = `${this.buildID(tile)}.svg`;
     if (this.image_host_url != "") {
       return `${this.image_host_url}${filename}`;
     }

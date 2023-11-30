@@ -4,6 +4,8 @@ import { getFontContext } from "./context";
 import { drawTable } from "./table";
 import { TILE_CONTEXT } from "./constants";
 import { SVG } from "@svgdotjs/svg.js";
+// https://parceljs.org/languages/svg/#inlining-as-a-string
+import tilesSvg from "./tiles.svg";
 
 interface InitializeConfig extends Omit<ImageHelperConfig, "scale"> {
   querySelector?: string | string[];
@@ -13,17 +15,27 @@ interface InitializeConfig extends Omit<ImageHelperConfig, "scale"> {
 
 const defaultQuerySelector = ".mjimage";
 const defaultScale = 1.6;
+const defaultSvgSprite = false;
 const tableRegex = /^\s*table/;
+const maxPaiHeight = Math.max(TILE_CONTEXT.WIDTH * 2, TILE_CONTEXT.HEIGHT);
+
+const calculateScale = (scale: number, textHeight: number) => {
+  return (textHeight / maxPaiHeight) * scale;
+};
 
 export class mjimage {
+  static svgURL = () => {
+    return tilesSvg;
+  };
+
   static initialize = (props: InitializeConfig = {}) => {
     console.debug("initializing....");
     let querySelector = props.querySelector ?? defaultQuerySelector;
     let scale = props.scale ?? defaultScale;
     let tableScale = props.tableScale ?? scale;
+    let svgSprite = props.svgSprite ?? defaultSvgSprite;
     if (typeof querySelector === "string") querySelector = [querySelector];
 
-    const maxPaiHeight = Math.max(TILE_CONTEXT.WIDTH * 2, TILE_CONTEXT.HEIGHT);
     querySelector.forEach((qs) => {
       console.debug("try to find", qs);
       const targets = document.querySelectorAll(qs) as NodeListOf<HTMLElement>;
@@ -44,42 +56,25 @@ export class mjimage {
 
         const svg = SVG();
 
-        if (tableRegex.test(input)) {
-          try {
-            const calculatedTableScale =
-              (textHeight / maxPaiHeight) * tableScale;
-            console.debug(
-              "input scale/calculated table scale",
-              scale,
-              calculatedTableScale
-            );
+        try {
+          if (tableRegex.test(input)) {
             drawTable(svg, input, {
               ...props,
-              scale: calculatedTableScale,
+              svgSprite,
+              scale: calculateScale(tableScale, textHeight),
             });
-            svg.addTo(target);
-          } catch (e) {
-            target.textContent = input;
-            console.error(
-              "encounter unexpected error when handling a table",
-              e
-            );
+          } else {
+            const blocks = new Parser(input).parse();
+            drawBlocks(svg, blocks, {
+              ...props,
+              svgSprite,
+              scale: calculateScale(scale, textHeight),
+            });
           }
-          return;
-        }
-
-        try {
-          const calculatedScale = (textHeight / maxPaiHeight) * scale;
-          console.debug("input scale/calculated scale", scale, calculatedScale);
-          const blocks = new Parser(input).parse();
-          drawBlocks(svg, blocks, {
-            ...props,
-            scale: calculatedScale,
-          });
           svg.addTo(target);
         } catch (e) {
           target.textContent = input;
-          console.error("encounter unexpected error when handling a hand", e);
+          console.error("encounter unexpected error:", e);
         }
       }
     });

@@ -102,8 +102,8 @@ const createStickAndDora = (
     .translate(0, roundHeight);
 
   const stickFont = { family: font.family, size: font.size * 0.7 };
-  const stick1000 = new Image()
-    .load(helper.makeImageHref("stick1000.svg"))
+  const stick1000 = helper
+    .createStick(1000)
     .size(stickWidth, stickHeight)
     .move(0, 0);
   const text1000 = new Text()
@@ -113,8 +113,8 @@ const createStickAndDora = (
   stickGroup.add(stick1000);
   stickGroup.add(text1000);
 
-  const stick100 = new Image()
-    .load(helper.makeImageHref("stick100.svg"))
+  const stick100 = helper
+    .createStick(100)
     .size(stickWidth, stickHeight)
     .move(0, stickHeight + stickHeight);
   const text100 = new Text()
