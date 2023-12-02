@@ -1,5 +1,5 @@
 import { describe, test, expect } from "@jest/globals";
-import { parseTableInput, TableInput } from "./../table-parser";
+import { parseTableInput, TableInput } from "../table-parser";
 
 describe("parse-table", () => {
   test("simple", () => {

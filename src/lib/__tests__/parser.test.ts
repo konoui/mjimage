@@ -1,6 +1,6 @@
 import { describe, test, expect } from "@jest/globals";
-import { Tile, Block, tileSortFunc, Parser } from "./../parser";
-import { KIND, OPERATOR, BLOCK } from "./../constants";
+import { Tile, Block, tileSortFunc, Parser } from "../parser";
+import { KIND, OPERATOR, BLOCK } from "../constants";
 
 describe("parse", () => {
   test("12s34m1z2d,t1s,_05s_,-123s", () => {

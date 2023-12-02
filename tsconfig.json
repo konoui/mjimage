@@ -3,6 +3,7 @@
     "experimentalDecorators": true,
     "esModuleInterop": true,
     "strict": true,
+    "declaration": true,
     "removeComments": true,
     "isolatedModules": true,
     "resolveJsonModule": true
@@ -10,5 +11,5 @@
   "transformers": {
     "*.{ts,tsx}": ["@parcel/transformer-typescript-tsc"]
   },
-  "include": ["src/**/*", "src/custom.d.ts"]
+  "include": ["src/**/*", "src/lib/custom.d.ts"]
 }

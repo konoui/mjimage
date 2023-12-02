@@ -8,7 +8,7 @@ const { window, document } = initSvgDOM();
 
 describe("use", () => {
   test("import existing", () => {
-    const img = fs.readFileSync("src/tiles.svg").toString();
+    const img = fs.readFileSync("src/lib/tiles.svg").toString();
     const draw = SVG().svg(img);
     const use = new Use().use("m1");
     draw.add(use);

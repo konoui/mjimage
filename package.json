@@ -1,13 +1,24 @@
 {
-    "name": "mjimage",
-    "version": "0.1.0",
+    "name": "@konoui/mj-image",
+    "version": "0.0.1",
     "description": "",
     "scripts": {
         "start": "parcel",
         "build": "parcel build",
         "dev": "parcel src/index.html",
         "test": "jest",
-        "svg-sprite": "svg-sprite -C svg-sprite.config.json -shape-transform-svgo svgo.json static/svg/*.svg"
+        "svg-sprite": "svg-sprite -C svg-sprite.config.json -shape-transform-svgo svgo.json static/svg/*.svg",
+        "tsc": "tsc --declaration --outDir ./dist/mjs",
+        "prepublishOnly": "rm -rf ./dist && npm run tsc && cp -rf ./static/svg ./dist/mjs/svg/"
+    },
+    "types": "dist/mjs/index.d.ts",
+    "files": [
+        "dist/",
+        "!**/__tests__/",
+        "!dist/mjs/global.*"
+    ],
+    "exports": {
+        ".": "./dist/mjs/index.js"
     },
     "targets": {
         "global": {
@@ -16,37 +27,23 @@
             "includeNodeModules": true,
             "isLibrary": false,
             "optimize": true,
-            "distDir": "./dist/global/",
+            "distDir": "./dist/browser/",
             "engines": {
                 "browsers": "> 0.5%, last 2 versions, not dead"
             }
         },
-        "module": {
-            "source": "src/index.ts",
-            "includeNodeModules": true,
-            "outputFormat": "esmodule",
-            "engines": {
-                "browsers": "> 0.5%, last 2 versions, not dead"
-            },
-            "optimize": true
-        },
-        "main": {
-            "source": "src/index.ts",
-            "outputFormat": "commonjs",
-            "optimize": true
-        },
-        "webapp": {
-            "source": "src/index.html",
-            "distDir": "./dist/webapp/"
-        }
+        "module": {}
     },
     "alias": {},
     "staticFiles": {
         "staticPath": "static/svg",
         "staticOutPath": "svg"
     },
-    "author": "",
-    "license": "ISC",
+    "author": "konoui",
+    "license": "MIT",
+    "publishConfig": {
+        "access": "public"
+    },
     "devDependencies": {
         "@parcel/transformer-inline-string": "^2.9.3",
         "@parcel/transformer-typescript-tsc": "^2.9.3",

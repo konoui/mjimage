@@ -17,7 +17,7 @@ export const loadTestData = (
   dir: "__snapshots__" | "__fixtures__" = "__snapshots__"
 ) => {
   const current_dir = path.resolve("");
-  const gotPath = `${current_dir}/src/__tests__/${dir}/${filename}`;
+  const gotPath = `${current_dir}/src/lib/__tests__/${dir}/${filename}`;
   if (update) fs.writeFileSync(gotPath, data);
   const want = fs.readFileSync(gotPath);
   return want;

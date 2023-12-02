@@ -5,9 +5,9 @@ module.exports = {
     '^@/(.*)$': '/src/$1',
   },
   testPathIgnorePatterns: [
-        "./src/__tests__/utils/",
+        "./src/lib/__tests__/utils/","./dist"
   ],
   transform: {
-    "^.+\\.svg$": "<rootDir>/src/__tests__/utils/svgTransform.js"
+    "^.+\\.svg$": "<rootDir>/src/lib/__tests__/utils/svgTransform.js"
   }
 };

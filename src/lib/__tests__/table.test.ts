@@ -1,11 +1,11 @@
 import { describe, test, expect } from "@jest/globals";
 import { SVG } from "@svgdotjs/svg.js";
-import { Tile, Parser } from "./../parser";
-import { ImageHelper } from "./../image";
-import { drawTable, createTable } from "./../table";
-import { FontContext } from "./../context";
-import { DiscardsInput, ScoreBoardInput, HandsInput } from "./../table-parser";
-import { FONT_FAMILY, KIND } from "./../constants";
+import { Tile, Parser } from "../parser";
+import { ImageHelper } from "../image";
+import { drawTable, createTable } from "../table";
+import { FontContext } from "../context";
+import { DiscardsInput, ScoreBoardInput, HandsInput } from "../table-parser";
+import { FONT_FAMILY, KIND } from "../constants";
 
 import { initSvgDOM, loadTestData, loadInputData } from "./utils/helper";
 

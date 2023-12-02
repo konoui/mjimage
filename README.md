@@ -1,3 +1,5 @@
+[![npm version](https://badge.fury.io/js/@konoui%2Fmj-image.svg)](https://badge.fury.io/js/@konoui%2Fmj-image)
+
 ## 麻雀牌ジェネレーター
 
 仕様に沿ってテキストを入力することで、SVG 形式の画像を表示する Typescript ライブラリです。
