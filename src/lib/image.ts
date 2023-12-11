@@ -158,6 +158,28 @@ export class ImageHelper extends BaseHelper {
       return g;
     }
 
+    if (block.type == BLOCK.CHI) {
+      const g = new G();
+      let pos = 0;
+      const img = this.createRotate90Image(
+        block.tiles[idx],
+        pos,
+        this.diffTileHeightWidth
+      );
+      pos += this.tileHeight;
+      g.add(img);
+
+      for (let i = 0; i < block.tiles.length; i++) {
+        if (i == idx) {
+          continue;
+        }
+        const img = this.createImage(block.tiles[i], pos, 0);
+        pos += this.tileWidth;
+        g.add(img);
+      }
+      return g;
+    }
+
     const g = new G();
     let pos = 0;
     for (let i = 0; i < block.tiles.length; i++) {

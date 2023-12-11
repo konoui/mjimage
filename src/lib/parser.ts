@@ -182,7 +182,7 @@ function detectBlockType(tiles: Tile[]): BLOCK {
 
   const sameAll =
     tiles.filter((v) => v.equals(tiles[0], true)).length == tiles.length;
-  let numOfHorizontals = tiles.filter(
+  const numOfHorizontals = tiles.filter(
     (v) => v.op == OPERATOR.HORIZONTAL
   ).length;
   const numOfTsumoDoraTiles = tiles.filter(
