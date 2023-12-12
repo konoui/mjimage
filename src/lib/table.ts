@@ -1,7 +1,7 @@
 import { Tile } from "./parser";
 import { ImageHelper, createHand, ImageHelperConfig } from "./image";
-import { Svg, Element, Text, G, Rect, Image } from "@svgdotjs/svg.js";
-import { getTableFontContext, FontContext } from "./context";
+import { Svg, Element, Text, G, Rect } from "@svgdotjs/svg.js";
+import { FontContext } from "./context";
 import {
   parse,
   ScoreBoardInput,

@@ -1,3 +1,4 @@
+import assert from "assert";
 import { Parser } from "./parser";
 import { drawBlocks, ImageHelperConfig } from "./image";
 import { getFontContext, getTableFontContext } from "./context";
@@ -17,10 +18,10 @@ const defaultQuerySelector = ".mjimage";
 const defaultScale = 1.6;
 const defaultSvgSprite = false;
 const tableRegex = /^\s*table/;
-const maxPaiHeight = Math.max(TILE_CONTEXT.WIDTH * 2, TILE_CONTEXT.HEIGHT);
+const minPaiHeight = Math.min(TILE_CONTEXT.WIDTH, TILE_CONTEXT.HEIGHT);
 
 const calculateScale = (scale: number, textHeight: number) => {
-  return (textHeight / maxPaiHeight) * scale;
+  return (textHeight / minPaiHeight) * scale;
 };
 
 export class mjimage {
@@ -37,6 +38,7 @@ export class mjimage {
     if (typeof querySelector === "string") querySelector = [querySelector];
 
     const ctx = document.createElement("canvas").getContext("2d");
+    assert(ctx != null);
     querySelector.forEach((qs) => {
       console.debug("try to find", qs);
       const targets = document.querySelectorAll(qs) as NodeListOf<HTMLElement>;
@@ -52,8 +54,10 @@ export class mjimage {
         console.debug("found", input);
         target.textContent = ""; // remove first
 
-        const font = target.style.font;
-        const { textHeight } = getFontContext(ctx, font);
+        const style = window.getComputedStyle(target, null);
+        const fontSize = parseFloat(style.getPropertyValue("font-size"));
+        const fontFamily = style.getPropertyValue("font-family");
+        const { textHeight } = getFontContext(ctx, fontFamily, fontSize);
 
         const svg = SVG();
 

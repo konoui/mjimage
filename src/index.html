@@ -10,19 +10,19 @@
     window.onload = function () {
       mjimage.initialize({
         imageHostUrl: "http://localhost:1234/svg/",
-        scale: 4,
-        tableScale: 6,
+        scale: 2,
+        tableScale: 3,
       });
     };
   </script>
   <body>
     <h1>Hello, World!</h1>
     <div id="container">
-      <span style="vertical-align: middle"></span>
+      <span style="vertical-align: middle" id="line1"></span>
       1行目あいうえおかきくけこさしすせそ
       <br />
       2行目麻雀
-      <code class="mjimage"
+      <code class="mjimage" id="mjimage1"
         >-123s,1234m, d2s, _22_s,-2222s, -2-222m, 3-3-33s</code
       >
       <code class="mjimage">1-23s</code>

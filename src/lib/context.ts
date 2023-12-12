@@ -1,5 +1,3 @@
-import assert from "assert";
-import { ImageHelper } from "./image";
 import { FONT_FAMILY } from "./constants";
 
 export interface FontContext {
@@ -11,12 +9,11 @@ export interface FontContext {
 }
 
 const getContext = (
-  ctx: CanvasRenderingContext2D | null,
+  ctx: CanvasRenderingContext2D,
   str: string,
-  font: string | null = null
+  font: string
 ) => {
-  assert(ctx != null);
-  if (font != null) ctx.font = font;
+  ctx.font = font;
   const metrics = ctx.measureText(str);
   let width = metrics.width;
   let height =
@@ -25,13 +22,16 @@ const getContext = (
 };
 
 export const getFontContext = (
-  ctx: CanvasRenderingContext2D | null,
-  font: string
-) => {
-  const [textWidth, textHeight] = getContext(ctx, "東", font);
-  const [numWidth, numHeight] = getContext(ctx, "2", font);
+  ctx: CanvasRenderingContext2D,
+  fontFamily: string,
+  fontSize: number
+): FontContext => {
+  const font = { family: fontFamily, size: fontSize };
+  const fontString = `${font.size}px ${font.family}`;
+  const [textWidth, textHeight] = getContext(ctx, "東", fontString);
+  const [numWidth, numHeight] = getContext(ctx, "2", fontString);
   const ret = {
-    font: font,
+    font: { family: fontFamily, size: fontSize },
     textWidth: textWidth,
     textHeight: textHeight,
     numWidth: numWidth,
@@ -41,20 +41,11 @@ export const getFontContext = (
 };
 
 export const getTableFontContext = (
-  ctx: CanvasRenderingContext2D | null,
+  ctx: CanvasRenderingContext2D,
   scale: number
 ): FontContext => {
-  const font = { family: FONT_FAMILY, size: 40 * scale };
-  const fontString = `${font.size}px ${font.family}`;
-  const [textWidth, textHeight] = getContext(ctx, "東", fontString);
-  const [numWidth, numHeight] = getContext(ctx, "2", fontString);
-  const ret = {
-    font: font,
-    textWidth: textWidth,
-    textHeight: textWidth, // expected
-    numWidth: numWidth,
-    numHeight: numWidth, // expected
-  };
-  console.debug("table font context", ret);
-  return ret;
+  const fontCtx = getFontContext(ctx, FONT_FAMILY, 40 * scale);
+  fontCtx.textHeight = fontCtx.textWidth;
+  fontCtx.numHeight = fontCtx.numWidth;
+  return fontCtx;
 };

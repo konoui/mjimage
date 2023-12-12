@@ -39,8 +39,8 @@ $ cat layouts/_default/baseof.html
             mjimage.initialize({
               imageHostUrl: "https://d257lmna3z6el8.cloudfront.net/mjimage/svg/",
               querySelector: ["code", ".mjimage"],
-              scale: 4,
-              tableScale: 6
+              scale: 2,
+              tableScale: 3
             });
           };
         </script>
