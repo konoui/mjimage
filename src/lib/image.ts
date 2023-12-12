@@ -32,10 +32,15 @@ class BaseHelper {
 
   // image wrapper
   private image(tile: Tile | 100 | 1000) {
-    if (!this.svgSprite) {
-      return new Image().load(this.buildURL(tile));
+    let img: Image | Use = new Image().load(this.buildURL(tile));
+    if (this.svgSprite) {
+      img = new Use().use(this.buildID(tile));
     }
-    return new Use().use(this.buildID(tile));
+
+    if (tile instanceof Tile && tile.op == OPERATOR.OUT) {
+      img.css({ filter: "contrast(65%)" });
+    }
+    return img;
   }
 
   createImage(tile: Tile, x: number, y: number) {

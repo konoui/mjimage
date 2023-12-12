@@ -48,6 +48,18 @@ describe("generate svg", () => {
     expect(want.toString()).toBe(got);
   });
 
+  test("out-tile", () => {
+    const blocks = new Parser("2o2s2w").parse();
+
+    const draw = SVG();
+    drawBlocks(draw, blocks, {
+      imageHostUrl: "http://localhost:1234/svg/",
+    });
+    const got = draw.svg();
+    const want = loadTestData("image.out-discard.svg", got, update);
+    expect(want.toString()).toBe(got);
+  });
+
   test("unknown block", () => {
     const blocks = new Parser("1s-1st1s").parse();
 
