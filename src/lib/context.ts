@@ -10,44 +10,51 @@ export interface FontContext {
   numHeight: number;
 }
 
-const contextFunc = (str: string, font: string | null = null) => {
-  const ctx = document.createElement("canvas").getContext("2d");
-  return () => {
-    assert(ctx != null);
-    if (font != null) ctx.font = font;
-    const metrics = ctx.measureText(str);
-    let width = metrics.width;
-    let height =
-      metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-    return [width, height];
-  };
+const getContext = (
+  ctx: CanvasRenderingContext2D | null,
+  str: string,
+  font: string | null = null
+) => {
+  assert(ctx != null);
+  if (font != null) ctx.font = font;
+  const metrics = ctx.measureText(str);
+  let width = metrics.width;
+  let height =
+    metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+  return [width, height];
 };
 
-export const getFontContext = (font: string) => {
-  const [textWidth, textHeight] = contextFunc("東", font)();
-  const [numWidth, numHeight] = contextFunc("2", font)();
-  const ctx = {
+export const getFontContext = (
+  ctx: CanvasRenderingContext2D | null,
+  font: string
+) => {
+  const [textWidth, textHeight] = getContext(ctx, "東", font);
+  const [numWidth, numHeight] = getContext(ctx, "2", font);
+  const ret = {
     font: font,
     textWidth: textWidth,
     textHeight: textHeight,
     numWidth: numWidth,
     numHeight: numHeight,
   };
-  return ctx;
+  return ret;
 };
 
-export const getTableFontContext = (helper: ImageHelper): FontContext => {
-  const font = { family: FONT_FAMILY, size: 40 * helper.scale };
+export const getTableFontContext = (
+  ctx: CanvasRenderingContext2D | null,
+  scale: number
+): FontContext => {
+  const font = { family: FONT_FAMILY, size: 40 * scale };
   const fontString = `${font.size}px ${font.family}`;
-  const [textWidth, textHeight] = contextFunc("東", fontString)();
-  const [numWidth, numHeight] = contextFunc("2", fontString)();
-  const ctx = {
+  const [textWidth, textHeight] = getContext(ctx, "東", fontString);
+  const [numWidth, numHeight] = getContext(ctx, "2", fontString);
+  const ret = {
     font: font,
     textWidth: textWidth,
     textHeight: textWidth, // expected
     numWidth: numWidth,
     numHeight: numWidth, // expected
   };
-  console.debug("table font context", ctx);
-  return ctx;
+  console.debug("table font context", ret);
+  return ret;
 };

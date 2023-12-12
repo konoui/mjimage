@@ -359,10 +359,10 @@ export const drawTable = (
   svg: Svg,
   tableInput: string,
   config: ImageHelperConfig = {},
-  fontCtx?: FontContext
+  fontCtx: FontContext
 ) => {
   const helper = new ImageHelper(config);
-  const ctx = fontCtx || getTableFontContext(helper);
+  const ctx = fontCtx;
 
   const { discards, hands, scoreBoard } = parse(tableInput);
   const table = createTable(helper, ctx, hands, discards, scoreBoard);

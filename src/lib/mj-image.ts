@@ -1,6 +1,6 @@
 import { Parser } from "./parser";
 import { drawBlocks, ImageHelperConfig } from "./image";
-import { getFontContext } from "./context";
+import { getFontContext, getTableFontContext } from "./context";
 import { drawTable } from "./table";
 import { TILE_CONTEXT } from "./constants";
 import { SVG } from "@svgdotjs/svg.js";
@@ -31,11 +31,12 @@ export class mjimage {
   static initialize = (props: InitializeConfig = {}) => {
     console.debug("initializing....");
     let querySelector = props.querySelector ?? defaultQuerySelector;
-    let scale = props.scale ?? defaultScale;
-    let tableScale = props.tableScale ?? scale;
+    let handScale = props.scale ?? defaultScale;
+    let tableScale = props.tableScale ?? handScale;
     let svgSprite = props.svgSprite ?? defaultSvgSprite;
     if (typeof querySelector === "string") querySelector = [querySelector];
 
+    const ctx = document.createElement("canvas").getContext("2d");
     querySelector.forEach((qs) => {
       console.debug("try to find", qs);
       const targets = document.querySelectorAll(qs) as NodeListOf<HTMLElement>;
@@ -52,23 +53,31 @@ export class mjimage {
         target.textContent = ""; // remove first
 
         const font = target.style.font;
-        const { textHeight } = getFontContext(font);
+        const { textHeight } = getFontContext(ctx, font);
 
         const svg = SVG();
 
         try {
           if (tableRegex.test(input)) {
-            drawTable(svg, input, {
-              ...props,
-              svgSprite,
-              scale: calculateScale(tableScale, textHeight),
-            });
+            const scale = calculateScale(tableScale, textHeight);
+            const fontCtx = getTableFontContext(ctx, scale);
+            drawTable(
+              svg,
+              input,
+              {
+                ...props,
+                svgSprite,
+                scale: scale,
+              },
+              fontCtx
+            );
           } else {
+            const scale = calculateScale(handScale, textHeight);
             const blocks = new Parser(input).parse();
             drawBlocks(svg, blocks, {
               ...props,
               svgSprite,
-              scale: calculateScale(scale, textHeight),
+              scale: scale,
             });
           }
           svg.addTo(target);
