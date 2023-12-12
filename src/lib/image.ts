@@ -139,14 +139,13 @@ export class ImageHelper extends BaseHelper {
   }
 
   createBlockPonChiKan(block: Block) {
-    const idx = block.tiles.findIndex((d) => {
-      return d.op === OPERATOR.HORIZONTAL;
-    });
+    const idx = block.tiles.findIndex((d) => d.op === OPERATOR.HORIZONTAL);
 
+    let pos = 0;
+    const g = new G();
     if (block.type == BLOCK.SHO_KAN) {
-      let pos = 0;
       const diff = this.tileWidth * 2 - this.tileHeight;
-      const g = new G();
+
       for (let i = 0; i < block.tiles.length; i++) {
         if (i == idx + 1) continue;
         if (i == idx) {
@@ -164,8 +163,6 @@ export class ImageHelper extends BaseHelper {
     }
 
     if (block.type == BLOCK.CHI) {
-      const g = new G();
-      let pos = 0;
       const img = this.createRotate90Image(
         block.tiles[idx],
         pos,
@@ -175,9 +172,7 @@ export class ImageHelper extends BaseHelper {
       g.add(img);
 
       for (let i = 0; i < block.tiles.length; i++) {
-        if (i == idx) {
-          continue;
-        }
+        if (i == idx) continue;
         const img = this.createImage(block.tiles[i], pos, 0);
         pos += this.tileWidth;
         g.add(img);
@@ -185,8 +180,6 @@ export class ImageHelper extends BaseHelper {
       return g;
     }
 
-    const g = new G();
-    let pos = 0;
     for (let i = 0; i < block.tiles.length; i++) {
       if (i == idx) {
         const img = this.createRotate90Image(
