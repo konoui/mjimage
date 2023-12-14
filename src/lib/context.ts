@@ -1,4 +1,4 @@
-import { FONT_FAMILY } from "./constants";
+import { FONT_FAMILY, TABLE_CONTEXT } from "./constants";
 
 export interface FontContext {
   font: { family: string; size: number };
@@ -44,7 +44,7 @@ export const getTableFontContext = (
   ctx: CanvasRenderingContext2D,
   scale: number
 ): FontContext => {
-  const fontCtx = getFontContext(ctx, FONT_FAMILY, 40 * scale);
+  const fontCtx = getFontContext(ctx, FONT_FAMILY, TABLE_CONTEXT.BASE * scale);
   fontCtx.textHeight = fontCtx.textWidth;
   fontCtx.numHeight = fontCtx.numWidth;
   return fontCtx;

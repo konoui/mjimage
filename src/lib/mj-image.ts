@@ -56,8 +56,7 @@ export class mjimage {
 
         const style = window.getComputedStyle(target, null);
         const fontSize = parseFloat(style.getPropertyValue("font-size"));
-        const fontFamily = style.getPropertyValue("font-family");
-        const { textHeight } = getFontContext(ctx, fontFamily, fontSize);
+        const textHeight = fontSize;
 
         const svg = SVG();
 

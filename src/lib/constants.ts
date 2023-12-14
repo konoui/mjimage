@@ -1,5 +1,6 @@
 export const FONT_FAMILY = "MS Gothic, sans-serif";
 export const TILE_CONTEXT = { WIDTH: 66, HEIGHT: 90 };
+export const TABLE_CONTEXT = { BASE: 40 };
 export const KIND = {
   M: "m",
   P: "p",
