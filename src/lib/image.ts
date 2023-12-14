@@ -37,7 +37,7 @@ class BaseHelper {
       img = new Use().use(this.buildID(tile));
     }
 
-    if (tile instanceof Tile && tile.op == OPERATOR.OUT) {
+    if (tile instanceof Tile && tile.op == OPERATOR.COLOR_GRAYSCALE) {
       img.css({ filter: "contrast(65%)" });
     }
     return img;

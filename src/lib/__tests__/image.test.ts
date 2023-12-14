@@ -49,7 +49,7 @@ describe("generate svg", () => {
   });
 
   test("out-tile", () => {
-    const blocks = new Parser("2o2s2w").parse();
+    const blocks = new Parser("2g2s2w").parse();
 
     const draw = SVG();
     drawBlocks(draw, blocks, {

@@ -12,7 +12,7 @@ export const OPERATOR = {
   TSUMO: "t",
   DORA: "d",
   HORIZONTAL: "-",
-  OUT: "o",
+  COLOR_GRAYSCALE: "g",
 } as const;
 export const BLOCK = {
   PON: "pon",
