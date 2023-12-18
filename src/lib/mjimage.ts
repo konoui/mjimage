@@ -1,7 +1,7 @@
 import assert from "assert";
 import { Parser } from "./parser";
 import { drawBlocks, ImageHelperConfig } from "./image";
-import { getFontContext, getTableFontContext } from "./context";
+import { MeasureText } from "./context";
 import { drawTable } from "./table";
 import { TILE_CONTEXT } from "./constants";
 import { SVG } from "@svgdotjs/svg.js";
@@ -37,8 +37,7 @@ export class mjimage {
     let svgSprite = props.svgSprite ?? defaultSvgSprite;
     if (typeof querySelector === "string") querySelector = [querySelector];
 
-    const ctx = document.createElement("canvas").getContext("2d");
-    assert(ctx != null);
+    const mtext = new MeasureText();
     querySelector.forEach((qs) => {
       console.debug("try to find", qs);
       const targets = document.querySelectorAll(qs) as NodeListOf<HTMLElement>;
@@ -63,7 +62,7 @@ export class mjimage {
         try {
           if (tableRegex.test(input)) {
             const scale = calculateScale(tableScale, textHeight);
-            const fontCtx = getTableFontContext(ctx, scale);
+            const fontCtx = mtext.measureTableFontContext(scale);
             drawTable(
               svg,
               input,

@@ -1,3 +1,4 @@
+import assert from "assert";
 import { FONT_FAMILY, TABLE_CONTEXT } from "./constants";
 
 export interface FontContext {
@@ -8,44 +9,50 @@ export interface FontContext {
   numHeight: number;
 }
 
-const getContext = (
-  ctx: CanvasRenderingContext2D,
-  str: string,
-  font: string
-) => {
-  ctx.font = font;
-  const metrics = ctx.measureText(str);
-  let width = metrics.width;
-  let height =
-    metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-  return [width, height];
-};
-
-export const getFontContext = (
-  ctx: CanvasRenderingContext2D,
-  fontFamily: string,
-  fontSize: number
-): FontContext => {
-  const font = { family: fontFamily, size: fontSize };
-  const fontString = `${font.size}px ${font.family}`;
-  const [textWidth, textHeight] = getContext(ctx, "東", fontString);
-  const [numWidth, numHeight] = getContext(ctx, "2", fontString);
-  const ret = {
-    font: { family: fontFamily, size: fontSize },
-    textWidth: textWidth,
-    textHeight: textHeight,
-    numWidth: numWidth,
-    numHeight: numHeight,
+export class MeasureText {
+  ctx: CanvasRenderingContext2D | null = null;
+  strText: string;
+  numText: string;
+  constructor(strText: string = "東", numText: string = "2") {
+    this.strText = strText;
+    this.numText = numText;
+  }
+  private measure = (str: string, fontStr: string): [number, number] => {
+    if (this.ctx == null) {
+      this.ctx = document.createElement("canvas").getContext("2d");
+      assert(this.ctx != null);
+    }
+    const ctx = this.ctx;
+    ctx.font = fontStr;
+    const metrics = ctx.measureText(str);
+    let width = metrics.width;
+    let height =
+      metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+    return [width, height];
   };
-  return ret;
-};
 
-export const getTableFontContext = (
-  ctx: CanvasRenderingContext2D,
-  scale: number
-): FontContext => {
-  const fontCtx = getFontContext(ctx, FONT_FAMILY, TABLE_CONTEXT.BASE * scale);
-  fontCtx.textHeight = fontCtx.textWidth;
-  fontCtx.numHeight = fontCtx.numWidth;
-  return fontCtx;
-};
+  measureFontContext = (fontFamily: string, fontSize: number): FontContext => {
+    const font = { family: fontFamily, size: fontSize };
+    const fontString = `${font.size}px ${font.family}`;
+    const [textWidth, textHeight] = this.measure(this.strText, fontString);
+    const [numWidth, numHeight] = this.measure(this.numText, fontString);
+    const ret = {
+      font: { family: fontFamily, size: fontSize },
+      textWidth: textWidth,
+      textHeight: textHeight,
+      numWidth: numWidth,
+      numHeight: numHeight,
+    };
+    return ret;
+  };
+
+  measureTableFontContext = (tableScale: number): FontContext => {
+    const fontCtx = this.measureFontContext(
+      FONT_FAMILY,
+      TABLE_CONTEXT.BASE * tableScale
+    );
+    fontCtx.textHeight = fontCtx.textWidth;
+    fontCtx.numHeight = fontCtx.numWidth;
+    return fontCtx;
+  };
+}
