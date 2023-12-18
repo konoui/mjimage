@@ -1,4 +1,4 @@
-[![npm version](https://badge.fury.io/js/@konoui%2Fmj-image.svg)](https://badge.fury.io/js/@konoui%2Fmj-image)
+[![npm version](https://badge.fury.io/js/@konoui%2Fmjimage.svg)](https://badge.fury.io/js/@konoui%2Fmjimage)
 
 ## 麻雀牌ジェネレーター
 

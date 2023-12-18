@@ -1,7 +1,16 @@
 {
-    "name": "@konoui/mj-image",
+    "name": "@konoui/mjimage",
     "version": "0.0.1",
-    "description": "",
+    "description": "Generates Mahjong tiles in SVG format.",
+    "author": "konoui",
+    "license": "MIT",
+    "repository": "github.com/konoui/mjimage",
+    "keywords": [
+        "mahjong"
+    ],
+    "publishConfig": {
+        "access": "public"
+    },
     "scripts": {
         "start": "parcel",
         "build": "parcel build",
@@ -38,11 +47,6 @@
     "staticFiles": {
         "staticPath": "static/svg",
         "staticOutPath": "svg"
-    },
-    "author": "konoui",
-    "license": "MIT",
-    "publishConfig": {
-        "access": "public"
     },
     "devDependencies": {
         "@parcel/transformer-inline-string": "^2.9.3",

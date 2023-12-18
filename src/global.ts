@@ -1,3 +1,3 @@
-import { mjimage } from "./lib/mj-image";
+import { mjimage } from "./lib/mjimage";
 
 (<any>window).mjimage = mjimage;

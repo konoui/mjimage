@@ -1,4 +1,4 @@
-export * from "./lib/mj-image";
+export * from "./lib/mjimage";
 export * from "./lib/constants";
 export * from "./lib/context";
 export * from "./lib/lexer";
