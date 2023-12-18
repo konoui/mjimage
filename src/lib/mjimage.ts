@@ -1,7 +1,7 @@
 import assert from "assert";
 import { Parser } from "./parser";
 import { drawBlocks, ImageHelperConfig } from "./image";
-import { MeasureText } from "./context";
+import { MeasureText } from "./measure-text";
 import { drawTable } from "./table";
 import { TILE_CONTEXT } from "./constants";
 import { SVG } from "@svgdotjs/svg.js";
