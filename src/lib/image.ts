@@ -1,6 +1,6 @@
 import assert from "assert";
 import { Tile, Block } from "./parser";
-import { Svg, G, Image, Text, Use } from "@svgdotjs/svg.js";
+import { Svg, G, Image, Text, Use, Symbol } from "@svgdotjs/svg.js";
 import { FONT_FAMILY, TILE_CONTEXT, KIND, OPERATOR, BLOCK } from "./constants";
 
 export interface ImageHelperConfig {
@@ -34,7 +34,7 @@ class BaseHelper {
   private image(tile: Tile | 100 | 1000) {
     let img: Image | Use = new Image().load(this.buildURL(tile));
     if (this.svgSprite) {
-      img = new Use().use(this.buildID(tile));
+      img = new Use().use(BaseHelper.buildID(tile));
     }
 
     if (tile instanceof Tile && tile.op == OPERATOR.COLOR_GRAYSCALE) {
@@ -103,15 +103,16 @@ class BaseHelper {
     return this.image(v);
   }
 
-  buildID(tile: Tile | 100 | 1000) {
+  static buildID(tile: Tile | 100 | 1000) {
     if (tile == 100 || tile == 1000) {
       return tile == 100 ? "stick100" : "stick1000";
     }
-    return `${tile.k}${tile.n}`;
+    const n = tile.k == KIND.BACK ? 0 : tile.n;
+    return `${tile.k}${n}`;
   }
 
   buildURL(tile: Tile | 100 | 1000) {
-    const filename = `${this.buildID(tile)}.svg`;
+    const filename = `${BaseHelper.buildID(tile)}.svg`;
     if (this.image_host_url != "") {
       return `${this.image_host_url}${filename}`;
     }
@@ -308,7 +309,6 @@ export const createHand = (helper: ImageHelper, blocks: Block[]) => {
   let pos = 0;
   for (let elm of elms) {
     const diff = baseHeight - elm.height;
-    // TODO elm.e.translate(pos, diff);
     const g = new G().translate(pos, diff);
     g.add(elm.e);
     hand.add(g);
@@ -326,4 +326,49 @@ export const drawBlocks = (
   const hand = createHand(helper, blocks);
   svg.size(hand.width, hand.height);
   svg.add(hand.e);
+};
+
+const getValidIDs = () => {
+  const values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+  const ids: string[] = [];
+  for (let kind of Object.values(KIND)) {
+    if (kind == KIND.SEPARATOR) continue;
+    if (kind == KIND.BACK) {
+      ids.push(BaseHelper.buildID(new Tile(kind, 0)));
+      continue;
+    }
+
+    ids.push(
+      ...values.map((v) => BaseHelper.buildID(new Tile(kind, v))).flat()
+    );
+  }
+  return ids;
+};
+
+const findUsedIDs = (draw: Svg) => {
+  const validIDs = getValidIDs();
+  const usedIDs: string[] = [];
+  draw.each((idx, children) => {
+    const node = children[idx];
+    if (node instanceof Use) {
+      // https://github.com/svgdotjs/svg.js/blob/3.2.0/src/elements/Use.js#L14
+      const hrefAttr: string = node.attr("href");
+      const id = hrefAttr.substring(1);
+      if (validIDs.includes(id)) usedIDs.push(id);
+    }
+  });
+  return usedIDs;
+};
+
+export const optimizeSVG = (draw: Svg) => {
+  const validIDs = getValidIDs();
+  const usedIDs = findUsedIDs(draw);
+  draw.each((idx, children) => {
+    const node = children[idx];
+    if (node instanceof Symbol) {
+      const isUsed =
+        validIDs.includes(node.id()) && usedIDs.includes(node.id());
+      if (!isUsed) node.remove();
+    }
+  }, true);
 };

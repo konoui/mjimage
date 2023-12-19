@@ -1,4 +1,3 @@
-import assert from "assert";
 import { Parser } from "./parser";
 import { drawBlocks, ImageHelperConfig } from "./image";
 import { MeasureText } from "./measure-text";
