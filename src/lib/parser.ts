@@ -195,7 +195,14 @@ function detectBlockType(tiles: Tile[]): BLOCK {
   if (numOfHorizontals == 0 && numOfBackTiles == 0) return BLOCK.HAND;
 
   if (tiles.length === 3) {
-    return sameAll ? BLOCK.PON : BLOCK.CHI;
+    if (sameAll) return BLOCK.PON;
+    if (
+      numOfHorizontals == 1 &&
+      tiles[0].op == OPERATOR.HORIZONTAL &&
+      areConsecutiveTiles(tiles)
+    )
+      return BLOCK.CHI;
+    return BLOCK.DISCARD;
   }
 
   if (tiles.length == 4 && numOfBackTiles == 2) return BLOCK.AN_KAN;
@@ -207,6 +214,20 @@ function detectBlockType(tiles: Tile[]): BLOCK {
   if (numOfHorizontals == 1) return BLOCK.DISCARD;
 
   return BLOCK.UNKNOWN;
+}
+
+function areConsecutiveTiles(tiles: Tile[]): boolean {
+  for (let i = 0; i < tiles.length - 1; i++) {
+    let n = tiles[i].n,
+      np = tiles[i + 1].n;
+    const k = tiles[i].k,
+      kp = tiles[i + 1].k;
+    if (n == 0) n = 5;
+    if (np == 0) np = 5;
+    if (k !== kp) return false;
+    if (n + 1 !== np) return false;
+  }
+  return true;
 }
 
 function makeTiles(cluster: Tile[], k: Kind): Tile[] {

@@ -9,6 +9,10 @@ const { window, document } = initSvgDOM();
 
 const update = false;
 
+const helperConfig = {
+  imageHostUrl: "http://localhost:1234/svg/",
+};
+
 describe("generate svg", () => {
   test("common hands", () => {
     const blocks = new Parser(
@@ -16,9 +20,7 @@ describe("generate svg", () => {
     ).parse();
 
     const draw = SVG();
-    drawBlocks(draw, blocks, {
-      imageHostUrl: "http://localhost:1234/svg/",
-    });
+    drawBlocks(draw, blocks, helperConfig);
     const got = draw.svg();
     const want = loadTestData("image.common.svg", got, update);
     expect(want.toString()).toBe(got);
@@ -28,11 +30,19 @@ describe("generate svg", () => {
     const blocks = new Parser("_05s_").parse();
 
     const draw = SVG();
-    drawBlocks(draw, blocks, {
-      imageHostUrl: "http://localhost:1234/svg/",
-    });
+    drawBlocks(draw, blocks, helperConfig);
     const got = draw.svg();
     const want = loadTestData("image.05an-kan.svg", got, update);
+    expect(want.toString()).toBe(got);
+  });
+
+  test("chi", () => {
+    const blocks = new Parser("-406s").parse();
+
+    const draw = SVG();
+    drawBlocks(draw, blocks, helperConfig);
+    const got = draw.svg();
+    const want = loadTestData("image.chi.svg", got, update);
     expect(want.toString()).toBe(got);
   });
 
@@ -40,11 +50,19 @@ describe("generate svg", () => {
     const blocks = new Parser("2s2w-1s2s").parse();
 
     const draw = SVG();
-    drawBlocks(draw, blocks, {
-      imageHostUrl: "http://localhost:1234/svg/",
-    });
+    drawBlocks(draw, blocks, helperConfig);
     const got = draw.svg();
     const want = loadTestData("image.simple-discard.svg", got, update);
+    expect(want.toString()).toBe(got);
+  });
+
+  test("simple-discard like chi", () => {
+    const blocks = new Parser("5m3w-7m").parse();
+
+    const draw = SVG();
+    drawBlocks(draw, blocks, helperConfig);
+    const got = draw.svg();
+    const want = loadTestData("image.simple-discard-like-chi.svg", got, update);
     expect(want.toString()).toBe(got);
   });
 
@@ -52,9 +70,7 @@ describe("generate svg", () => {
     const blocks = new Parser("2g2s2w").parse();
 
     const draw = SVG();
-    drawBlocks(draw, blocks, {
-      imageHostUrl: "http://localhost:1234/svg/",
-    });
+    drawBlocks(draw, blocks, helperConfig);
     const got = draw.svg();
     const want = loadTestData("image.out-discard.svg", got, update);
     expect(want.toString()).toBe(got);
@@ -65,9 +81,7 @@ describe("generate svg", () => {
 
     const draw = SVG();
     expect(() => {
-      drawBlocks(draw, blocks, {
-        imageHostUrl: "http://localhost:1234/svg/",
-      });
+      drawBlocks(draw, blocks, helperConfig);
     }).toThrow(/found unknown block/);
   });
 });
