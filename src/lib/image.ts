@@ -332,7 +332,6 @@ const getValidIDs = () => {
   const values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
   const ids: string[] = [];
   for (let kind of Object.values(KIND)) {
-    if (kind == KIND.SEPARATOR) continue;
     if (kind == KIND.BACK) {
       ids.push(BaseHelper.buildID(new Tile(kind, 0)));
       continue;

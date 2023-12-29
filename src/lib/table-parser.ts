@@ -119,10 +119,10 @@ export const convertInput = (i: TableInput) => {
     return i[w].discard.replace(/\r?\n/g, "");
   };
   const discards: DiscardsInput = {
-    front: new Parser(f(m.front)).parseInput(),
-    right: new Parser(f(m.right)).parseInput(),
-    opposite: new Parser(f(m.opposite)).parseInput(),
-    left: new Parser(f(m.left)).parseInput(),
+    front: new Parser(f(m.front)).tiles(),
+    right: new Parser(f(m.right)).tiles(),
+    opposite: new Parser(f(m.opposite)).tiles(),
+    left: new Parser(f(m.left)).tiles(),
   };
   const hands: HandsInput = {
     front: new Parser(i[m.front].hand).parse(),
@@ -136,7 +136,7 @@ export const convertInput = (i: TableInput) => {
     frontPlace: WIND_MAP[frontPlace],
     sticks: i.board.sticks,
     doras: i.board.doras.map((v) => {
-      return new Parser(v).parseInput()[0];
+      return new Parser(v).tiles()[0];
     }),
     scores: {
       front: i[m.front].score,

@@ -1,5 +1,7 @@
 import { Lexer } from "./lexer";
-import { BLOCK, OPERATOR, KIND } from "./constants";
+import { BLOCK, OPERATOR, KIND, INPUT_SEPARATOR } from "./constants";
+
+type Separator = typeof INPUT_SEPARATOR;
 
 export const tileSortFunc = (i: Tile, j: Tile) => {
   if (i.k == j.k) {
@@ -14,7 +16,6 @@ export const tileSortFunc = (i: Tile, j: Tile) => {
     [KIND.S]: 3,
     [KIND.Z]: 4,
     [KIND.BACK]: 5,
-    [KIND.SEPARATOR]: 6,
   };
   return lookup[i.k] - lookup[j.k];
 };
@@ -36,7 +37,7 @@ export class Tile {
   constructor(public k: Kind, public n: number, public op?: Operator) {}
 
   toString(): string {
-    if (this.k === KIND.BACK || this.k === KIND.SEPARATOR) return this.k;
+    if (this.k === KIND.BACK) return this.k;
     const op = this.op != null ? this.op : "";
     return `${op}${this.n}${this.k}`;
   }
@@ -81,13 +82,17 @@ export class Parser {
   }
 
   parse() {
-    const parsed = this.parseInput();
+    const parsed = this.tileSeparators();
     return this.makeBlocks(parsed);
   }
 
-  parseInput() {
+  tiles(): Tile[] {
+    return this.tileSeparators().filter((v) => v != INPUT_SEPARATOR) as Tile[];
+  }
+
+  tileSeparators(): (Tile | Separator)[] {
     const l = new Lexer(this.input);
-    const res: Tile[] = [];
+    const res: (Tile | Separator)[] = [];
     let cluster: Tile[] = [];
 
     this.validate(this.input);
@@ -96,15 +101,16 @@ export class Parser {
       let char = l.char;
       if (char === l.eof) break;
 
+      if (char == INPUT_SEPARATOR) {
+        res.push(INPUT_SEPARATOR);
+        l.readChar(); // for continue
+        continue;
+      }
+
       let [k, isKind] = isKindAlias(char, cluster);
       if (isKind) {
         if (k == KIND.BACK) {
           res.push(new Tile(k, 0));
-          l.readChar(); // for continue
-          continue;
-        }
-        if (k == KIND.SEPARATOR) {
-          res.push(new Tile(k, -1));
           l.readChar(); // for continue
           continue;
         }
@@ -135,14 +141,14 @@ export class Parser {
     return res;
   }
 
-  private makeBlocks(tiles: Tile[]): Block[] {
+  private makeBlocks(tiles: (Tile | Separator)[]): Block[] {
     let cluster: Tile[] = [];
     const res: Block[] = [];
 
     if (tiles.length == 0) return res;
 
     for (const t of tiles) {
-      if (t.k === KIND.SEPARATOR) {
+      if (t == INPUT_SEPARATOR) {
         const type = detectBlockType(cluster);
         const b = new Block(cluster, type);
         res.push(b);

@@ -58,7 +58,7 @@ describe("table yaml to svg", () => {
 describe("createTable", () => {
   test("max-table-size", () => {
     const sampleDiscard = "123456789s12-3456789m1234p";
-    const p = new Parser(sampleDiscard).parseInput();
+    const p = new Parser(sampleDiscard).tiles();
 
     const sampleHand = "2s, -1111p, -1111s, -1111m, -2222m, t3s";
     const blocks = new Parser(sampleHand).parse();
@@ -103,7 +103,7 @@ describe("createTable", () => {
 
   test("dynamic-hands-size", () => {
     const sampleDiscard = "1p";
-    const p = new Parser(sampleDiscard).parseInput();
+    const p = new Parser(sampleDiscard).tiles();
 
     const sampleHand = "123456789s1234m";
     const blocks = new Parser(sampleHand).parse();

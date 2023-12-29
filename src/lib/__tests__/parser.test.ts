@@ -1,6 +1,6 @@
 import { describe, test, expect } from "@jest/globals";
 import { Tile, Block, tileSortFunc, Parser } from "../parser";
-import { KIND, OPERATOR, BLOCK } from "../constants";
+import { KIND, OPERATOR, BLOCK, INPUT_SEPARATOR } from "../constants";
 
 describe("parse", () => {
   test("12s34m1z2d,t1s,_05s_,-123s", () => {
@@ -50,13 +50,13 @@ describe("parse", () => {
 
 describe("parseInput", () => {
   test("1s", () => {
-    const got = new Parser("1s").parseInput();
+    const got = new Parser("1s").tiles();
     const want = [new Tile(KIND.S, 1)];
     expect(got).toStrictEqual(want);
   });
 
   test("12s34m1z2d,t1s,_-1s", () => {
-    const got = new Parser("12s34m1z2d,t1s,_-1s").parseInput();
+    const got = new Parser("12s34m1z2d,t1s,_-1s").tileSeparators();
     const want = [
       new Tile(KIND.S, 1),
       new Tile(KIND.S, 2),
@@ -64,9 +64,9 @@ describe("parseInput", () => {
       new Tile(KIND.M, 4),
       new Tile(KIND.Z, 1),
       new Tile(KIND.Z, 6),
-      new Tile(KIND.SEPARATOR, -1),
+      INPUT_SEPARATOR,
       new Tile(KIND.S, 1, OPERATOR.TSUMO),
-      new Tile(KIND.SEPARATOR, -1),
+      INPUT_SEPARATOR,
       new Tile(KIND.BACK, 0),
       new Tile(KIND.S, 1, OPERATOR.HORIZONTAL),
     ];
@@ -76,7 +76,7 @@ describe("parseInput", () => {
 
 describe("sortTiles", () => {
   test("13p5s786m1z", () => {
-    const got = new Parser("13p5s786m1z").parseInput();
+    const got = new Parser("13p5s786m1z").tiles();
     got.sort(tileSortFunc);
     const want: Tile[] = [
       new Tile(KIND.M, 6),

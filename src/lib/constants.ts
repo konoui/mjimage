@@ -1,13 +1,13 @@
 export const FONT_FAMILY = "MS Gothic, sans-serif";
 export const TILE_CONTEXT = { WIDTH: 66, HEIGHT: 90 };
 export const TABLE_CONTEXT = { BASE: 40 };
+export const INPUT_SEPARATOR = ",";
 export const KIND = {
   M: "m",
   P: "p",
   S: "s",
   Z: "z",
   BACK: "_",
-  SEPARATOR: ",",
 } as const;
 export const OPERATOR = {
   TSUMO: "t",
