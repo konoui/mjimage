@@ -202,12 +202,7 @@ function detectBlockType(tiles: Tile[]): BLOCK {
 
   if (tiles.length === 3) {
     if (sameAll) return BLOCK.PON;
-    if (
-      numOfHorizontals == 1 &&
-      tiles[0].op == OPERATOR.HORIZONTAL &&
-      areConsecutiveTiles(tiles)
-    )
-      return BLOCK.CHI;
+    if (numOfHorizontals == 1 && areConsecutiveTiles(tiles)) return BLOCK.CHI;
     return BLOCK.DISCARD;
   }
 
