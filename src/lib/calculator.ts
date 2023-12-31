@@ -1,5 +1,14 @@
 import { BLOCK, KIND, OPERATOR } from "./constants";
-import { Block, Tile, Parser } from "./parser";
+import {
+  Block,
+  Tile,
+  Parser,
+  BlockPon,
+  BlockChi,
+  BlockShoKan,
+  BlockAnKan,
+  BlockDaiKan,
+} from "./parser";
 
 type FixedNumber = [
   number,
@@ -20,8 +29,7 @@ export interface HandData {
   [KIND.P]: FixedNumber;
   [KIND.Z]: [number, number, number, number, number, number, number, number];
   [KIND.BACK]: [number];
-  // FIXME using X_BLOCK
-  called: Block[];
+  called: (BlockChi | BlockPon | BlockAnKan | BlockDaiKan | BlockShoKan)[];
   tsumo: Tile | null;
   reached: boolean;
 }
@@ -90,8 +98,8 @@ export class Hand {
     this.dec(t);
     return this;
   }
-  call(b: Block) {
-    if (b.is(BLOCK.AN_KAN) || b.is(BLOCK.SHO_KAN))
+  call(b: BlockPon | BlockChi | BlockDaiKan) {
+    if (b instanceof BlockAnKan || b instanceof BlockShoKan)
       throw new Error(`unexpected input ${b}`);
 
     const toRemove = b.tiles.filter((v) => v.op != OPERATOR.HORIZONTAL);
@@ -101,15 +109,15 @@ export class Hand {
     this.data.called.push(b);
     return this;
   }
-  kan(b: Block) {
-    if (b.is(BLOCK.AN_KAN)) {
+  kan(b: BlockAnKan | BlockShoKan) {
+    if (b instanceof BlockAnKan) {
       const t = b.tiles.filter((v) => v.k != KIND.BACK);
       this.dec(t[0], t[0], t[0], t[0]);
       this.data.called.push(b);
       return this;
     }
 
-    if (b.is(BLOCK.SHO_KAN)) {
+    if (b instanceof BlockShoKan) {
       const idx = this.data.called.findIndex(
         (v) => v.is(BLOCK.PON) && v.tiles[0].equals(b.tiles[0])
       );

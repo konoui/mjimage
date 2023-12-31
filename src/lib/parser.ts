@@ -89,6 +89,53 @@ export class Block {
   }
 }
 
+export class BlockChi extends Block {
+  constructor(tiles: Tile[]) {
+    super(tiles, BLOCK.CHI);
+  }
+}
+
+export class BlockPon extends Block {
+  constructor(tiles: Tile[]) {
+    super(tiles, BLOCK.PON);
+  }
+}
+
+export class BlockAnKan extends Block {
+  constructor(tiles: Tile[]) {
+    super(tiles, BLOCK.AN_KAN);
+  }
+}
+
+export class BlockDaiKan extends Block {
+  constructor(tiles: Tile[]) {
+    super(tiles, BLOCK.DAI_KAN);
+  }
+}
+
+export class BlockShoKan extends Block {
+  constructor(tiles: Tile[]) {
+    super(tiles, BLOCK.SHO_KAN);
+  }
+}
+
+const blockWrapper = (tiles: Tile[], type: BLOCK) => {
+  switch (type) {
+    case BLOCK.CHI:
+      return new BlockChi(tiles);
+    case BLOCK.PON:
+      return new BlockPon(tiles);
+    case BLOCK.AN_KAN:
+      return new BlockAnKan(tiles);
+    case BLOCK.DAI_KAN:
+      return new BlockDaiKan(tiles);
+    case BLOCK.SHO_KAN:
+      return new BlockShoKan(tiles);
+    default:
+      return new Block(tiles, type);
+  }
+};
+
 export class Parser {
   readonly maxInputLength = 128;
   constructor(readonly input: string) {
@@ -155,16 +202,23 @@ export class Parser {
     return res;
   }
 
-  private makeBlocks(tiles: (Tile | Separator)[]): Block[] {
+  private makeBlocks(tiles: (Tile | Separator)[]) {
     let cluster: Tile[] = [];
-    const res: Block[] = [];
+    const res: (
+      | Block
+      | BlockChi
+      | BlockPon
+      | BlockAnKan
+      | BlockDaiKan
+      | BlockShoKan
+    )[] = [];
 
     if (tiles.length == 0) return res;
 
     for (const t of tiles) {
       if (t == INPUT_SEPARATOR) {
         const type = detectBlockType(cluster);
-        const b = new Block(cluster, type);
+        const b = blockWrapper(cluster, type);
         res.push(b);
         cluster = [];
         continue;
@@ -174,7 +228,7 @@ export class Parser {
 
     // handle last block
     const type = detectBlockType(cluster);
-    const b = new Block(cluster, type);
+    const b = blockWrapper(cluster, type);
     res.push(b);
     cluster = [];
     return res;

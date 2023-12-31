@@ -1,5 +1,12 @@
 import { describe, test, expect } from "@jest/globals";
-import { Tile, Block, tileSortFunc, Parser } from "../parser";
+import {
+  Tile,
+  Block,
+  tileSortFunc,
+  Parser,
+  BlockAnKan,
+  BlockChi,
+} from "../parser";
 import { KIND, OPERATOR, BLOCK, INPUT_SEPARATOR } from "../constants";
 
 describe("parse", () => {
@@ -18,23 +25,17 @@ describe("parse", () => {
         BLOCK.HAND
       ),
       new Block([new Tile(KIND.S, 1, OPERATOR.TSUMO)], BLOCK.TSUMO),
-      new Block(
-        [
-          new Tile(KIND.BACK, 0),
-          new Tile(KIND.S, 0),
-          new Tile(KIND.S, 5),
-          new Tile(KIND.BACK, 0),
-        ],
-        BLOCK.AN_KAN
-      ),
-      new Block(
-        [
-          new Tile(KIND.S, 1, OPERATOR.HORIZONTAL),
-          new Tile(KIND.S, 2),
-          new Tile(KIND.S, 3),
-        ],
-        BLOCK.CHI
-      ),
+      new BlockAnKan([
+        new Tile(KIND.BACK, 0),
+        new Tile(KIND.S, 0),
+        new Tile(KIND.S, 5),
+        new Tile(KIND.BACK, 0),
+      ]),
+      new BlockChi([
+        new Tile(KIND.S, 1, OPERATOR.HORIZONTAL),
+        new Tile(KIND.S, 2),
+        new Tile(KIND.S, 3),
+      ]),
     ];
 
     expect(got).toStrictEqual(want);
