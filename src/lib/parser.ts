@@ -20,7 +20,7 @@ export const tileSortFunc = (i: Tile, j: Tile) => {
   return lookup[i.k] - lookup[j.k];
 };
 
-type Kind = (typeof KIND)[keyof typeof KIND];
+export type Kind = (typeof KIND)[keyof typeof KIND];
 
 export function isKind(v: string): [Kind, boolean] {
   for (let k of Object.values(KIND)) {
