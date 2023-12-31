@@ -73,6 +73,20 @@ export class Block {
     }
     return result;
   }
+
+  is(type: BLOCK): boolean {
+    return this.type == type;
+  }
+
+  isCalled(): boolean {
+    return [
+      BLOCK.PON.toString(),
+      BLOCK.CHI.toString(),
+      BLOCK.AN_KAN.toString(),
+      BLOCK.DAI_KAN.toString(),
+      BLOCK.SHO_KAN.toString(),
+    ].includes(this.type.toString());
+  }
 }
 
 export class Parser {
