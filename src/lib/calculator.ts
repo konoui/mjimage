@@ -35,7 +35,7 @@ export interface HandData {
 }
 
 export class Hand {
-  data: HandData;
+  private data: HandData;
   input: string;
   constructor(input: string) {
     this.input = input;
@@ -66,6 +66,12 @@ export class Hand {
       }
     }
   }
+  get called() {
+    return this.data.called;
+  }
+  get reached() {
+    return this.data.reached;
+  }
   get(k: Kind, n: number, ignoreRed = true) {
     if (k == KIND.Z || k == KIND.BACK) return this.data[k][n];
     if (ignoreRed) {
@@ -74,10 +80,16 @@ export class Hand {
     }
     return this.data[k][n];
   }
+  get drawn() {
+    return this.data.tsumo;
+  }
+  getArray(k: Kind) {
+    return this.data[k];
+  }
   inc(...tiles: Tile[]) {
     const backup: Tile[] = [];
     for (let t of tiles) {
-      if (t.k != KIND.BACK && this.data[t.k][t.n] > 4) {
+      if (t.k != KIND.BACK && this.get(t.k, t.n) > 4) {
         this.dec(...backup);
         throw new Error(`unable to increase ${t}`);
       }
@@ -88,7 +100,7 @@ export class Hand {
   dec(...tiles: Tile[]) {
     const backup: Tile[] = [];
     for (let t of tiles) {
-      if (this.data[t.k][t.n] < 1) {
+      if (this.get(t.k, t.n) < 1) {
         this.inc(...backup);
         throw new Error(`unable to decrease ${t}`);
       }
@@ -96,10 +108,10 @@ export class Hand {
       this.data[t.k][t.n] -= 1;
     }
   }
-  tsumo(t: Tile) {
+  draw(t: Tile) {
     t.op = OPERATOR.TSUMO;
-    this.data.tsumo = t;
     this.inc(t);
+    this.data.tsumo = t;
     return this;
   }
   discard(t: Tile) {
@@ -113,7 +125,7 @@ export class Hand {
     const toRemove = b.tiles.filter((v) => v.op != OPERATOR.HORIZONTAL);
     if (toRemove == null) throw new Error(`unable to find ${b}`);
 
-    for (let t of toRemove) this.dec(t);
+    this.dec(...toRemove);
     this.data.called.push(b);
     return this;
   }
@@ -137,13 +149,24 @@ export class Hand {
 
     throw new Error(`unexpected input ${b}`);
   }
+
   clone(): Hand {
     const c = new Hand(this.input);
-    c.data[KIND.M] = this.data[KIND.M].concat() as FixedNumber;
-    c.data[KIND.S] = this.data[KIND.S].concat() as FixedNumber;
-    c.data[KIND.P] = this.data[KIND.P].concat() as FixedNumber;
-    c.data[KIND.BACK] = this.data[KIND.BACK];
-    c.data.called = this.data.called.concat();
+    c.data[KIND.M] = this.getArray(KIND.M).concat() as FixedNumber;
+    c.data[KIND.S] = this.getArray(KIND.S).concat() as FixedNumber;
+    c.data[KIND.P] = this.getArray(KIND.P).concat() as FixedNumber;
+    c.data[KIND.Z] = this.getArray(KIND.BACK) as [
+      number,
+      number,
+      number,
+      number,
+      number,
+      number,
+      number,
+      number
+    ];
+    c.data[KIND.BACK] = this.getArray(KIND.BACK) as [number];
+    c.data.called = this.called.concat();
     c.data.reached = this.data.reached;
     c.data.tsumo = this.data.tsumo;
     return c;
@@ -155,12 +178,15 @@ export class Calculator {
   constructor(hand: Hand) {
     this.hand = hand;
   }
+  calc() {
+    return Math.min(this.sevenParis(), this.thirteenOrphans(), this.common());
+  }
   sevenParis() {
-    if (this.hand.data.called.length > 0) return Infinity;
+    if (this.hand.called.length > 0) return Infinity;
     let nPairs = 0;
     let nIsolated = 0;
     for (let k of Object.values(KIND)) {
-      for (let n = 1; n < this.hand.data[k].length; n++) {
+      for (let n = 1; n < this.hand.getArray(k).length; n++) {
         if (this.hand.get(k, n) == 2) nPairs++;
         if (this.hand.get(k, n) == 1) nIsolated++;
       }
@@ -171,7 +197,7 @@ export class Calculator {
     return 13 - 2 * nPairs - nIsolated;
   }
   thirteenOrphans() {
-    if (this.hand.data.called.length > 0) return Infinity;
+    if (this.hand.called.length > 0) return Infinity;
     let numOfOrphans = 0;
     let numOfPairs = 0;
     for (let k of Object.values(KIND)) {
@@ -184,14 +210,124 @@ export class Calculator {
     }
     return numOfPairs >= 1 ? 12 - numOfOrphans : 13 - numOfOrphans;
   }
+  common() {
+    const calc = (hasPair: boolean) => {
+      const r = {
+        [KIND.M]: this.commonByKind(KIND.M),
+        [KIND.P]: this.commonByKind(KIND.P),
+        [KIND.S]: this.commonByKind(KIND.S),
+      };
+
+      const z = [0, 0, 0];
+      const arr = this.hand.getArray(KIND.Z);
+      for (let n = 1; n < arr.length; n++) {
+        if (arr[n] >= 3) z[0]++;
+        else if (arr[n] == 2) z[1]++;
+        else if (arr[n] == 1) z[2]++;
+      }
+
+      let min = 13;
+      for (let m of [r[KIND.M].patternA, r[KIND.M].patternB]) {
+        for (let p of [r[KIND.P].patternA, r[KIND.P].patternB]) {
+          for (let s of [r[KIND.S].patternA, r[KIND.S].patternB]) {
+            // TODO handle called
+            const v = [0, 0, 0];
+            for (let i = 0; i < 3; i++) {
+              v[i] += m[i] + p[i] + s[i] + z[i];
+            }
+            let r = this.calcCommon(v[0], v[1], v[2], hasPair);
+            if (r < min) {
+              min = r;
+            }
+          }
+        }
+      }
+      return min;
+    };
+    // case has no pairs
+    let min = calc(false);
+
+    // case has pairs
+    for (let k of Object.values(KIND)) {
+      const arr = this.hand.getArray(k);
+      for (let n = 1; n < arr.length; n++) {
+        if (arr[n] >= 2) {
+          const tiles = [new Tile(k, n), new Tile(k, n)];
+          this.hand.dec(...tiles);
+          const r = calc(true);
+          this.hand.inc(...tiles);
+          if (r < min) {
+            min = r;
+          }
+        }
+      }
+    }
+    return min;
+  }
+  private commonByKind(
+    k: Kind,
+    n = 1
+  ): {
+    patternA: [number, number, number];
+    patternB: [number, number, number];
+  } {
+    if (n > 9) return this.group(k);
+
+    const arr = this.hand.getArray(k);
+    let max = this.commonByKind(k, n + 1);
+
+    if (n <= 7 && arr[n] > 0 && arr[n + 1] > 0 && arr[n + 2] > 0) {
+      const tiles = [new Tile(k, n), new Tile(k, n + 1), new Tile(k, n + 2)];
+      this.hand.dec(...tiles);
+      const r = this.commonByKind(k, n);
+      this.hand.inc(...tiles);
+      r.patternA[0]++, r.patternB[0]++;
+      if (
+        r.patternA[2] < max.patternA[2] ||
+        (r.patternA[2] == max.patternA[2] && r.patternA[1] < max.patternA[1])
+      ) {
+        max.patternA = r.patternA;
+      }
+      if (
+        r.patternB[0] > max.patternB[0] ||
+        (r.patternB[0] == max.patternB[0] && r.patternB[1] > max.patternB[1])
+      ) {
+        max.patternB = r.patternB;
+      }
+    }
+
+    if (arr[n] >= 3) {
+      const tiles = [new Tile(k, n), new Tile(k, n), new Tile(k, n)];
+      this.hand.dec(...tiles);
+      const r = this.commonByKind(k, n);
+      this.hand.inc(...tiles);
+      r.patternA[0]++, r.patternB[0]++;
+      if (
+        r.patternA[2] < max.patternA[2] ||
+        (r.patternA[2] == max.patternA[2] && r.patternA[1] < max.patternA[1])
+      ) {
+        max.patternA = r.patternA;
+      }
+      if (
+        r.patternB[0] > max.patternB[0] ||
+        (r.patternB[0] == max.patternB[0] && r.patternB[1] > max.patternB[1])
+      ) {
+        max.patternB = r.patternB;
+      }
+    }
+    return max;
+  }
   // http://crescent.s255.xrea.com/cabinet/others/mahjong/
-  private groupSet(k: Kind) {
+  private group(k: Kind): {
+    patternA: [number, number, number];
+    patternB: [number, number, number];
+  } {
     let nSerialPairs = 0;
     let nIsolated = 0;
     let nTiles = 0;
-    const arr = this.hand.data[k];
+    const arr = this.hand.getArray(k);
     for (let n = 1; n < arr.length; n++) {
-      nTiles = arr[n];
+      nTiles += arr[n];
       if (n <= 7 && arr[n + 1] == 0 && arr[n + 2] == 0) {
         nSerialPairs += nTiles >> 1;
         nIsolated += nTiles % 2;
@@ -207,15 +343,16 @@ export class Calculator {
       patternB: [0, nSerialPairs, nIsolated],
     };
   }
-  private shanten(
+  private calcCommon(
     nSet: number,
     nSerialPair: number,
     nIsolated: number,
     hasPair: boolean
   ) {
     let n = hasPair ? 4 : 5;
+
     if (nSet > 4) {
-      nSerialPair += nSerialPair - 4;
+      nSerialPair += nSet - 4;
       nSet = 4;
     }
     if (nSet + nSerialPair > 4) {
@@ -223,12 +360,10 @@ export class Calculator {
       nSerialPair = 4 - nSet;
     }
     if (nSet + nSerialPair + nIsolated > n) {
-      nIsolated += n - nSet - nSerialPair;
+      nIsolated = n - nSet - nSerialPair;
     }
-    if (hasPair) n++;
+    if (hasPair) nSerialPair++;
+
     return 13 - nSet * 3 - nSerialPair * 2 - nIsolated;
-  }
-  common() {
-    return 0;
   }
 }
