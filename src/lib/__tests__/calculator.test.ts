@@ -1,5 +1,10 @@
 import { describe, test, expect } from "@jest/globals";
-import { Calculator, Hand, HandData } from "../calculator";
+import {
+  ShantenCalculator,
+  TileCalculator,
+  Hand,
+  HandData,
+} from "../calculator";
 import { BLOCK, KIND, OPERATOR } from "../constants";
 import { Block, Parser, Tile } from "../parser";
 
@@ -140,13 +145,122 @@ describe("Shanten Calculator", () => {
   for (const tt of tests) {
     test(tt.name, () => {
       const h = new Hand(tt.input);
-      const c = new Calculator(h);
+      const c = new ShantenCalculator(h);
       let got: number = -1;
-      if (tt.handler == "Seven") got = c.sevenParis();
+      if (tt.handler == "Seven") got = c.sevenPairs();
       else if (tt.handler == "Orphans") got = c.thirteenOrphans();
-      else if (tt.handler == "Common") got = c.common();
+      else if (tt.handler == "Common") got = c.fourSetsOnePair();
       else throw new Error(`unexpected handler ${tt.handler}`);
       expect(got).toBe(tt.want);
     });
   }
+});
+
+describe("Tile Calculator", () => {
+  const tests = [
+    {
+      name: "seven pairs tenpai",
+      input: "11223344556677m",
+      want: [["11m", "22m", "33m", "44m", "55m", "66m", "77m"]],
+      handler: "Seven",
+    },
+    {
+      name: "thirteen orphans waiting 13 tiles",
+      input: "19m19s19p1234567z1m",
+      want: [
+        [
+          "11m",
+          "9m",
+          "1p",
+          "9p",
+          "1s",
+          "9s",
+          "1z",
+          "2z",
+          "3z",
+          "4z",
+          "5z",
+          "6z",
+          "7z",
+        ],
+      ],
+      handler: "Orphans",
+    },
+    {
+      name: "simple",
+      input: "111m456m789m123s11p",
+      want: [["11p", "111m", "456m", "789m", "123s"]],
+      handler: "Common",
+    },
+    {
+      name: "with called",
+      input: "111m456m789m11p,1-23s",
+      want: [["11p", "111m", "456m", "789m", "-213s"]],
+      handler: "Common",
+    },
+    {
+      name: "multiple",
+      input: "111222333m123s11p",
+      want: [
+        ["11p", "123m", "123m", "123m", "123s"],
+        ["11p", "111m", "222m", "333m", "123s"],
+      ],
+      handler: "Common",
+    },
+    {
+      name: "two sets",
+      input: "11223344556677m",
+      want: [
+        ["11m", "234m", "234m", "567m", "567m"],
+        ["44m", "123m", "123m", "567m", "567m"],
+        ["77m", "123m", "123m", "456m", "456m"],
+      ],
+      handler: "Common",
+    },
+    {
+      name: "common",
+      input: "111123m123s123p11z",
+      want: [["11z", "123m", "111m", "123p", "123s"]],
+      handler: "Common",
+    },
+  ];
+
+  for (const tt of tests) {
+    test(tt.name, () => {
+      const h = new Hand(tt.input);
+      const c = new TileCalculator(h);
+      let got: string[][] = [];
+      if (tt.handler == "Seven") got = c.sevenPairs();
+      else if (tt.handler == "Orphans") got = c.thirteenOrphans();
+      else if (tt.handler == "Common") got = c.fourSetsOnePair();
+      else throw new Error(`unexpected handler ${tt.handler}`);
+      expect(got).toStrictEqual(tt.want);
+    });
+  }
+});
+
+test("commonByKind", () => {
+  const h = new Hand("111222333456m");
+  const c = new TileCalculator(h);
+  const got = (c as any).commonByKind(KIND.M);
+  const want = [
+    ["123m", "123m", "123m", "456m"],
+    ["111m", "234m"],
+    ["111m", "222m", "345m"],
+    ["111m", "222m", "333m", "456m"],
+  ];
+  expect(got).toStrictEqual(want);
+});
+
+test("handleCommon", () => {
+  const h = new Hand("111222333456m111s");
+  const c = new TileCalculator(h);
+  const got = (c as any).commonAll();
+  const want = [
+    ["123m", "123m", "123m", "456m", "111s"],
+    ["111m", "234m", "111s"],
+    ["111m", "222m", "345m", "111s"],
+    ["111m", "222m", "333m", "456m", "111s"],
+  ];
+  expect(got).toStrictEqual(want);
 });

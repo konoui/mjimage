@@ -67,11 +67,12 @@ export class Block {
     }
   }
   toString(): string {
-    let result = "";
-    for (const t of this.tiles) {
-      result += t.toString();
+    let ret = "";
+    for (let v of this.tiles) {
+      // remove kind suffix
+      ret += v.toString().slice(0, -1);
     }
-    return result;
+    return `${ret}${this.tiles[0].k}`;
   }
 
   is(type: BLOCK): boolean {

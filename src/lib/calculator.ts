@@ -116,6 +116,7 @@ export class Hand {
   }
   discard(t: Tile) {
     this.dec(t);
+    this.data.tsumo = null;
     return this;
   }
   call(b: BlockPon | BlockChi | BlockDaiKan) {
@@ -149,7 +150,6 @@ export class Hand {
 
     throw new Error(`unexpected input ${b}`);
   }
-
   clone(): Hand {
     const c = new Hand(this.input);
     c.data[KIND.M] = this.getArray(KIND.M).concat() as FixedNumber;
@@ -173,15 +173,19 @@ export class Hand {
   }
 }
 
-export class Calculator {
+export class ShantenCalculator {
   hand: Hand;
   constructor(hand: Hand) {
     this.hand = hand;
   }
   calc() {
-    return Math.min(this.sevenParis(), this.thirteenOrphans(), this.common());
+    return Math.min(
+      this.sevenPairs(),
+      this.thirteenOrphans(),
+      this.fourSetsOnePair()
+    );
   }
-  sevenParis() {
+  sevenPairs() {
     if (this.hand.called.length > 0) return Infinity;
     let nPairs = 0;
     let nIsolated = 0;
@@ -196,21 +200,23 @@ export class Calculator {
     if (nPairs + nIsolated >= 7) nIsolated = 7 - nPairs;
     return 13 - 2 * nPairs - nIsolated;
   }
+
   thirteenOrphans() {
     if (this.hand.called.length > 0) return Infinity;
-    let numOfOrphans = 0;
-    let numOfPairs = 0;
+    let nOrphans = 0;
+    let nPairs = 0;
     for (let k of Object.values(KIND)) {
       if (k == KIND.BACK) continue;
       const nn = k == KIND.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 9];
       for (let n of nn) {
-        if (this.hand.get(k, n) >= 1) numOfOrphans++;
-        if (this.hand.get(k, n) >= 2) numOfPairs++;
+        if (this.hand.get(k, n) >= 1) nOrphans++;
+        if (this.hand.get(k, n) >= 2) nPairs++;
       }
     }
-    return numOfPairs >= 1 ? 12 - numOfOrphans : 13 - numOfOrphans;
+    return nPairs >= 1 ? 12 - nOrphans : 13 - nOrphans;
   }
-  common() {
+
+  fourSetsOnePair() {
     const calc = (hasPair: boolean) => {
       const r = {
         [KIND.M]: this.commonByKind(KIND.M),
@@ -230,8 +236,7 @@ export class Calculator {
       for (let m of [r[KIND.M].patternA, r[KIND.M].patternB]) {
         for (let p of [r[KIND.P].patternA, r[KIND.P].patternB]) {
           for (let s of [r[KIND.S].patternA, r[KIND.S].patternB]) {
-            // TODO handle called
-            const v = [0, 0, 0];
+            const v = [this.hand.called.length, 0, 0];
             for (let i = 0; i < 3; i++) {
               v[i] += m[i] + p[i] + s[i] + z[i];
             }
@@ -271,7 +276,7 @@ export class Calculator {
     patternA: [number, number, number];
     patternB: [number, number, number];
   } {
-    if (n > 9) return this.group(k);
+    if (n > 9) return this.groupRemainingTiles(k);
 
     const arr = this.hand.getArray(k);
     let max = this.commonByKind(k, n + 1);
@@ -318,7 +323,7 @@ export class Calculator {
     return max;
   }
   // http://crescent.s255.xrea.com/cabinet/others/mahjong/
-  private group(k: Kind): {
+  private groupRemainingTiles(k: Kind): {
     patternA: [number, number, number];
     patternB: [number, number, number];
   } {
@@ -365,5 +370,150 @@ export class Calculator {
     if (hasPair) nSerialPair++;
 
     return 13 - nSet * 3 - nSerialPair * 2 - nIsolated;
+  }
+}
+
+export class TileCalculator {
+  hand: Hand;
+  constructor(hand: Hand) {
+    this.hand = hand;
+  }
+
+  calc() {
+    return [
+      ...this.sevenPairs(),
+      ...this.thirteenOrphans(),
+      ...this.fourSetsOnePair(),
+    ];
+  }
+
+  sevenPairs(): string[][] {
+    if (this.hand.called.length > 0) return [];
+    const ret: string[] = [];
+    for (let k of Object.values(KIND)) {
+      if (k == KIND.BACK) continue;
+      for (let n = 1; n < this.hand.getArray(k).length; n++) {
+        const v = this.hand.get(k, n);
+        if (v == 2) ret.push(`${n}${n}${k}`);
+        else if (v == 0) continue;
+        else return [];
+      }
+    }
+    return [ret];
+  }
+
+  thirteenOrphans(): string[][] {
+    if (this.hand.called.length > 0) return [[]];
+    const ret: string[] = [];
+    let pairs: string = "";
+    for (let k of Object.values(KIND)) {
+      if (k == KIND.BACK) continue;
+      const nn = k == KIND.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 9];
+      for (let n of nn) {
+        if (this.hand.get(k, n) == 1) ret.push(`${n}${k}`);
+        else if (this.hand.get(k, n) == 2 && pairs == "")
+          ret.unshift(`${n}${n}${k}`);
+        else return [[]];
+      }
+    }
+    return [ret];
+  }
+
+  fourSetsOnePair(): string[][] {
+    let ret: string[][] = [];
+    for (let k of Object.values(KIND)) {
+      if (k == KIND.BACK) continue;
+      for (let n = 1; n < this.hand.getArray(k).length; n++) {
+        if (this.hand.get(k, n) == 2) {
+          const tiles = [new Tile(k, n), new Tile(k, n)];
+          this.hand.dec(...tiles);
+          // 1. calc all cases without two pairs
+          // 2. remove non five blocks
+          // 3. add two pairs to the head
+          const v = this.commonAll()
+            .filter((arr) => arr.length == 4)
+            .map((arr) => {
+              arr.unshift(`${n}${n}${k}`);
+              return arr;
+            });
+          ret = [...ret, ...v];
+          this.hand.inc(...tiles);
+        }
+      }
+    }
+    return ret;
+  }
+
+  private commonAll(): string[][] {
+    const handleZ = (): string[][] => {
+      const z: string[] = [];
+      const k = KIND.Z;
+      const arr = this.hand.getArray(k);
+      for (let n = 1; n < arr.length; n++) {
+        if (arr[n] == 0) continue;
+        else if (arr[n] != 3) return [];
+        z.push(`${n}${n}${n}${k}`);
+      }
+      return z.length == 0 ? [] : [z];
+    };
+
+    // [["123m", "123m"], ["222m", "333m"]]
+    // [["123s", "123s"]]
+    // result: [["123m", "123m", "123s", "123s"], ["111m", "333m", "123s", "123s"]]
+    const vvv = [
+      this.commonByKind(KIND.M),
+      this.commonByKind(KIND.P),
+      this.commonByKind(KIND.S),
+      handleZ(),
+      [this.hand.called.map((b) => b.toString())],
+    ].sort((a, b) => b.length - a.length);
+    const ret = vvv[0].concat();
+    for (let i = 0; i < ret.length; i++) {
+      for (let j = 1; j < vvv.length; j++) {
+        for (let arr of vvv[j]) {
+          ret[i] = [...ret[i], ...arr];
+        }
+      }
+    }
+    return ret;
+  }
+
+  private commonByKind(k: Kind, n: number = 1): string[][] {
+    if (n > 9) return [];
+
+    if (this.hand.get(k, n) == 0) return this.commonByKind(k, n + 1);
+
+    const ret: string[][] = [];
+    if (
+      n <= 7 &&
+      this.hand.get(k, n) > 0 &&
+      this.hand.get(k, n + 1) > 0 &&
+      this.hand.get(k, n + 2) > 0
+    ) {
+      const tiles = [new Tile(k, n), new Tile(k, n + 1), new Tile(k, n + 2)];
+      this.hand.dec(...tiles);
+      const nested = this.commonByKind(k, n);
+      this.hand.inc(...tiles);
+      if (nested.length == 0) nested.push([]);
+      for (let arr of nested) {
+        arr.unshift(`${n}${n + 1}${n + 2}${k}`);
+        ret.push(arr);
+      }
+    }
+
+    if (this.hand.get(k, n) == 3) {
+      const tiles = [new Tile(k, n), new Tile(k, n), new Tile(k, n)];
+      this.hand.dec(...tiles);
+      const nested = this.commonByKind(k, n);
+      this.hand.inc(...tiles);
+      if (nested.length == 0) nested.push([]);
+      for (let arr of nested) {
+        // Note insert it to the head due to handling recursively, 111333m
+        // first arr will have [333m]
+        arr.unshift(`${n}${n}${n}${k}`);
+        ret.push(arr);
+      }
+    }
+    return ret;
   }
 }
