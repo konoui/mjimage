@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-
+import { Block } from "../../parser";
 import { registerWindow } from "@svgdotjs/svg.js";
 import { createHTMLWindow } from "svgdom";
 // @ts-ignore, https://github.com/DefinitelyTyped/DefinitelyTyped/pull/66501/files
@@ -30,4 +30,8 @@ export const initSvgDOM = () => {
 
   config.setFontDir("./node_modules/svgdom/fonts/");
   return { window, document };
+};
+
+export const blocksToString = (blocks: Block[][]) => {
+  return blocks.map((v) => v.map((vv) => vv.toString()));
 };

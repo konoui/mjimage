@@ -277,6 +277,15 @@ const getBlockCreators = (h: ImageHelper) => {
       const g = new G();
       throw new Error("found unknown block");
     },
+    [BLOCK.PAIR]: function (block: Block) {
+      throw new Error("unsupported");
+    },
+    [BLOCK.SET]: function (block: Block) {
+      throw new Error("unsupported");
+    },
+    [BLOCK.ISOLATED]: function (block: Block) {
+      throw new Error("unsupported");
+    },
   };
 
   return lookup;
@@ -295,6 +304,7 @@ export const createHand = (helper: ImageHelper, blocks: Block[]) => {
   let sumOfWidth = 0;
   const elms: MySVGElement[] = [];
   for (let block of blocks) {
+    const type = block.type;
     const fn = creators[block.type];
     const elm = fn(block);
     elms.push(elm);

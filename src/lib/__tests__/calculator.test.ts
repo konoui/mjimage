@@ -7,6 +7,7 @@ import {
 } from "../calculator";
 import { BLOCK, KIND, OPERATOR } from "../constants";
 import { Block, Parser, Tile } from "../parser";
+import { blocksToString } from "./utils/helper";
 
 describe("Hand", () => {
   const getData = (h: Hand) => {
@@ -189,7 +190,7 @@ describe("Tile Calculator", () => {
     {
       name: "nine gates",
       input: "11123456789990m",
-      want: [["11123450678999m"]],
+      want: [["1m1m1m2m3m4m5m0m6m7m8m9m9m9m"]],
       handler: "Nine",
     },
     {
@@ -235,13 +236,13 @@ describe("Tile Calculator", () => {
     test(tt.name, () => {
       const h = new Hand(tt.input);
       const c = new TileCalculator(h);
-      let got: string[][] = [];
+      let got: Block[][] = [];
       if (tt.handler == "Seven") got = c.sevenPairs();
       else if (tt.handler == "Orphans") got = c.thirteenOrphans();
       else if (tt.handler == "Common") got = c.fourSetsOnePair();
       else if (tt.handler == "Nine") got = c.nineGates();
       else throw new Error(`unexpected handler ${tt.handler}`);
-      expect(got).toStrictEqual(tt.want);
+      expect(blocksToString(got)).toStrictEqual(tt.want);
     });
   }
 });
@@ -249,25 +250,25 @@ describe("Tile Calculator", () => {
 test("commonByKind", () => {
   const h = new Hand("111222333456m");
   const c = new TileCalculator(h);
-  const got = (c as any).commonByKind(KIND.M);
+  const got = (c as any).commonByKind(KIND.M) as Block[][];
   const want = [
     ["123m", "123m", "123m", "456m"],
     ["111m", "234m"],
     ["111m", "222m", "345m"],
     ["111m", "222m", "333m", "456m"],
   ];
-  expect(got).toStrictEqual(want);
+  expect(blocksToString(got)).toStrictEqual(want);
 });
 
 test("handleCommon", () => {
   const h = new Hand("111222333456m111s");
   const c = new TileCalculator(h);
-  const got = (c as any).commonAll();
+  const got = (c as any).commonAll() as Block[][];
   const want = [
     ["123m", "123m", "123m", "456m", "111s"],
     ["111m", "234m", "111s"],
     ["111m", "222m", "345m", "111s"],
     ["111m", "222m", "333m", "456m", "111s"],
   ];
-  expect(got).toStrictEqual(want);
+  expect(blocksToString(got)).toStrictEqual(want);
 });

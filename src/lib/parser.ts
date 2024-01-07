@@ -178,6 +178,12 @@ export class BlockIsolated extends Block {
   }
 }
 
+export class BlockHand extends Block {
+  constructor(tiles: Tile[]) {
+    super(tiles, BLOCK.HAND);
+  }
+}
+
 const blockWrapper = (tiles: Tile[], type: BLOCK) => {
   switch (type) {
     case BLOCK.CHI:
