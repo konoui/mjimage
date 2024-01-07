@@ -10,7 +10,6 @@ import {
   Kind,
   Block,
   BlockPair,
-  BlockHand,
   BlockSet,
   BlockIsolated,
 } from "./parser";
@@ -393,12 +392,32 @@ export class TileCalculator {
   }
 
   calc() {
-    return [
+    return this.markDrawn([
       ...this.sevenPairs(),
       ...this.thirteenOrphans(),
       ...this.nineGates(),
       ...this.fourSetsOnePair(),
-    ];
+    ]);
+  }
+
+  markDrawn(hands: Block[][]) {
+    const drawn = this.hand.drawn;
+    if (drawn == null) return hands;
+    const copiedHands: Block[][] = [];
+    for (let hand of hands) {
+      let marked = false;
+      let newHand: Block[] = [];
+      for (let block of hand) {
+        const idx = block.tiles.findIndex((t) => t.equals(drawn));
+        if (idx < 0) continue;
+        block.tiles[idx].op = OPERATOR.TSUMO;
+        newHand = hand.map((block) => block.clone());
+        copiedHands.push(newHand);
+        block.tiles[idx].op = null;
+      }
+      marked = false;
+    }
+    return copiedHands;
   }
 
   sevenPairs(): Block[][] {
@@ -408,7 +427,7 @@ export class TileCalculator {
       if (k == KIND.BACK) continue;
       for (let n = 1; n < this.hand.getArrayLen(k); n++) {
         const v = this.hand.get(k, n);
-        if (v == 2) ret.push(new BlockPair(new Tile(k, n)));
+        if (v == 2) ret.push(new BlockPair(new Tile(k, n), new Tile(k, n)));
         else if (v == 0) continue;
         else return [];
       }
@@ -427,8 +446,8 @@ export class TileCalculator {
         if (this.hand.get(k, n) == 1)
           ret.push(new BlockIsolated(new Tile(k, n)));
         else if (this.hand.get(k, n) == 2 && pairs == "")
-          ret.unshift(new BlockPair(new Tile(k, n)));
-        else return [[]];
+          ret.unshift(new BlockPair(new Tile(k, n), new Tile(k, n)));
+        else return [];
       }
     }
     return [ret];
@@ -463,7 +482,7 @@ export class TileCalculator {
           }
           for (let i = 0; i < count; i++) tiles.push(new Tile(k, n));
         }
-        return [[new BlockHand(tiles)]];
+        return [[new Block(tiles, BLOCK.HAND)]];
       }
     }
     return [];
@@ -483,7 +502,7 @@ export class TileCalculator {
           const v = this.commonAll()
             .filter((arr) => arr.length == 4)
             .map((arr) => {
-              arr.unshift(new BlockPair(new Tile(k, n)));
+              arr.unshift(new BlockPair(new Tile(k, n), new Tile(k, n)));
               return arr;
             });
           ret = [...ret, ...v];

@@ -34,12 +34,20 @@ export function isKind(v: string): [Kind, boolean] {
 type Operator = (typeof OPERATOR)[keyof typeof OPERATOR];
 
 export class Tile {
-  constructor(public k: Kind, public n: number, public op?: Operator) {}
+  constructor(
+    public k: Kind,
+    public n: number,
+    public op: Operator | null = null
+  ) {}
 
   toString(): string {
     if (this.k === KIND.BACK) return this.k;
     const op = this.op != null ? this.op : "";
     return `${op}${this.n}${this.k}`;
+  }
+
+  clone() {
+    return new Tile(this.k, this.n, this.op);
   }
 
   equals(t: Tile, ignoreRed: boolean = false): boolean {
@@ -68,11 +76,20 @@ export class Block {
   }
 
   toString(): string {
-    let result = "";
-    for (const t of this.tiles) {
-      result += t.toString();
+    const [sameAll, _] = this.tiles.reduce(
+      (a: [boolean, Tile], b: Tile): [boolean, Tile] => {
+        return [a[0] && a[1].k == b.k, b];
+      },
+      [true, this.tiles[0]]
+    );
+    let ret = "";
+
+    if (sameAll) {
+      for (let v of this.tiles) ret += v.toString().slice(0, -1);
+      return `${ret}${this.tiles[0].k}`;
     }
-    return result;
+    for (const t of this.tiles) ret += t.toString();
+    return ret;
   }
 
   is(type: BLOCK): boolean {
@@ -88,16 +105,16 @@ export class Block {
       BLOCK.SHO_KAN.toString(),
     ].includes(this.type.toString());
   }
+
+  clone() {
+    const tiles = this.tiles.map((t) => new Tile(t.k, t.n, t.op));
+    return blockWrapper(tiles, this.type);
+  }
 }
 
 export class BlockChi extends Block {
   constructor(tiles: Tile[]) {
     super(tiles, BLOCK.CHI);
-  }
-  toString(): string {
-    let ret = "";
-    for (let v of this.tiles) ret += v.toString().slice(0, -1);
-    return `${ret}${this.tiles[0].k}`;
   }
 }
 
@@ -105,21 +122,11 @@ export class BlockPon extends Block {
   constructor(tiles: Tile[]) {
     super(tiles, BLOCK.PON);
   }
-  toString(): string {
-    let ret = "";
-    for (let v of this.tiles) ret += v.toString().slice(0, -1);
-    return `${ret}${this.tiles[0].k}`;
-  }
 }
 
 export class BlockAnKan extends Block {
   constructor(tiles: Tile[]) {
     super(tiles, BLOCK.AN_KAN);
-  }
-  toString(): string {
-    let ret = "";
-    for (let v of this.tiles) ret += v.toString().slice(0, -1);
-    return `${ret}${this.tiles[0].k}`;
   }
 }
 
@@ -127,43 +134,23 @@ export class BlockDaiKan extends Block {
   constructor(tiles: Tile[]) {
     super(tiles, BLOCK.DAI_KAN);
   }
-  toString(): string {
-    let ret = "";
-    for (let v of this.tiles) ret += v.toString().slice(0, -1);
-    return `${ret}${this.tiles[0].k}`;
-  }
 }
 
 export class BlockShoKan extends Block {
   constructor(tiles: Tile[]) {
     super(tiles, BLOCK.SHO_KAN);
   }
-  toString(): string {
-    let ret = "";
-    for (let v of this.tiles) ret += v.toString().slice(0, -1);
-    return `${ret}${this.tiles[0].k}`;
-  }
 }
 
 export class BlockPair extends Block {
-  constructor(tile: Tile) {
-    super([tile, tile], BLOCK.PAIR);
-  }
-  toString(): string {
-    let ret = "";
-    for (let v of this.tiles) ret += v.toString().slice(0, -1);
-    return `${ret}${this.tiles[0].k}`;
+  constructor(tile1: Tile, tile2: Tile) {
+    super([tile1, tile2], BLOCK.PAIR);
   }
 }
 
 export class BlockSet extends Block {
-  constructor(tiles: Tile[]) {
+  constructor(tiles: [Tile, Tile, Tile]) {
     super(tiles, BLOCK.SET);
-  }
-  toString(): string {
-    let ret = "";
-    for (let v of this.tiles) ret += v.toString().slice(0, -1);
-    return `${ret}${this.tiles[0].k}`;
   }
 }
 
@@ -171,20 +158,21 @@ export class BlockIsolated extends Block {
   constructor(tile: Tile) {
     super([tile], BLOCK.ISOLATED);
   }
-  toString(): string {
-    let ret = "";
-    for (let v of this.tiles) ret += v.toString().slice(0, -1);
-    return `${ret}${this.tiles[0].k}`;
-  }
 }
 
-export class BlockHand extends Block {
-  constructor(tiles: Tile[]) {
-    super(tiles, BLOCK.HAND);
-  }
-}
-
-const blockWrapper = (tiles: Tile[], type: BLOCK) => {
+const blockWrapper = (
+  tiles: Tile[],
+  type: BLOCK
+):
+  | Block
+  | BlockChi
+  | BlockPon
+  | BlockAnKan
+  | BlockDaiKan
+  | BlockShoKan
+  | BlockPair
+  | BlockSet
+  | BlockIsolated => {
   switch (type) {
     case BLOCK.CHI:
       return new BlockChi(tiles);
@@ -196,6 +184,12 @@ const blockWrapper = (tiles: Tile[], type: BLOCK) => {
       return new BlockDaiKan(tiles);
     case BLOCK.SHO_KAN:
       return new BlockShoKan(tiles);
+    case BLOCK.SET:
+      return new BlockSet(tiles as [Tile, Tile, Tile]);
+    case BLOCK.PAIR:
+      return new BlockPair(tiles[0], tiles[1]);
+    case BLOCK.ISOLATED:
+      return new BlockIsolated(tiles[0]);
     default:
       return new Block(tiles, type);
   }

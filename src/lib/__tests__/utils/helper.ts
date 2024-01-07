@@ -32,6 +32,6 @@ export const initSvgDOM = () => {
   return { window, document };
 };
 
-export const blocksToString = (blocks: Block[][]) => {
-  return blocks.map((v) => v.map((vv) => vv.toString()));
+export const handsToString = (hands: Block[][]) => {
+  return hands.map((hand) => hand.map((block) => block.toString()));
 };

@@ -7,7 +7,7 @@ import {
 } from "../calculator";
 import { BLOCK, KIND, OPERATOR } from "../constants";
 import { Block, Parser, Tile } from "../parser";
-import { blocksToString } from "./utils/helper";
+import { handsToString } from "./utils/helper";
 
 describe("Hand", () => {
   const getData = (h: Hand) => {
@@ -190,7 +190,7 @@ describe("Tile Calculator", () => {
     {
       name: "nine gates",
       input: "11123456789990m",
-      want: [["1m1m1m2m3m4m5m0m6m7m8m9m9m9m"]],
+      want: [["11123450678999m"]],
       handler: "Nine",
     },
     {
@@ -230,6 +230,12 @@ describe("Tile Calculator", () => {
       want: [["11z", "123m", "111m", "123p", "123s"]],
       handler: "Common",
     },
+    {
+      name: "common",
+      input: "123m123s123p111z22m",
+      want: [["22m", "123m", "123p", "123s", "111z"]],
+      handler: "Common",
+    },
   ];
 
   for (const tt of tests) {
@@ -242,9 +248,16 @@ describe("Tile Calculator", () => {
       else if (tt.handler == "Common") got = c.fourSetsOnePair();
       else if (tt.handler == "Nine") got = c.nineGates();
       else throw new Error(`unexpected handler ${tt.handler}`);
-      expect(blocksToString(got)).toStrictEqual(tt.want);
+      expect(handsToString(got)).toStrictEqual(tt.want);
     });
   }
+});
+
+test("calc", () => {
+  const h = new Hand("1223m123s123p111z");
+  h.draw(new Tile(KIND.M, 2));
+  const c = new TileCalculator(h);
+  console.log(handsToString(c.calc()));
 });
 
 test("commonByKind", () => {
@@ -257,7 +270,7 @@ test("commonByKind", () => {
     ["111m", "222m", "345m"],
     ["111m", "222m", "333m", "456m"],
   ];
-  expect(blocksToString(got)).toStrictEqual(want);
+  expect(handsToString(got)).toStrictEqual(want);
 });
 
 test("handleCommon", () => {
@@ -270,5 +283,5 @@ test("handleCommon", () => {
     ["111m", "222m", "345m", "111s"],
     ["111m", "222m", "333m", "456m", "111s"],
   ];
-  expect(blocksToString(got)).toStrictEqual(want);
+  expect(handsToString(got)).toStrictEqual(want);
 });
