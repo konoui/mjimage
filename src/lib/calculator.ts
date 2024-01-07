@@ -474,7 +474,7 @@ export class TileCalculator {
     for (let k of Object.values(KIND)) {
       if (k == KIND.BACK) continue;
       for (let n = 1; n < this.hand.getArrayLen(k); n++) {
-        if (this.hand.get(k, n) == 2) {
+        if (this.hand.get(k, n) >= 2) {
           const tiles = [new Tile(k, n), new Tile(k, n)];
           this.hand.dec(...tiles);
           // 1. calc all cases without two pairs
