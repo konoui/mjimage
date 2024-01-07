@@ -26,6 +26,9 @@ export const BLOCK = {
   HAND: "hand",
   DISCARD: "simple-discard",
   UNKNOWN: "unknown",
+  PAIR: "pair",
+  SET: "set",
+  ISOLATED: "isolated",
 } as const;
 
 export const ROUND_MAP = {

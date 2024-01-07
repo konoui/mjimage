@@ -66,13 +66,13 @@ export class Block {
       tiles.sort(tileSortFunc);
     }
   }
+
   toString(): string {
-    let ret = "";
-    for (let v of this.tiles) {
-      // remove kind suffix
-      ret += v.toString().slice(0, -1);
+    let result = "";
+    for (const t of this.tiles) {
+      result += t.toString();
     }
-    return `${ret}${this.tiles[0].k}`;
+    return result;
   }
 
   is(type: BLOCK): boolean {
@@ -94,11 +94,21 @@ export class BlockChi extends Block {
   constructor(tiles: Tile[]) {
     super(tiles, BLOCK.CHI);
   }
+  toString(): string {
+    let ret = "";
+    for (let v of this.tiles) ret += v.toString().slice(0, -1);
+    return `${ret}${this.tiles[0].k}`;
+  }
 }
 
 export class BlockPon extends Block {
   constructor(tiles: Tile[]) {
     super(tiles, BLOCK.PON);
+  }
+  toString(): string {
+    let ret = "";
+    for (let v of this.tiles) ret += v.toString().slice(0, -1);
+    return `${ret}${this.tiles[0].k}`;
   }
 }
 
@@ -106,17 +116,65 @@ export class BlockAnKan extends Block {
   constructor(tiles: Tile[]) {
     super(tiles, BLOCK.AN_KAN);
   }
+  toString(): string {
+    let ret = "";
+    for (let v of this.tiles) ret += v.toString().slice(0, -1);
+    return `${ret}${this.tiles[0].k}`;
+  }
 }
 
 export class BlockDaiKan extends Block {
   constructor(tiles: Tile[]) {
     super(tiles, BLOCK.DAI_KAN);
   }
+  toString(): string {
+    let ret = "";
+    for (let v of this.tiles) ret += v.toString().slice(0, -1);
+    return `${ret}${this.tiles[0].k}`;
+  }
 }
 
 export class BlockShoKan extends Block {
   constructor(tiles: Tile[]) {
     super(tiles, BLOCK.SHO_KAN);
+  }
+  toString(): string {
+    let ret = "";
+    for (let v of this.tiles) ret += v.toString().slice(0, -1);
+    return `${ret}${this.tiles[0].k}`;
+  }
+}
+
+export class BlockPair extends Block {
+  constructor(tile: Tile) {
+    super([tile, tile], BLOCK.PAIR);
+  }
+  toString(): string {
+    let ret = "";
+    for (let v of this.tiles) ret += v.toString().slice(0, -1);
+    return `${ret}${this.tiles[0].k}`;
+  }
+}
+
+export class BlockSet extends Block {
+  constructor(tiles: Tile[]) {
+    super(tiles, BLOCK.SET);
+  }
+  toString(): string {
+    let ret = "";
+    for (let v of this.tiles) ret += v.toString().slice(0, -1);
+    return `${ret}${this.tiles[0].k}`;
+  }
+}
+
+export class BlockIsolated extends Block {
+  constructor(tile: Tile) {
+    super([tile], BLOCK.ISOLATED);
+  }
+  toString(): string {
+    let ret = "";
+    for (let v of this.tiles) ret += v.toString().slice(0, -1);
+    return `${ret}${this.tiles[0].k}`;
   }
 }
 

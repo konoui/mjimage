@@ -187,6 +187,12 @@ describe("Tile Calculator", () => {
       handler: "Orphans",
     },
     {
+      name: "nine gates",
+      input: "11123456789990m",
+      want: [["11123450678999m"]],
+      handler: "Nine",
+    },
+    {
       name: "simple",
       input: "111m456m789m123s11p",
       want: [["11p", "111m", "456m", "789m", "123s"]],
@@ -233,6 +239,7 @@ describe("Tile Calculator", () => {
       if (tt.handler == "Seven") got = c.sevenPairs();
       else if (tt.handler == "Orphans") got = c.thirteenOrphans();
       else if (tt.handler == "Common") got = c.fourSetsOnePair();
+      else if (tt.handler == "Nine") got = c.nineGates();
       else throw new Error(`unexpected handler ${tt.handler}`);
       expect(got).toStrictEqual(tt.want);
     });

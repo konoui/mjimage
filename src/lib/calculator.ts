@@ -62,7 +62,7 @@ export class Hand {
       }
 
       if (b.is(BLOCK.HAND)) {
-        for (let t of b.tiles) this.inc(t);
+        this.inc(...b.tiles);
       }
     }
   }
@@ -83,8 +83,13 @@ export class Hand {
   get drawn() {
     return this.data.tsumo;
   }
-  getArray(k: Kind) {
-    return this.data[k];
+  getArrayLen(k: Kind) {
+    return this.data[k].length;
+  }
+  sum(k: Kind) {
+    let sum = 0;
+    for (let n = 1; n < this.getArrayLen(k); n++) sum += this.get(k, n);
+    return sum;
   }
   inc(...tiles: Tile[]) {
     const backup: Tile[] = [];
@@ -152,10 +157,10 @@ export class Hand {
   }
   clone(): Hand {
     const c = new Hand(this.input);
-    c.data[KIND.M] = this.getArray(KIND.M).concat() as FixedNumber;
-    c.data[KIND.S] = this.getArray(KIND.S).concat() as FixedNumber;
-    c.data[KIND.P] = this.getArray(KIND.P).concat() as FixedNumber;
-    c.data[KIND.Z] = this.getArray(KIND.BACK) as [
+    c.data[KIND.M] = this.data[KIND.M].concat() as FixedNumber;
+    c.data[KIND.S] = this.data[KIND.S].concat() as FixedNumber;
+    c.data[KIND.P] = this.data[KIND.P].concat() as FixedNumber;
+    c.data[KIND.Z] = this.data[KIND.Z].concat() as [
       number,
       number,
       number,
@@ -165,7 +170,7 @@ export class Hand {
       number,
       number
     ];
-    c.data[KIND.BACK] = this.getArray(KIND.BACK) as [number];
+    c.data[KIND.BACK] = this.data[KIND.BACK] as [number];
     c.data.called = this.called.concat();
     c.data.reached = this.data.reached;
     c.data.tsumo = this.data.tsumo;
@@ -190,7 +195,7 @@ export class ShantenCalculator {
     let nPairs = 0;
     let nIsolated = 0;
     for (let k of Object.values(KIND)) {
-      for (let n = 1; n < this.hand.getArray(k).length; n++) {
+      for (let n = 1; n < this.hand.getArrayLen(k); n++) {
         if (this.hand.get(k, n) == 2) nPairs++;
         if (this.hand.get(k, n) == 1) nIsolated++;
       }
@@ -218,24 +223,21 @@ export class ShantenCalculator {
 
   fourSetsOnePair() {
     const calc = (hasPair: boolean) => {
-      const r = {
-        [KIND.M]: this.commonByKind(KIND.M),
-        [KIND.P]: this.commonByKind(KIND.P),
-        [KIND.S]: this.commonByKind(KIND.S),
-      };
-
       const z = [0, 0, 0];
-      const arr = this.hand.getArray(KIND.Z);
-      for (let n = 1; n < arr.length; n++) {
-        if (arr[n] >= 3) z[0]++;
-        else if (arr[n] == 2) z[1]++;
-        else if (arr[n] == 1) z[2]++;
+      const k = KIND.Z;
+      for (let n = 1; n < this.hand.getArrayLen(k); n++) {
+        if (this.hand.get(k, n) >= 3) z[0]++;
+        else if (this.hand.get(k, n) == 2) z[1]++;
+        else if (this.hand.get(k, n) == 1) z[2]++;
       }
 
       let min = 13;
-      for (let m of [r[KIND.M].patternA, r[KIND.M].patternB]) {
-        for (let p of [r[KIND.P].patternA, r[KIND.P].patternB]) {
-          for (let s of [r[KIND.S].patternA, r[KIND.S].patternB]) {
+      const mr = this.commonByKind(KIND.M);
+      const pr = this.commonByKind(KIND.P);
+      const sr = this.commonByKind(KIND.S);
+      for (let m of [mr.patternA, mr.patternB]) {
+        for (let p of [pr.patternA, pr.patternB]) {
+          for (let s of [sr.patternA, sr.patternB]) {
             const v = [this.hand.called.length, 0, 0];
             for (let i = 0; i < 3; i++) {
               v[i] += m[i] + p[i] + s[i] + z[i];
@@ -254,9 +256,8 @@ export class ShantenCalculator {
 
     // case has pairs
     for (let k of Object.values(KIND)) {
-      const arr = this.hand.getArray(k);
-      for (let n = 1; n < arr.length; n++) {
-        if (arr[n] >= 2) {
+      for (let n = 1; n < this.hand.getArrayLen(k); n++) {
+        if (this.hand.get(k, n) >= 2) {
           const tiles = [new Tile(k, n), new Tile(k, n)];
           this.hand.dec(...tiles);
           const r = calc(true);
@@ -278,10 +279,14 @@ export class ShantenCalculator {
   } {
     if (n > 9) return this.groupRemainingTiles(k);
 
-    const arr = this.hand.getArray(k);
     let max = this.commonByKind(k, n + 1);
 
-    if (n <= 7 && arr[n] > 0 && arr[n + 1] > 0 && arr[n + 2] > 0) {
+    if (
+      n <= 7 &&
+      this.hand.get(k, n) > 0 &&
+      this.hand.get(k, n + 1) > 0 &&
+      this.hand.get(k, n + 2) > 0
+    ) {
       const tiles = [new Tile(k, n), new Tile(k, n + 1), new Tile(k, n + 2)];
       this.hand.dec(...tiles);
       const r = this.commonByKind(k, n);
@@ -301,7 +306,7 @@ export class ShantenCalculator {
       }
     }
 
-    if (arr[n] >= 3) {
+    if (this.hand.get(k, n) >= 3) {
       const tiles = [new Tile(k, n), new Tile(k, n), new Tile(k, n)];
       this.hand.dec(...tiles);
       const r = this.commonByKind(k, n);
@@ -330,10 +335,13 @@ export class ShantenCalculator {
     let nSerialPairs = 0;
     let nIsolated = 0;
     let nTiles = 0;
-    const arr = this.hand.getArray(k);
-    for (let n = 1; n < arr.length; n++) {
-      nTiles += arr[n];
-      if (n <= 7 && arr[n + 1] == 0 && arr[n + 2] == 0) {
+    for (let n = 1; n < this.hand.getArrayLen(k); n++) {
+      nTiles += this.hand.get(k, n);
+      if (
+        n <= 7 &&
+        this.hand.get(k, n + 1) == 0 &&
+        this.hand.get(k, n + 2) == 0
+      ) {
         nSerialPairs += nTiles >> 1;
         nIsolated += nTiles % 2;
         nTiles = 0;
@@ -383,6 +391,7 @@ export class TileCalculator {
     return [
       ...this.sevenPairs(),
       ...this.thirteenOrphans(),
+      ...this.nineGates(),
       ...this.fourSetsOnePair(),
     ];
   }
@@ -392,7 +401,7 @@ export class TileCalculator {
     const ret: string[] = [];
     for (let k of Object.values(KIND)) {
       if (k == KIND.BACK) continue;
-      for (let n = 1; n < this.hand.getArray(k).length; n++) {
+      for (let n = 1; n < this.hand.getArrayLen(k); n++) {
         const v = this.hand.get(k, n);
         if (v == 2) ret.push(`${n}${n}${k}`);
         else if (v == 0) continue;
@@ -419,11 +428,45 @@ export class TileCalculator {
     return [ret];
   }
 
+  nineGates(): string[][] {
+    const cond = (k: Kind, n: number, want: number[]) =>
+      want.includes(this.hand.get(k, n));
+    for (let k of Object.values(KIND)) {
+      if (k == KIND.BACK) continue;
+      if (k == KIND.Z) continue;
+      const cond1 =
+        cond(k, 1, [3, 4]) &&
+        cond(k, 9, [3, 4]) &&
+        cond(k, 2, [1, 2]) &&
+        cond(k, 3, [1, 2]) &&
+        cond(k, 4, [1, 2]) &&
+        cond(k, 5, [1, 2]) &&
+        cond(k, 6, [1, 2]) &&
+        cond(k, 7, [1, 2]) &&
+        cond(k, 8, [1, 2]);
+      const cond2 = this.hand.sum(k) == 14;
+      if (cond1 && cond2) {
+        let str: string = "";
+        for (let n = 1; n < this.hand.getArrayLen(k); n++) {
+          const count = this.hand.get(k, n);
+          if (n == 5) {
+            const red = this.hand.get(k, 0, false);
+            str = `${str}${n.toString().repeat(count - red)}${"0".repeat(red)}`;
+            continue;
+          }
+          str = `${str}${n.toString().repeat(count)}`;
+        }
+        return [[`${str}${k}`]];
+      }
+    }
+    return [];
+  }
+
   fourSetsOnePair(): string[][] {
     let ret: string[][] = [];
     for (let k of Object.values(KIND)) {
       if (k == KIND.BACK) continue;
-      for (let n = 1; n < this.hand.getArray(k).length; n++) {
+      for (let n = 1; n < this.hand.getArrayLen(k); n++) {
         if (this.hand.get(k, n) == 2) {
           const tiles = [new Tile(k, n), new Tile(k, n)];
           this.hand.dec(...tiles);
@@ -448,10 +491,9 @@ export class TileCalculator {
     const handleZ = (): string[][] => {
       const z: string[] = [];
       const k = KIND.Z;
-      const arr = this.hand.getArray(k);
-      for (let n = 1; n < arr.length; n++) {
-        if (arr[n] == 0) continue;
-        else if (arr[n] != 3) return [];
+      for (let n = 1; n < this.hand.getArrayLen(k); n++) {
+        if (this.hand.get(k, n) == 0) continue;
+        else if (this.hand.get(k, n) != 3) return [];
         z.push(`${n}${n}${n}${k}`);
       }
       return z.length == 0 ? [] : [z];
