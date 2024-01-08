@@ -23,7 +23,7 @@ describe("Hand", () => {
       [KIND.Z]: [0, 1, 1, 1, 0, 1, 0, 0],
       called: new Parser("-123s").parse(),
       reached: false,
-      tsumo: new Tile(KIND.P, 2, OPERATOR.TSUMO),
+      tsumo: new Tile(KIND.P, 2, [OPERATOR.TSUMO]),
     };
     expect((c as any).data).toStrictEqual(want);
   });
@@ -42,7 +42,7 @@ describe("Hand", () => {
     // initial check
     expect(getData(h)).toStrictEqual(want);
 
-    const tsumo = new Tile(KIND.M, 2, OPERATOR.TSUMO);
+    const tsumo = new Tile(KIND.M, 2, [OPERATOR.TSUMO]);
     h.draw(tsumo);
     want.tsumo = tsumo;
     want[tsumo.k][tsumo.n] += 1;
@@ -253,11 +253,16 @@ describe("Tile Calculator", () => {
   }
 });
 
-test("calc", () => {
-  const h = new Hand("1223m123s123p111z");
+test("calc with drawn", () => {
+  const h = new Hand("1223m123s111z, -123m");
   h.draw(new Tile(KIND.M, 2));
   const c = new TileCalculator(h);
-  console.log(handsToString(c.calc()));
+  const want = [
+    ["t22m", "123m", "123s", "111z", "-123m"],
+    ["22m", "1t23m", "123s", "111z", "-123m"],
+  ];
+  const got = handsToString(c.calc());
+  expect(got).toStrictEqual(want);
 });
 
 test("commonByKind", () => {

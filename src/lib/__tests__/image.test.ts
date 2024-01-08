@@ -76,6 +76,15 @@ describe("generate svg", () => {
     expect(want.toString()).toBe(got);
   });
 
+  test("multiple operators", () => {
+    const blocks = new Parser("-g23m").parse();
+    const draw = SVG();
+    drawBlocks(draw, blocks, helperConfig);
+    const got = draw.svg();
+    const want = loadTestData("image.multiple-operators.svg", got, update);
+    expect(want.toString()).toBe(got);
+  });
+
   test("unknown block", () => {
     const blocks = new Parser("1s-1st1s").parse();
 

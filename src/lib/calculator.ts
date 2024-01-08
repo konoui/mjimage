@@ -61,8 +61,8 @@ export class Hand {
       if (b.isCalled()) this.data.called.push(b);
       if (b.is(BLOCK.TSUMO)) {
         const t = b.tiles[0];
-        this.data.tsumo = t;
         this.inc(t);
+        this.data.tsumo = t;
       }
 
       if (b.is(BLOCK.HAND)) {
@@ -118,7 +118,7 @@ export class Hand {
     }
   }
   draw(t: Tile) {
-    t.op = OPERATOR.TSUMO;
+    t.add(OPERATOR.TSUMO);
     this.inc(t);
     this.data.tsumo = t;
     return this;
@@ -132,7 +132,7 @@ export class Hand {
     if (b instanceof BlockAnKan || b instanceof BlockShoKan)
       throw new Error(`unexpected input ${b}`);
 
-    const toRemove = b.tiles.filter((v) => v.op != OPERATOR.HORIZONTAL);
+    const toRemove = b.tiles.filter((v) => !v.has(OPERATOR.HORIZONTAL));
     if (toRemove == null) throw new Error(`unable to find ${b}`);
 
     this.dec(...toRemove);
@@ -403,21 +403,36 @@ export class TileCalculator {
   markDrawn(hands: Block[][]) {
     const drawn = this.hand.drawn;
     if (drawn == null) return hands;
-    const copiedHands: Block[][] = [];
-    for (let hand of hands) {
-      let marked = false;
-      let newHand: Block[] = [];
-      for (let block of hand) {
-        const idx = block.tiles.findIndex((t) => t.equals(drawn));
-        if (idx < 0) continue;
-        block.tiles[idx].op = OPERATOR.TSUMO;
-        newHand = hand.map((block) => block.clone());
-        copiedHands.push(newHand);
-        block.tiles[idx].op = null;
+
+    const indexes: [number, number, number][] = [];
+    for (let i = 0; i < hands.length; i++) {
+      const hand = hands[i];
+      for (let j = 0; j < hand.length; j++) {
+        const block = hand[j];
+        if (block.isCalled()) continue;
+        const k = block.tiles.findIndex((t) => t.equals(drawn));
+        if (k < 0) continue;
+        indexes.push([i, j, k]);
       }
-      marked = false;
     }
-    return copiedHands;
+
+    const newHands: Block[][] = [];
+    for (let i = 0; i < hands.length; i++) {
+      const hand = hands[i];
+      if (indexes.findIndex((v) => v[0] == i) < 0) {
+        newHands.push(hand);
+      }
+    }
+
+    // TODO [123m, 123m]
+    for (let [hidx, bidx, tidx] of indexes) {
+      const hand = hands[hidx];
+      const newHand = hand.map((block) => block.clone());
+      newHand[bidx].tiles[tidx].add(OPERATOR.TSUMO);
+      newHands.push(newHand);
+    }
+
+    return newHands;
   }
 
   sevenPairs(): Block[][] {
@@ -436,7 +451,6 @@ export class TileCalculator {
   }
 
   thirteenOrphans(): Block[][] {
-    if (this.hand.called.length > 0) return [[]];
     const ret: Block[] = [];
     let pairs: string = "";
     for (let k of Object.values(KIND)) {
@@ -502,7 +516,7 @@ export class TileCalculator {
           const v = this.commonAll()
             .filter((arr) => arr.length == 4)
             .map((arr) => {
-              arr.unshift(new BlockPair(new Tile(k, n), new Tile(k, n)));
+              arr.unshift(new BlockPair(tiles[0], tiles[1]));
               return arr;
             });
           ret = [...ret, ...v];
@@ -558,21 +572,27 @@ export class TileCalculator {
       this.hand.get(k, n + 1) > 0 &&
       this.hand.get(k, n + 2) > 0
     ) {
-      const tiles = [new Tile(k, n), new Tile(k, n + 1), new Tile(k, n + 2)];
+      const tiles: [Tile, Tile, Tile] = [
+        new Tile(k, n),
+        new Tile(k, n + 1),
+        new Tile(k, n + 2),
+      ];
       this.hand.dec(...tiles);
       const nested = this.commonByKind(k, n);
       this.hand.inc(...tiles);
       if (nested.length == 0) nested.push([]);
       for (let arr of nested) {
-        arr.unshift(
-          new BlockSet([new Tile(k, n), new Tile(k, n + 1), new Tile(k, n + 2)])
-        );
+        arr.unshift(new BlockSet(tiles));
         ret.push(arr);
       }
     }
 
     if (this.hand.get(k, n) == 3) {
-      const tiles = [new Tile(k, n), new Tile(k, n), new Tile(k, n)];
+      const tiles: [Tile, Tile, Tile] = [
+        new Tile(k, n),
+        new Tile(k, n),
+        new Tile(k, n),
+      ];
       this.hand.dec(...tiles);
       const nested = this.commonByKind(k, n);
       this.hand.inc(...tiles);
@@ -580,9 +600,7 @@ export class TileCalculator {
       for (let arr of nested) {
         // Note insert it to the head due to handling recursively, 111333m
         // first arr will have [333m]
-        arr.unshift(
-          new BlockSet([new Tile(k, n), new Tile(k, n), new Tile(k, n)])
-        );
+        arr.unshift(new BlockSet(tiles));
         ret.push(arr);
       }
     }

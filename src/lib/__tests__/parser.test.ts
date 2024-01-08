@@ -8,6 +8,7 @@ import {
   BlockChi,
 } from "../parser";
 import { KIND, OPERATOR, BLOCK, INPUT_SEPARATOR } from "../constants";
+import { Lexer } from "../lexer";
 
 describe("parse", () => {
   test("12s34m1z2d,t1s,_05s_,-123s", () => {
@@ -24,7 +25,7 @@ describe("parse", () => {
         ],
         BLOCK.HAND
       ),
-      new Block([new Tile(KIND.S, 1, OPERATOR.TSUMO)], BLOCK.TSUMO),
+      new Block([new Tile(KIND.S, 1, [OPERATOR.TSUMO])], BLOCK.TSUMO),
       new BlockAnKan([
         new Tile(KIND.BACK, 0),
         new Tile(KIND.S, 0),
@@ -32,7 +33,7 @@ describe("parse", () => {
         new Tile(KIND.BACK, 0),
       ]),
       new BlockChi([
-        new Tile(KIND.S, 1, OPERATOR.HORIZONTAL),
+        new Tile(KIND.S, 1, [OPERATOR.HORIZONTAL]),
         new Tile(KIND.S, 2),
         new Tile(KIND.S, 3),
       ]),
@@ -66,10 +67,10 @@ describe("parseInput", () => {
       new Tile(KIND.Z, 1),
       new Tile(KIND.Z, 6),
       INPUT_SEPARATOR,
-      new Tile(KIND.S, 1, OPERATOR.TSUMO),
+      new Tile(KIND.S, 1, [OPERATOR.TSUMO]),
       INPUT_SEPARATOR,
       new Tile(KIND.BACK, 0),
-      new Tile(KIND.S, 1, OPERATOR.HORIZONTAL),
+      new Tile(KIND.S, 1, [OPERATOR.HORIZONTAL]),
     ];
     expect(got).toStrictEqual(want);
   });

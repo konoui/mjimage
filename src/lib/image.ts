@@ -37,7 +37,7 @@ class BaseHelper {
       img = new Use().use(BaseHelper.buildID(tile));
     }
 
-    if (tile instanceof Tile && tile.op == OPERATOR.COLOR_GRAYSCALE) {
+    if (tile instanceof Tile && tile.has(OPERATOR.COLOR_GRAYSCALE)) {
       img.css({ filter: "contrast(65%)" });
     }
     return img;
@@ -126,7 +126,7 @@ export class ImageHelper extends BaseHelper {
     const g = new G();
     let pos = 0;
     for (let t of tiles) {
-      if (t.op == OPERATOR.HORIZONTAL) {
+      if (t.has(OPERATOR.HORIZONTAL)) {
         const img = this.createRotate90Image(t, pos, this.diffTileHeightWidth);
         g.add(img);
         pos += this.tileHeight;
@@ -140,7 +140,7 @@ export class ImageHelper extends BaseHelper {
   }
 
   createBlockPonChiKan(block: Block) {
-    const idx = block.tiles.findIndex((d) => d.op === OPERATOR.HORIZONTAL);
+    const idx = block.tiles.findIndex((d) => d.has(OPERATOR.HORIZONTAL));
 
     let pos = 0;
     const g = new G();
@@ -265,7 +265,7 @@ const getBlockCreators = (h: ImageHelper) => {
     },
     [BLOCK.DISCARD]: function (block: Block) {
       const width = block.tiles
-        .map((v) => (v.op == OPERATOR.HORIZONTAL ? h.tileHeight : h.tileWidth))
+        .map((v) => (v.has(OPERATOR.HORIZONTAL) ? h.tileHeight : h.tileWidth))
         .reduce((prev, v) => prev + v);
       const height = h.tileHeight;
       const g = h.createBlockHandDiscard(block.tiles);
@@ -304,7 +304,6 @@ export const createHand = (helper: ImageHelper, blocks: Block[]) => {
   let sumOfWidth = 0;
   const elms: MySVGElement[] = [];
   for (let block of blocks) {
-    const type = block.type;
     const fn = creators[block.type];
     const elm = fn(block);
     elms.push(elm);

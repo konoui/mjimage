@@ -1,5 +1,5 @@
 export class Lexer {
-  private input: string;
+  public input: string;
   public position: number;
   private nextPosition: number;
   public char: string;
@@ -30,7 +30,7 @@ export class Lexer {
   }
 
   public peekCharN(n: number): string {
-    if (n <= 0) throw new Error("arg must be positive value");
+    if (n < 0) throw new Error("arg must be positive value");
     if (this.position + n >= this.input.length) return this.eof;
     return this.input[this.position + n];
   }

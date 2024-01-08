@@ -34,20 +34,28 @@ export function isKind(v: string): [Kind, boolean] {
 type Operator = (typeof OPERATOR)[keyof typeof OPERATOR];
 
 export class Tile {
-  constructor(
-    public k: Kind,
-    public n: number,
-    public op: Operator | null = null
-  ) {}
+  constructor(public k: Kind, public n: number, public ops: Operator[] = []) {}
 
   toString(): string {
     if (this.k === KIND.BACK) return this.k;
-    const op = this.op != null ? this.op : "";
-    return `${op}${this.n}${this.k}`;
+    return `${this.ops.join()}${this.n}${this.k}`;
   }
 
   clone() {
-    return new Tile(this.k, this.n, this.op);
+    return new Tile(this.k, this.n, this.ops);
+  }
+
+  has(op: Operator) {
+    return this.ops.includes(op);
+  }
+
+  add(op: Operator) {
+    this.ops.push(op);
+    this.ops = Array.from(new Set(this.ops));
+  }
+
+  remove(op: Operator) {
+    this.ops = this.ops.filter((v) => v != op);
   }
 
   equals(t: Tile, ignoreRed: boolean = false): boolean {
@@ -64,8 +72,8 @@ export class Block {
   constructor(public tiles: Tile[], public type: BLOCK) {
     if (type == BLOCK.CHI) {
       tiles.sort((a: Tile, b: Tile) => {
-        if (a.op == OPERATOR.HORIZONTAL) return -1;
-        if (b.op == OPERATOR.HORIZONTAL) return 1;
+        if (a.has(OPERATOR.HORIZONTAL)) return -1;
+        if (b.has(OPERATOR.HORIZONTAL)) return 1;
         return tileSortFunc(a, b);
       });
       return;
@@ -107,7 +115,7 @@ export class Block {
   }
 
   clone() {
-    const tiles = this.tiles.map((t) => new Tile(t.k, t.n, t.op));
+    const tiles = this.tiles.map((t) => new Tile(t.k, t.n, [...t.ops]));
     return blockWrapper(tiles, this.type);
   }
 }
@@ -242,14 +250,15 @@ export class Parser {
       } else {
         const [t, isOp] = isOperator(l);
         if (isOp) {
-          l.readChar(); // for peek
           cluster.push(t);
           l.readChar(); // for continue
           continue;
         }
         const [n, isNum] = isNumber(char);
         if (!isNum)
-          throw new Error(`encounter unexpected number: ${n} ${char}`);
+          throw new Error(
+            `encounter unexpected number. n: ${n}, current: ${char}, input: ${l.input}`
+          );
         // dummy kind
         cluster.push(new Tile(KIND.BACK, n));
       }
@@ -308,18 +317,18 @@ export class Parser {
 function detectBlockType(tiles: Tile[]): BLOCK {
   if (tiles.length === 0) return BLOCK.UNKNOWN;
   if (tiles.length === 1) {
-    if (tiles[0].op === OPERATOR.DORA) return BLOCK.DORA;
-    if (tiles[0].op === OPERATOR.TSUMO) return BLOCK.TSUMO;
+    if (tiles[0].has(OPERATOR.DORA)) return BLOCK.DORA;
+    if (tiles[0].has(OPERATOR.TSUMO)) return BLOCK.TSUMO;
     return BLOCK.HAND; // 単騎
   }
 
   const sameAll =
     tiles.filter((v) => v.equals(tiles[0], true)).length == tiles.length;
-  const numOfHorizontals = tiles.filter(
-    (v) => v.op == OPERATOR.HORIZONTAL
+  const numOfHorizontals = tiles.filter((v) =>
+    v.has(OPERATOR.HORIZONTAL)
   ).length;
   const numOfTsumoDoraTiles = tiles.filter(
-    (v) => v.op == OPERATOR.TSUMO || v.op == OPERATOR.DORA
+    (v) => v.has(OPERATOR.TSUMO) || v.has(OPERATOR.DORA)
   ).length;
   const numOfBackTiles = tiles.filter((v) => v.k == KIND.BACK).length;
 
@@ -360,7 +369,7 @@ function areConsecutiveTiles(tiles: Tile[]): boolean {
 
 function makeTiles(cluster: Tile[], k: Kind): Tile[] {
   return cluster.map((v) => {
-    return new Tile(k, v.n, v.op);
+    return new Tile(k, v.n, v.ops);
   });
 }
 
@@ -384,12 +393,21 @@ function isNumber(v: string): [number, boolean] {
   return [Number(v), valid.includes(v)];
 }
 
+// isOperator will consume char if the next is an operator
 function isOperator(l: Lexer): [Tile, boolean] {
-  for (let op of Object.values(OPERATOR)) {
-    if (op == l.char) {
-      const [n, ok] = isNumber(l.peekChar());
-      if (!ok) return [new Tile(KIND.BACK, 0), false];
-      return [new Tile(KIND.BACK, n, op), true];
+  const ops = Object.values(OPERATOR) as string[];
+  if (!ops.includes(l.char)) return [new Tile(KIND.BACK, 0), false];
+
+  const found: Operator[] = [];
+  // 4 is temporary value
+  for (let i = 0; i < 4; i++) {
+    const c = l.peekCharN(i);
+    if (ops.includes(c)) found.push(c as Operator);
+    else {
+      const [n, ok] = isNumber(c);
+      if (!ok) break;
+      for (let i = 0; i < found.length; i++) l.readChar();
+      return [new Tile(KIND.BACK, n, found), true];
     }
   }
   return [new Tile(KIND.BACK, 0), false];
