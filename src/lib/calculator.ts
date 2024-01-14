@@ -10,8 +10,9 @@ import {
   Kind,
   Block,
   BlockPair,
-  BlockSet,
   BlockIsolated,
+  BlockThree,
+  BlockRun,
 } from "./parser";
 
 type FixedNumber = [
@@ -534,7 +535,9 @@ export class TileCalculator {
       for (let n = 1; n < this.hand.getArrayLen(k); n++) {
         if (this.hand.get(k, n) == 0) continue;
         else if (this.hand.get(k, n) != 3) return [];
-        z.push(new BlockSet([new Tile(k, n), new Tile(k, n), new Tile(k, n)]));
+        z.push(
+          new BlockThree([new Tile(k, n), new Tile(k, n), new Tile(k, n)])
+        );
       }
       return z.length == 0 ? [] : [z];
     };
@@ -582,7 +585,7 @@ export class TileCalculator {
       this.hand.inc(...tiles);
       if (nested.length == 0) nested.push([]);
       for (let arr of nested) {
-        arr.unshift(new BlockSet(tiles));
+        arr.unshift(new BlockRun(tiles));
         ret.push(arr);
       }
     }
@@ -600,10 +603,299 @@ export class TileCalculator {
       for (let arr of nested) {
         // Note insert it to the head due to handling recursively, 111333m
         // first arr will have [333m]
-        arr.unshift(new BlockSet(tiles));
+        arr.unshift(new BlockThree(tiles));
         ret.push(arr);
       }
     }
     return ret;
+  }
+}
+
+// https://note.com/nakabou1211/n/na49c5fbd8842
+// https://chouseisan.com/l/post-9420/
+export class DoubleCalculator {
+  hand: Hand;
+  constructor(hand: Hand) {
+    this.hand = hand;
+  }
+  calc(hands: Block[][]) {
+    const ret: { name: string; double: number }[][] = [];
+    for (let hand of hands) {
+      const v = [
+        ...this.dA1(hand),
+        ...this.dB1(hand),
+        ...this.dC1(hand),
+        ...this.dD1(hand),
+        ...this.dE1(hand),
+
+        ...this.dA2(hand),
+        ...this.dB2(hand),
+        ...this.dC2(hand),
+        ...this.dD2(hand),
+        ...this.dE2(hand),
+        ...this.dF2(hand),
+        ...this.dG2(hand),
+        ...this.dH2(hand),
+        ...this.dI2(hand),
+        ...this.dJ2(hand),
+
+        ...this.dA3(hand),
+        ...this.dB3(hand),
+        ...this.dC3(hand),
+
+        ...this.dA6(hand),
+      ];
+      ret.push(v);
+    }
+    return ret;
+  }
+  private minus() {
+    return this.hand.called.filter((block) => !(block instanceof BlockAnKan))
+      .length == 0
+      ? 0
+      : 1;
+  }
+  dA1(_: Block[]) {
+    if (this.minus() != 0) return [];
+    if (this.hand.drawn == null) [];
+    return [{ name: "門前清自摸和", double: 1 }];
+  }
+  dB1(h: Block[]) {
+    // TODO 場風
+    // TODO 自風
+    const ret: { name: string; double: number }[] = [];
+    h.forEach((block) => {
+      if (!(block instanceof BlockPair)) return;
+      const tile = block.tiles[0];
+      if (tile.k == KIND.Z) {
+        if (tile.n == 5) ret.push({ name: "白", double: 1 });
+        if (tile.n == 6) ret.push({ name: "發", double: 1 });
+        if (tile.n == 7) ret.push({ name: "中", double: 1 });
+      }
+    });
+    return ret;
+  }
+  dC1(h: Block[]) {
+    if (this.minus() != 0) return [];
+    // TODO 面前かつ符が 20 の場合
+    //return [{ name: "平和", double: 1 }];
+    return [];
+  }
+  dD1(h: Block[]) {
+    const idx = h.findIndex(
+      (block) =>
+        block.tiles.findIndex((t) => t.k == KIND.Z || [1, 9].includes(t.n)) >= 0
+    );
+    return idx >= 0 ? [] : [{ name: "断么九", double: 1 }];
+  }
+  dE1(h: Block[]) {
+    if (this.minus() != 0) return [];
+
+    let m: { [key: string]: number } = {};
+    for (let b of h) {
+      if (!(b instanceof BlockRun)) continue;
+      if (m[b.toString()] == null) m[b.toString()] = 1;
+      else m[b.toString()]++;
+    }
+
+    let count = 0;
+    for (let key in m) {
+      const v = m[key];
+      if (v >= 2) count++;
+    }
+
+    if (count == 1) return [{ name: "一盃口", double: 1 }];
+    return [];
+  }
+  dA2(h: Block[]) {
+    return h.length == 7 ? [{ name: "七対子", double: 2 }] : [];
+  }
+  dB2(h: Block[]) {
+    const check = (bb: Block) => {
+      return bb instanceof BlockRun || bb instanceof BlockChi;
+    };
+    for (let block of h) {
+      if (!check(block)) continue;
+      const tile = block.minTile();
+      if (tile.k == KIND.Z) continue;
+      const filteredKinds = [KIND.M, KIND.P, KIND.S].filter((v) => v != tile.k);
+      const k1 = h.filter((b) => {
+        const newTile = new Tile(filteredKinds[0], tile.n);
+        return check(b) && newTile.equals(b.minTile(), true);
+      }).length;
+      const k2 = h.filter((b) => {
+        const newTile = new Tile(filteredKinds[1], tile.n);
+        return check(b) && newTile.equals(b.minTile(), true);
+      }).length;
+      if (k1 > 0 && k2 > 0)
+        return [{ name: "三色同順", double: 2 - this.minus() }];
+    }
+    return [];
+  }
+  dC2(h: Block[]) {
+    const l =
+      h.filter(
+        (b) =>
+          b instanceof BlockAnKan ||
+          b instanceof BlockShoKan ||
+          b instanceof BlockDaiKan ||
+          b instanceof BlockThree ||
+          b instanceof BlockPon
+      ).length - 1; // ignore BlockPair for seven pairs
+    return l == h.length ? [{ name: "対々和", double: 2 }] : [];
+  }
+  dD2(h: Block[]) {
+    if (this.minus() != 0) return [];
+    const l = h.filter((b) => {
+      return b instanceof BlockAnKan || b instanceof BlockThree;
+    }).length;
+    // FIXME ignore case that l == 3 and last blockThree is ron
+    return l >= 3 ? [{ name: "三暗刻", double: 2 }] : [];
+  }
+  dE2(h: Block[]) {
+    const l = h.filter(
+      (b) =>
+        b instanceof BlockAnKan ||
+        b instanceof BlockShoKan ||
+        b instanceof BlockDaiKan
+    ).length;
+    return l >= 3 ? [{ name: "三槓子", double: 2 }] : [];
+  }
+  dF2(h: Block[]) {
+    const check = (b: Block) => {
+      return (
+        b instanceof BlockAnKan ||
+        b instanceof BlockShoKan ||
+        b instanceof BlockDaiKan ||
+        b instanceof BlockThree ||
+        b instanceof BlockPon
+      );
+    };
+    for (let block of h) {
+      if (!check(block)) continue;
+      const tile = block.minTile();
+      if (tile.k == KIND.Z) continue;
+      const filteredKinds = [KIND.M, KIND.P, KIND.S].filter((v) => v != tile.k);
+      const k1 = h.filter((b) => {
+        const newTile = new Tile(filteredKinds[0], tile.n);
+        return check(b) && newTile.equals(b.minTile(), true);
+      }).length;
+      const k2 = h.filter((b) => {
+        const newTile = new Tile(filteredKinds[1], tile.n);
+        return check(b) && newTile.equals(b.minTile(), true);
+      }).length;
+      if (k1 > 0 && k2 > 0) return [{ name: "三色同刻", double: 2 }];
+    }
+    return [];
+  }
+  dG2(h: Block[]) {
+    const l = h.filter((b) => {
+      const t = b.tiles[0];
+      return t.k == KIND.Z && [5, 6, 7].includes(t.n);
+    }).length;
+    if (l == 3) return [{ name: "小三元", double: 2 }];
+    return [];
+  }
+  dH2(h: Block[]) {
+    const l = h.filter((b) => {
+      const values = b.tiles[0].k == KIND.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 9];
+      return !(b instanceof BlockRun) && !values.includes(b.minTile().n);
+    }).length;
+    return l == h.length ? [{ name: "混老頭", double: 2 }] : [];
+  }
+  dI2(h: Block[]) {
+    const idx1 = h.findIndex((b) => b instanceof BlockRun);
+    if (idx1 < 0 && !(h.length == 7)) return []; // ignore seven pairs
+    const idx2 = h.findIndex((b) => b.tiles[0].k == KIND.Z);
+    if (idx2 < 0) return [];
+
+    const l = h.filter((block) => {
+      const values =
+        block.tiles[0].k == KIND.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 9];
+      return block.tiles.findIndex((t) => values.includes(t.n)) >= 0;
+    }).length;
+    return l == h.length
+      ? [{ name: "混全帯么九", double: 2 - this.minus() }]
+      : [];
+  }
+  dJ2(h: Block[]) {
+    if (this.minus() != 0) return [];
+
+    let m = {
+      // 123m, 456m, 789m
+      [KIND.M]: [0, 0, 0],
+      [KIND.S]: [0, 0, 0],
+      [KIND.P]: [0, 0, 0],
+    };
+
+    for (let block of h) {
+      const tile = block.minTile();
+      if (tile.k == KIND.BACK) continue;
+      if (tile.k == KIND.Z) continue;
+      if (!(block instanceof BlockRun)) continue;
+      if (tile.n == 1) m[tile.k][0]++;
+      if (tile.n == 4) m[tile.k][1]++;
+      if (tile.n == 7) m[tile.k][2]++;
+    }
+
+    for (let v of Object.values(m)) {
+      if (v.filter((v) => v > 0).length == v.length)
+        return [{ name: "一気通貫", double: 2 - this.minus() }];
+    }
+    return [];
+  }
+  dA3(h: Block[]) {
+    const nz = h.filter((block) => block.tiles[0].k == KIND.Z).length;
+    if (nz == 0) return [];
+    for (let k of Object.values(KIND)) {
+      const nk = h.filter((v) => v.tiles[0].k == k).length;
+      if (nk + nz == h.length)
+        return [{ name: "混一色", double: 3 - this.minus() }];
+    }
+    return [];
+  }
+  dB3(h: Block[]) {
+    const idx1 = h.findIndex((b) => b instanceof BlockRun);
+    if (idx1 < 0 && !(h.length == 7)) return [];
+    const idx2 = h.findIndex((b) => b.tiles[0].k == KIND.Z);
+    if (idx2 >= 0) return [];
+
+    const l = h.filter((block) => {
+      const values =
+        block.tiles[0].k == KIND.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 9];
+      return block.tiles.findIndex((t) => values.includes(t.n)) >= 0;
+    }).length;
+
+    return h.length == l
+      ? [{ name: "純全帯么九色", double: 3 - this.minus() }]
+      : [];
+  }
+  dC3(h: Block[]) {
+    if (this.minus() != 0) return [];
+
+    let m: { [key: string]: number } = {};
+    for (let b of h) {
+      if (!(b instanceof BlockRun)) continue;
+      if (m[b.toString()] == null) m[b.toString()] = 1;
+      else m[b.toString()]++;
+    }
+
+    let count = 0;
+    for (let key in m) {
+      const v = m[key];
+      if (v >= 2) count++;
+    }
+
+    if (count == 2) return [{ name: "ニ盃口", double: 3 }];
+    return [];
+  }
+  dA6(h: Block[]) {
+    if (h.findIndex((block) => block.tiles[0].k == KIND.Z) < 0) return [];
+    for (let k of Object.values(KIND)) {
+      if (k == KIND.Z) continue;
+      const ok = h.filter((v) => v.tiles[0].k == k).length == h.length;
+      if (ok) return [{ name: "清一色", double: 6 - this.minus() }];
+    }
+    return [];
   }
 }

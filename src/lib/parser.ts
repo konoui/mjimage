@@ -59,10 +59,10 @@ export class Tile {
   }
 
   equals(t: Tile, ignoreRed: boolean = false): boolean {
-    let ok = this.n === t.n;
+    let ok = this.n == t.n;
     if (ignoreRed)
       ok ||= (this.n == 5 && t.n == 0) || (this.n == 0 && t.n == 5);
-    return this.k === t.k && ok;
+    return this.k == t.k && ok;
   }
 }
 
@@ -114,6 +114,29 @@ export class Block {
     ].includes(this.type.toString());
   }
 
+  /**
+   * equals does not check operator
+   **/
+  equals(b: Block) {
+    if (this.tiles.length != b.tiles.length) return false;
+
+    let ab = this.tiles;
+    let bb = b.tiles;
+    if (this.is(BLOCK.CHI) || b.is(BLOCK.CHI)) {
+      ab = b.clone().tiles.sort(tileSortFunc);
+      bb = this.clone().tiles.sort(tileSortFunc);
+    }
+    for (let i = 0; i < b.tiles.length; i++) {
+      if (!ab[i].equals(bb[i], true)) return false;
+    }
+    return true;
+  }
+
+  minTile(): Tile {
+    if (this.is(BLOCK.CHI)) return this.clone().tiles.sort(tileSortFunc)[0];
+    return this.tiles[0];
+  }
+
   clone() {
     const tiles = this.tiles.map((t) => new Tile(t.k, t.n, [...t.ops]));
     return blockWrapper(tiles, this.type);
@@ -159,6 +182,18 @@ export class BlockPair extends Block {
 export class BlockSet extends Block {
   constructor(tiles: [Tile, Tile, Tile]) {
     super(tiles, BLOCK.SET);
+  }
+}
+
+export class BlockThree extends BlockSet {
+  constructor(tiles: [Tile, Tile, Tile]) {
+    super(tiles);
+  }
+}
+
+export class BlockRun extends BlockSet {
+  constructor(tiles: [Tile, Tile, Tile]) {
+    super(tiles);
   }
 }
 

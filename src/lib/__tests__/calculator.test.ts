@@ -4,6 +4,7 @@ import {
   TileCalculator,
   Hand,
   HandData,
+  DoubleCalculator,
 } from "../calculator";
 import { BLOCK, KIND, OPERATOR } from "../constants";
 import { Block, Parser, Tile } from "../parser";
@@ -289,4 +290,95 @@ test("handleCommon", () => {
     ["111m", "222m", "333m", "456m", "111s"],
   ];
   expect(handsToString(got)).toStrictEqual(want);
+});
+
+describe("double Calculator", () => {
+  const tests = [
+    {
+      input: "123123s111222m22z",
+      want: [
+        [
+          { name: "門前清自摸和", double: 1 },
+          { name: "一盃口", double: 1 },
+        ],
+      ],
+    },
+    {
+      input: "123123s123m123p22z",
+      want: [
+        [
+          { name: "門前清自摸和", double: 1 },
+          { name: "一盃口", double: 1 },
+          { name: "三色同順", double: 2 },
+          { name: "混全帯么九", double: 2 },
+        ],
+      ],
+    },
+    {
+      input: "111222333s123m99s",
+      want: [
+        [
+          { name: "門前清自摸和", double: 1 },
+          { name: "一盃口", double: 1 },
+          { name: "純全帯么九色", double: 3 },
+        ],
+        [
+          { name: "門前清自摸和", double: 1 },
+          { name: "三暗刻", double: 2 },
+        ],
+      ],
+    },
+    {
+      input: "222333s234m88567s",
+      want: [
+        [
+          { name: "門前清自摸和", double: 1 },
+          { name: "断么九", double: 1 },
+        ],
+      ],
+    },
+    {
+      input: "12344456789m123s",
+      want: [
+        [
+          { name: "門前清自摸和", double: 1 },
+          { name: "一気通貫", double: 2 },
+        ],
+      ],
+    },
+    {
+      input: "112233m223344s22z",
+      want: [
+        [
+          { name: "門前清自摸和", double: 1 },
+          { name: "七対子", double: 2 },
+        ],
+        [
+          { name: "門前清自摸和", double: 1 },
+          { name: "ニ盃口", double: 3 },
+        ],
+      ],
+    },
+    {
+      input: "23456788mm, -234s, 2-34p",
+      want: [
+        [
+          { name: "断么九", double: 1 },
+          { name: "三色同順", double: 1 },
+        ],
+      ],
+    },
+  ];
+  for (let tt of tests) {
+    test(tt.input, () => {
+      const h = new Hand(tt.input);
+      const c = new TileCalculator(h);
+      const dc = new DoubleCalculator(h);
+      const hands = c.calc();
+      const got = dc.calc(hands);
+      console.log(handsToString(hands));
+      console.log(got);
+      expect(got).toStrictEqual(tt.want);
+    });
+  }
 });
