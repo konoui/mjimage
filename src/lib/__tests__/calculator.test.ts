@@ -5,6 +5,7 @@ import {
   Hand,
   HandData,
   DoubleCalculator,
+  BoardConfig,
 } from "../calculator";
 import { BLOCK, KIND, OPERATOR } from "../constants";
 import { Block, Parser, Tile } from "../parser";
@@ -262,7 +263,7 @@ test("calc with drawn", () => {
     ["t22m", "123m", "123s", "111z", "-123m"],
     ["22m", "1t23m", "123s", "111z", "-123m"],
   ];
-  const got = handsToString(c.calc());
+  const got = handsToString(c.calc(h.drawn!));
   expect(got).toStrictEqual(want);
 });
 
@@ -296,76 +297,95 @@ describe("double Calculator", () => {
   const tests = [
     {
       input: "123123s111222m22z",
+      lastTile: new Tile(KIND.S, 1, [OPERATOR.TSUMO]),
       want: [
-        [
-          { name: "門前清自摸和", double: 1 },
-          { name: "一盃口", double: 1 },
-        ],
+        {
+          points: [
+            { name: "門前清自摸和", double: 1 },
+            { name: "一盃口", double: 1 },
+          ],
+          fu: 34,
+        },
       ],
     },
     {
       input: "123123s123m123p22z",
+      lastTile: new Tile(KIND.S, 1),
       want: [
-        [
-          { name: "門前清自摸和", double: 1 },
-          { name: "一盃口", double: 1 },
-          { name: "三色同順", double: 2 },
-          { name: "混全帯么九", double: 2 },
-        ],
+        {
+          points: [
+            { name: "一盃口", double: 1 },
+            { name: "三色同順", double: 2 },
+            { name: "混全帯么九", double: 2 },
+          ],
+          fu: 30,
+        },
       ],
     },
     {
       input: "111222333s123m99s",
+      lastTile: new Tile(KIND.S, 1, [OPERATOR.TSUMO]),
       want: [
-        [
-          { name: "門前清自摸和", double: 1 },
-          { name: "一盃口", double: 1 },
-          { name: "純全帯么九色", double: 3 },
-        ],
-        [
-          { name: "門前清自摸和", double: 1 },
-          { name: "三暗刻", double: 2 },
-        ],
+        {
+          points: [
+            { name: "門前清自摸和", double: 1 },
+            { name: "平和", double: 1 },
+            { name: "一盃口", double: 1 },
+            { name: "純全帯么九色", double: 3 },
+          ],
+          fu: 20,
+        },
+        {
+          points: [
+            { name: "門前清自摸和", double: 1 },
+            { name: "三暗刻", double: 2 },
+          ],
+          fu: 38,
+        },
       ],
+    },
+    {
+      input: "111333555s123m99s",
+      lastTile: new Tile(KIND.S, 1),
+      want: [{ points: [], fu: 42 }],
     },
     {
       input: "222333s234m88567s",
-      want: [
-        [
-          { name: "門前清自摸和", double: 1 },
-          { name: "断么九", double: 1 },
-        ],
-      ],
+      lastTile: new Tile(KIND.S, 2),
+      want: [{ points: [{ name: "断么九", double: 1 }], fu: 36 }],
     },
     {
       input: "12344456789m123s",
+      lastTile: new Tile(KIND.S, 3),
       want: [
-        [
-          { name: "門前清自摸和", double: 1 },
-          { name: "一気通貫", double: 2 },
-        ],
+        {
+          points: [
+            { name: "ドラ", double: 1 },
+            { name: "一気通貫", double: 2 },
+          ],
+          fu: 32,
+        },
       ],
     },
     {
       input: "112233m223344s22z",
+      lastTile: new Tile(KIND.M, 1),
       want: [
-        [
-          { name: "門前清自摸和", double: 1 },
-          { name: "七対子", double: 2 },
-        ],
-        [
-          { name: "門前清自摸和", double: 1 },
-          { name: "ニ盃口", double: 3 },
-        ],
+        { points: [{ name: "七対子", double: 2 }], fu: 25 },
+        { points: [{ name: "ニ盃口", double: 3 }], fu: 30 },
       ],
     },
     {
       input: "23456788mm, -234s, 2-34p",
+      lastTile: new Tile(KIND.M, 3, [OPERATOR.TSUMO]),
       want: [
-        [
-          { name: "断么九", double: 1 },
-          { name: "三色同順", double: 1 },
-        ],
+        {
+          points: [
+            { name: "断么九", double: 1 },
+            { name: "三色同順", double: 1 },
+          ],
+          fu: 24,
+        },
       ],
     },
   ];
@@ -373,11 +393,16 @@ describe("double Calculator", () => {
     test(tt.input, () => {
       const h = new Hand(tt.input);
       const c = new TileCalculator(h);
-      const dc = new DoubleCalculator(h);
-      const hands = c.calc();
+      const cfg: BoardConfig = {
+        dora: [new Tile(KIND.M, 9)],
+        myWind: "1w",
+        placeWind: "1w",
+      };
+      const dc = new DoubleCalculator(h, cfg);
+      const hands = c.calc(tt.lastTile);
       const got = dc.calc(hands);
       console.log(handsToString(hands));
-      console.log(got);
+      console.log(JSON.stringify(got));
       expect(got).toStrictEqual(tt.want);
     });
   }

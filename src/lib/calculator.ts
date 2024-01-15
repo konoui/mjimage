@@ -1,4 +1,4 @@
-import { BLOCK, KIND, OPERATOR } from "./constants";
+import { BLOCK, KIND, OPERATOR, WIND_MAP, ROUND_MAP } from "./constants";
 import {
   Tile,
   Parser,
@@ -59,16 +59,19 @@ export class Hand {
   private init(input: string) {
     const blocks = new Parser(input).parse();
     for (let b of blocks) {
-      if (b.isCalled()) this.data.called.push(b);
-      if (b.is(BLOCK.TSUMO)) {
+      if (b.isCalled()) {
+        this.data.called.push(b);
+        continue;
+      } else if (b.is(BLOCK.TSUMO)) {
         const t = b.tiles[0];
         this.inc(t);
         this.data.tsumo = t;
-      }
-
-      if (b.is(BLOCK.HAND)) {
+        continue;
+      } else if (b.is(BLOCK.HAND)) {
         this.inc(...b.tiles);
+        continue;
       }
+      throw new Error(`unexpected block ${b.type} ${b.toString()}`);
     }
   }
   get called() {
@@ -134,7 +137,8 @@ export class Hand {
       throw new Error(`unexpected input ${b}`);
 
     const toRemove = b.tiles.filter((v) => !v.has(OPERATOR.HORIZONTAL));
-    if (toRemove == null) throw new Error(`unable to find ${b}`);
+    if (toRemove == null)
+      throw new Error(`${b} does not have horizontal operator`);
 
     this.dec(...toRemove);
     this.data.called.push(b);
@@ -392,44 +396,51 @@ export class TileCalculator {
     this.hand = hand;
   }
 
-  calc() {
-    return this.markDrawn([
-      ...this.sevenPairs(),
-      ...this.thirteenOrphans(),
-      ...this.nineGates(),
-      ...this.fourSetsOnePair(),
-    ]);
+  calc(lastTile: Tile) {
+    if (this.hand.drawn != null) lastTile = this.hand.drawn;
+    return this.markDrawn(
+      [
+        ...this.sevenPairs(),
+        ...this.thirteenOrphans(),
+        ...this.nineGates(),
+        ...this.fourSetsOnePair(),
+      ],
+      lastTile
+    );
   }
 
-  markDrawn(hands: Block[][]) {
-    const drawn = this.hand.drawn;
-    if (drawn == null) return hands;
+  markDrawn(hands: Block[][], lastTile: Tile) {
+    const op =
+      this.hand.drawn != null
+        ? OPERATOR.TSUMO
+        : lastTile.has(OPERATOR.TSUMO)
+        ? OPERATOR.TSUMO
+        : OPERATOR.RON;
 
     const indexes: [number, number, number][] = [];
     for (let i = 0; i < hands.length; i++) {
       const hand = hands[i];
+      const m: { [key: string]: boolean } = {}; // map to reduce same blocks such as ["123m", "123m"]
       for (let j = 0; j < hand.length; j++) {
         const block = hand[j];
         if (block.isCalled()) continue;
-        const k = block.tiles.findIndex((t) => t.equals(drawn));
+        const k = block.tiles.findIndex((t) => t.equals(lastTile));
         if (k < 0) continue;
+        const key = buildKey(block);
+        if (m[key]) continue;
+        m[key] = true;
         indexes.push([i, j, k]);
       }
     }
 
-    const newHands: Block[][] = [];
-    for (let i = 0; i < hands.length; i++) {
-      const hand = hands[i];
-      if (indexes.findIndex((v) => v[0] == i) < 0) {
-        newHands.push(hand);
-      }
-    }
+    if (indexes.length == 0)
+      throw new Error(`found no tile ${lastTile.toString()} in hands`);
 
-    // TODO [123m, 123m]
+    const newHands: Block[][] = [];
     for (let [hidx, bidx, tidx] of indexes) {
       const hand = hands[hidx];
       const newHand = hand.map((block) => block.clone());
-      newHand[bidx].tiles[tidx].add(OPERATOR.TSUMO);
+      newHand[bidx].tiles[tidx].add(op);
       newHands.push(newHand);
     }
 
@@ -611,22 +622,47 @@ export class TileCalculator {
   }
 }
 
-// https://note.com/nakabou1211/n/na49c5fbd8842
-// https://chouseisan.com/l/post-9420/
+type Wind = keyof typeof WIND_MAP;
+
+export interface BoardConfig {
+  dora: Tile[];
+  placeWind: Wind;
+  myWind: Wind;
+}
+
 export class DoubleCalculator {
   hand: Hand;
-  constructor(hand: Hand) {
+  cfg: {
+    doras: Tile[];
+    placeWind: Tile;
+    myWind: Tile;
+    orig: BoardConfig;
+  };
+  constructor(hand: Hand, cfg: BoardConfig) {
     this.hand = hand;
+    this.cfg = {
+      doras: [...cfg.dora],
+      placeWind: new Parser(cfg.placeWind).parse()[0].tiles[0],
+      myWind: new Parser(cfg.myWind).parse()[0].tiles[0],
+      orig: cfg,
+    };
   }
   calc(hands: Block[][]) {
-    const ret: { name: string; double: number }[][] = [];
+    const ret: {
+      points: { name: string; double: number }[];
+      fu: number;
+    }[] = [];
+    //const ret: { name: string; double: number }[][] = [];
     for (let hand of hands) {
+      const fu = this.calcFu(hand);
       const v = [
         ...this.dA1(hand),
         ...this.dB1(hand),
         ...this.dC1(hand),
         ...this.dD1(hand),
         ...this.dE1(hand),
+        ...this.dF1(hand),
+        ...this.dG1(hand),
 
         ...this.dA2(hand),
         ...this.dB2(hand),
@@ -645,8 +681,12 @@ export class DoubleCalculator {
 
         ...this.dA6(hand),
       ];
-      ret.push(v);
+      ret.push({
+        points: v,
+        fu: fu,
+      });
     }
+
     return ret;
   }
   private minus() {
@@ -655,19 +695,58 @@ export class DoubleCalculator {
       ? 0
       : 1;
   }
-  dA1(_: Block[]) {
-    if (this.minus() != 0) return [];
-    if (this.hand.drawn == null) [];
-    return [{ name: "門前清自摸和", double: 1 }];
+  dA1(h: Block[]) {
+    return this.hand.reached ? [{ name: "立直", double: 1 }] : [];
   }
   dB1(h: Block[]) {
-    // TODO 場風
-    // TODO 自風
+    if (this.minus() != 0) return [];
+    if (this.hand.drawn == null) [];
+    const cond = h.some((b) => b.tiles.some((t) => t.has(OPERATOR.TSUMO)));
+    return cond ? [{ name: "門前清自摸和", double: 1 }] : [];
+  }
+
+  dC1(h: Block[]) {
+    if (this.minus() != 0) return [];
+    return this.calcFu(h) == 20 ? [{ name: "平和", double: 1 }] : [];
+  }
+  dD1(h: Block[]) {
+    const cond = h.some((block) =>
+      block.tiles.some((t) => t.k == KIND.Z || [1, 9].includes(t.n))
+    );
+    return cond ? [] : [{ name: "断么九", double: 1 }];
+  }
+  dE1(h: Block[]) {
+    if (this.minus() != 0) return [];
+
+    const count = countSameBlocks(h);
+    return count == 1 ? [{ name: "一盃口", double: 1 }] : [];
+  }
+  dF1(h: Block[]) {
+    let dcount = 0;
+    let rcount = 0;
+    for (let b of h) {
+      for (let t of b.tiles) {
+        for (let d of this.cfg.doras) {
+          if (d.equals(t, true)) dcount++;
+        }
+        if (t.n == 0) rcount++;
+      }
+    }
+
+    const ret: { name: string; double: number }[] = [];
+    if (dcount > 0) ret.push({ name: "ドラ", double: dcount });
+    if (rcount > 0) ret.push({ name: "赤ドラ", double: rcount });
+    return ret;
+  }
+  dG1(h: Block[]) {
     const ret: { name: string; double: number }[] = [];
     h.forEach((block) => {
       if (!(block instanceof BlockPair)) return;
       const tile = block.tiles[0];
       if (tile.k == KIND.Z) {
+        if (tile.equals(this.cfg.myWind)) ret.push({ name: "自風", double: 1 });
+        if (tile.equals(this.cfg.placeWind))
+          ret.push({ name: "場風", double: 1 });
         if (tile.n == 5) ret.push({ name: "白", double: 1 });
         if (tile.n == 6) ret.push({ name: "發", double: 1 });
         if (tile.n == 7) ret.push({ name: "中", double: 1 });
@@ -675,38 +754,7 @@ export class DoubleCalculator {
     });
     return ret;
   }
-  dC1(h: Block[]) {
-    if (this.minus() != 0) return [];
-    // TODO 面前かつ符が 20 の場合
-    //return [{ name: "平和", double: 1 }];
-    return [];
-  }
-  dD1(h: Block[]) {
-    const idx = h.findIndex(
-      (block) =>
-        block.tiles.findIndex((t) => t.k == KIND.Z || [1, 9].includes(t.n)) >= 0
-    );
-    return idx >= 0 ? [] : [{ name: "断么九", double: 1 }];
-  }
-  dE1(h: Block[]) {
-    if (this.minus() != 0) return [];
 
-    let m: { [key: string]: number } = {};
-    for (let b of h) {
-      if (!(b instanceof BlockRun)) continue;
-      if (m[b.toString()] == null) m[b.toString()] = 1;
-      else m[b.toString()]++;
-    }
-
-    let count = 0;
-    for (let key in m) {
-      const v = m[key];
-      if (v >= 2) count++;
-    }
-
-    if (count == 1) return [{ name: "一盃口", double: 1 }];
-    return [];
-  }
   dA2(h: Block[]) {
     return h.length == 7 ? [{ name: "七対子", double: 2 }] : [];
   }
@@ -747,9 +795,11 @@ export class DoubleCalculator {
   dD2(h: Block[]) {
     if (this.minus() != 0) return [];
     const l = h.filter((b) => {
-      return b instanceof BlockAnKan || b instanceof BlockThree;
+      return (
+        (b instanceof BlockAnKan || b instanceof BlockThree) &&
+        !b.tiles.some((t) => t.has(OPERATOR.RON)) // ignore ron
+      );
     }).length;
-    // FIXME ignore case that l == 3 and last blockThree is ron
     return l >= 3 ? [{ name: "三暗刻", double: 2 }] : [];
   }
   dE2(h: Block[]) {
@@ -793,8 +843,7 @@ export class DoubleCalculator {
       const t = b.tiles[0];
       return t.k == KIND.Z && [5, 6, 7].includes(t.n);
     }).length;
-    if (l == 3) return [{ name: "小三元", double: 2 }];
-    return [];
+    return l == 3 ? [{ name: "小三元", double: 2 }] : [];
   }
   dH2(h: Block[]) {
     const l = h.filter((b) => {
@@ -804,15 +853,13 @@ export class DoubleCalculator {
     return l == h.length ? [{ name: "混老頭", double: 2 }] : [];
   }
   dI2(h: Block[]) {
-    const idx1 = h.findIndex((b) => b instanceof BlockRun);
-    if (idx1 < 0 && !(h.length == 7)) return []; // ignore seven pairs
-    const idx2 = h.findIndex((b) => b.tiles[0].k == KIND.Z);
-    if (idx2 < 0) return [];
+    if (!h.some((b) => b instanceof BlockRun) && !(h.length == 7)) return []; // ignore seven pairs
+    if (!h.some((b) => b.tiles[0].k == KIND.Z)) return [];
 
     const l = h.filter((block) => {
       const values =
         block.tiles[0].k == KIND.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 9];
-      return block.tiles.findIndex((t) => values.includes(t.n)) >= 0;
+      return block.tiles.some((t) => values.includes(t.n));
     }).length;
     return l == h.length
       ? [{ name: "混全帯么九", double: 2 - this.minus() }]
@@ -855,15 +902,13 @@ export class DoubleCalculator {
     return [];
   }
   dB3(h: Block[]) {
-    const idx1 = h.findIndex((b) => b instanceof BlockRun);
-    if (idx1 < 0 && !(h.length == 7)) return [];
-    const idx2 = h.findIndex((b) => b.tiles[0].k == KIND.Z);
-    if (idx2 >= 0) return [];
+    if (!h.some((b) => b instanceof BlockRun) && !(h.length == 7)) return [];
+    if (h.some((b) => b.tiles[0].k == KIND.Z)) return [];
 
     const l = h.filter((block) => {
       const values =
         block.tiles[0].k == KIND.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 9];
-      return block.tiles.findIndex((t) => values.includes(t.n)) >= 0;
+      return block.tiles.some((t) => values.includes(t.n));
     }).length;
 
     return h.length == l
@@ -873,24 +918,11 @@ export class DoubleCalculator {
   dC3(h: Block[]) {
     if (this.minus() != 0) return [];
 
-    let m: { [key: string]: number } = {};
-    for (let b of h) {
-      if (!(b instanceof BlockRun)) continue;
-      if (m[b.toString()] == null) m[b.toString()] = 1;
-      else m[b.toString()]++;
-    }
-
-    let count = 0;
-    for (let key in m) {
-      const v = m[key];
-      if (v >= 2) count++;
-    }
-
-    if (count == 2) return [{ name: "ニ盃口", double: 3 }];
-    return [];
+    const count = countSameBlocks(h);
+    return count == 2 ? [{ name: "ニ盃口", double: 3 }] : [];
   }
   dA6(h: Block[]) {
-    if (h.findIndex((block) => block.tiles[0].k == KIND.Z) < 0) return [];
+    if (h.some((block) => block.tiles[0].k == KIND.Z)) return [];
     for (let k of Object.values(KIND)) {
       if (k == KIND.Z) continue;
       const ok = h.filter((v) => v.tiles[0].k == k).length == h.length;
@@ -898,4 +930,105 @@ export class DoubleCalculator {
     }
     return [];
   }
+
+  calcFu(h: Block[]) {
+    const base = 20;
+    let fu = base;
+
+    const myWind = this.cfg.myWind.n;
+    const round = this.cfg.placeWind.n;
+
+    if (h.length == 7) return 25;
+
+    const lastBlock = h.find((b) =>
+      b.tiles.some((t) => t.has(OPERATOR.TSUMO) || t.has(OPERATOR.RON))
+    )!;
+    const isCalled = this.minus() == 1;
+    const isTsumo = lastBlock.tiles.some((t) => t.has(OPERATOR.TSUMO));
+
+    // 刻子
+    const calcTriple = (b: Block, base: number) => {
+      const tile = b.tiles[0];
+      if (tile.k == KIND.Z && [5, 6, 7].includes(tile.n)) return base * 2;
+      else if (tile.k == KIND.Z && [myWind, round].includes(tile.n))
+        return base * 2;
+      else if ([1, 9].includes(tile.n)) return base * 2;
+      else return base;
+    };
+
+    for (let b of h) {
+      switch (true) {
+        case b instanceof BlockThree:
+          let v = b.tiles.some((t) => t.has(OPERATOR.RON)) ? 2 : 4;
+          fu += calcTriple(b, v);
+          break;
+        case b instanceof BlockPon:
+          fu += calcTriple(b, 2);
+          break;
+        case b instanceof BlockDaiKan || b instanceof BlockShoKan:
+          fu += calcTriple(b, 8);
+          break;
+        case b instanceof BlockAnKan:
+          fu += calcTriple(b, 16);
+          break;
+      }
+    }
+
+    // 待ち
+    const calcLast = (b: Block) => {
+      if (b instanceof BlockThree) return 0; // シャンポン
+      if (b instanceof BlockPair) return 2; // 単騎
+      const tiles = b.tiles;
+      const idx = tiles.findIndex(
+        (t) => t.has(OPERATOR.TSUMO) || t.has(OPERATOR.RON)
+      );
+      if (idx == 1) return 2; // カンチャン
+      else if (idx == 0 && tiles[2].n == 9) return 2; //ペンチャン
+      else if (idx == 2 && tiles[0].n == 1) return 2; //ペンチャン
+      return 0; // リャンメン
+    };
+
+    fu += calcLast(lastBlock);
+
+    // Pair
+    const pair = h.find((b) => b instanceof BlockPair)!;
+    let tile = pair.tiles[0];
+    if (tile.k == KIND.Z) {
+      if ([5, 6, 7].includes(tile.n)) fu += 2;
+      if (tile.n == round) fu += 2;
+      if (tile.n == myWind) fu += 2;
+    }
+
+    // 平和
+    let isAllRuns = false;
+    if (!isCalled && fu == base) isAllRuns = true;
+    if (isTsumo && !isAllRuns) fu += 2; // 平和以外のツモは2
+    if (!isTsumo && !isCalled) fu += 10; // 面前ロン
+
+    if (isCalled && fu == base) fu = 30; // 鳴きの 20 は 30 になる
+
+    return fu;
+  }
 }
+
+const buildKey = (b: Block) => {
+  return b.tiles.reduce((a: string, b: Tile) => `${a}${b.n}${b.k}`, "");
+};
+
+const countSameBlocks = (h: Block[]) => {
+  let m: { [key: string]: number } = {};
+  for (let b of h) {
+    if (!(b instanceof BlockRun)) continue;
+    // instead of b.toString() to ignore operators
+    const key = buildKey(b);
+    if (m[key] == null) m[key] = 1;
+    else m[key]++;
+  }
+
+  let count = 0;
+  for (let key in m) {
+    const v = m[key];
+    if (v >= 2) count++;
+  }
+  return count;
+};

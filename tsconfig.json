@@ -6,7 +6,8 @@
     "declaration": true,
     "removeComments": true,
     "isolatedModules": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "noFallthroughCasesInSwitch": true
   },
   "transformers": {
     "*.{ts,tsx}": ["@parcel/transformer-typescript-tsc"]

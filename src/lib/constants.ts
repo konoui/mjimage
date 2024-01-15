@@ -11,6 +11,7 @@ export const KIND = {
 } as const;
 export const OPERATOR = {
   TSUMO: "t",
+  RON: "r",
   DORA: "d",
   HORIZONTAL: "-",
   COLOR_GRAYSCALE: "g",
@@ -23,6 +24,7 @@ export const BLOCK = {
   AN_KAN: "ankan",
   DORA: "dora",
   TSUMO: "tsumo",
+  //  RON: "ron",
   HAND: "hand",
   DISCARD: "simple-discard",
   UNKNOWN: "unknown",

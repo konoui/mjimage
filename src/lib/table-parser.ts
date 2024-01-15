@@ -92,8 +92,8 @@ export interface ScoreBoardInput {
   frontPlace: BoardWind;
 }
 
-type TableWind = keyof typeof WIND_MAP;
-type TableRound = keyof typeof ROUND_MAP;
+export type TableWind = keyof typeof WIND_MAP;
+export type TableRound = keyof typeof ROUND_MAP;
 type BoardRound = (typeof ROUND_MAP)[keyof typeof ROUND_MAP];
 type BoardWind = (typeof WIND_MAP)[keyof typeof WIND_MAP];
 

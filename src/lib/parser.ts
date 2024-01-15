@@ -228,7 +228,9 @@ const blockWrapper = (
     case BLOCK.SHO_KAN:
       return new BlockShoKan(tiles);
     case BLOCK.SET:
-      return new BlockSet(tiles as [Tile, Tile, Tile]);
+      if (tiles[0].equals(tiles[1], true))
+        return new BlockThree(tiles as [Tile, Tile, Tile]);
+      return new BlockRun(tiles as [Tile, Tile, Tile]);
     case BLOCK.PAIR:
       return new BlockPair(tiles[0], tiles[1]);
     case BLOCK.ISOLATED:
