@@ -767,30 +767,31 @@ export class DoubleCalculator {
       const tile = block.minTile();
       if (tile.k == KIND.Z) continue;
       const filteredKinds = [KIND.M, KIND.P, KIND.S].filter((v) => v != tile.k);
-      const k1 = h.filter((b) => {
+      const cond1 = h.some((b) => {
         const newTile = new Tile(filteredKinds[0], tile.n);
         return check(b) && newTile.equals(b.minTile(), true);
-      }).length;
-      const k2 = h.filter((b) => {
+      });
+      const cond2 = h.some((b) => {
         const newTile = new Tile(filteredKinds[1], tile.n);
         return check(b) && newTile.equals(b.minTile(), true);
-      }).length;
-      if (k1 > 0 && k2 > 0)
+      });
+      if (cond1 && cond2)
         return [{ name: "三色同順", double: 2 - this.minus() }];
     }
     return [];
   }
   dC2(h: Block[]) {
-    const l =
-      h.filter(
-        (b) =>
-          b instanceof BlockAnKan ||
-          b instanceof BlockShoKan ||
-          b instanceof BlockDaiKan ||
-          b instanceof BlockThree ||
-          b instanceof BlockPon
-      ).length - 1; // ignore BlockPair for seven pairs
-    return l == h.length ? [{ name: "対々和", double: 2 }] : [];
+    if (h.length == 7) return [];
+    const cond = h.every(
+      (b) =>
+        b instanceof BlockAnKan ||
+        b instanceof BlockShoKan ||
+        b instanceof BlockDaiKan ||
+        b instanceof BlockThree ||
+        b instanceof BlockPon ||
+        b instanceof BlockPair
+    );
+    return cond ? [{ name: "対々和", double: 2 }] : [];
   }
   dD2(h: Block[]) {
     if (this.minus() != 0) return [];
@@ -826,15 +827,15 @@ export class DoubleCalculator {
       const tile = block.minTile();
       if (tile.k == KIND.Z) continue;
       const filteredKinds = [KIND.M, KIND.P, KIND.S].filter((v) => v != tile.k);
-      const k1 = h.filter((b) => {
+      const cond1 = h.some((b) => {
         const newTile = new Tile(filteredKinds[0], tile.n);
         return check(b) && newTile.equals(b.minTile(), true);
-      }).length;
-      const k2 = h.filter((b) => {
+      });
+      const cond2 = h.some((b) => {
         const newTile = new Tile(filteredKinds[1], tile.n);
         return check(b) && newTile.equals(b.minTile(), true);
-      }).length;
-      if (k1 > 0 && k2 > 0) return [{ name: "三色同刻", double: 2 }];
+      });
+      if (cond1 && cond2) return [{ name: "三色同刻", double: 2 }];
     }
     return [];
   }
@@ -846,24 +847,22 @@ export class DoubleCalculator {
     return l == 3 ? [{ name: "小三元", double: 2 }] : [];
   }
   dH2(h: Block[]) {
-    const l = h.filter((b) => {
+    const cond = h.every((b) => {
       const values = b.tiles[0].k == KIND.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 9];
-      return !(b instanceof BlockRun) && !values.includes(b.minTile().n);
-    }).length;
-    return l == h.length ? [{ name: "混老頭", double: 2 }] : [];
+      return b.tiles.every((t) => values.includes(t.n));
+    });
+    return cond ? [{ name: "混老頭", double: 2 }] : [];
   }
   dI2(h: Block[]) {
     if (!h.some((b) => b instanceof BlockRun) && !(h.length == 7)) return []; // ignore seven pairs
     if (!h.some((b) => b.tiles[0].k == KIND.Z)) return [];
 
-    const l = h.filter((block) => {
+    const cond = h.every((block) => {
       const values =
         block.tiles[0].k == KIND.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 9];
       return block.tiles.some((t) => values.includes(t.n));
-    }).length;
-    return l == h.length
-      ? [{ name: "混全帯么九", double: 2 - this.minus() }]
-      : [];
+    });
+    return cond ? [{ name: "混全帯么九", double: 2 - this.minus() }] : [];
   }
   dJ2(h: Block[]) {
     if (this.minus() != 0) return [];
@@ -892,12 +891,11 @@ export class DoubleCalculator {
     return [];
   }
   dA3(h: Block[]) {
-    const nz = h.filter((block) => block.tiles[0].k == KIND.Z).length;
-    if (nz == 0) return [];
+    const cond = !h.some((block) => block.tiles[0].k == KIND.Z);
+    if (cond) return [];
     for (let k of Object.values(KIND)) {
-      const nk = h.filter((v) => v.tiles[0].k == k).length;
-      if (nk + nz == h.length)
-        return [{ name: "混一色", double: 3 - this.minus() }];
+      const ok = h.every((b) => b.tiles[0].k == KIND.Z || b.tiles[0].k == k);
+      if (ok) return [{ name: "混一色", double: 3 - this.minus() }];
     }
     return [];
   }
@@ -905,15 +903,11 @@ export class DoubleCalculator {
     if (!h.some((b) => b instanceof BlockRun) && !(h.length == 7)) return [];
     if (h.some((b) => b.tiles[0].k == KIND.Z)) return [];
 
-    const l = h.filter((block) => {
-      const values =
-        block.tiles[0].k == KIND.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 9];
-      return block.tiles.some((t) => values.includes(t.n));
-    }).length;
-
-    return h.length == l
-      ? [{ name: "純全帯么九色", double: 3 - this.minus() }]
-      : [];
+    const cond = h.every((b) => {
+      const values = b.tiles[0].k == KIND.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 9];
+      return b.tiles.some((t) => values.includes(t.n));
+    });
+    return cond ? [{ name: "純全帯么九色", double: 3 - this.minus() }] : [];
   }
   dC3(h: Block[]) {
     if (this.minus() != 0) return [];
@@ -925,7 +919,7 @@ export class DoubleCalculator {
     if (h.some((block) => block.tiles[0].k == KIND.Z)) return [];
     for (let k of Object.values(KIND)) {
       if (k == KIND.Z) continue;
-      const ok = h.filter((v) => v.tiles[0].k == k).length == h.length;
+      const ok = h.every((v) => v.tiles[0].k == k);
       if (ok) return [{ name: "清一色", double: 6 - this.minus() }];
     }
     return [];

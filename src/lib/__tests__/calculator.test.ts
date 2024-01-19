@@ -388,6 +388,11 @@ describe("double Calculator", () => {
         },
       ],
     },
+    {
+      input: "111333m11p,5-5-55s, -3333s",
+      lastTile: new Tile(KIND.M, 3, [OPERATOR.TSUMO]),
+      want: [{ points: [{ name: "対々和", double: 2 }], fu: 50 }],
+    },
   ];
   for (let tt of tests) {
     test(tt.input, () => {
