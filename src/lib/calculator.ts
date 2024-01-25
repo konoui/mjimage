@@ -652,7 +652,30 @@ export class DoubleCalculator {
       points: { name: string; double: number }[];
       fu: number;
     }[] = [];
-    //const ret: { name: string; double: number }[][] = [];
+    for (let hand of hands) {
+      const v = [
+        ...this.dA13(hand),
+        ...this.dB13(hand),
+        ...this.dC13(hand),
+        ...this.dD13(hand),
+        ...this.dE13(hand),
+        ...this.dF13(hand),
+        ...this.dG13(hand),
+        ...this.dH13(hand),
+        ...this.dI13(hand),
+        ...this.dJ13(hand),
+        ...this.dK13(hand),
+      ];
+
+      if (v.length == 0) continue;
+      ret.push({
+        points: v,
+        fu: 30,
+      });
+    }
+
+    if (ret.length > 0) return ret;
+
     for (let hand of hands) {
       const fu = this.calcFu(hand);
       const v = [
@@ -663,6 +686,11 @@ export class DoubleCalculator {
         ...this.dE1(hand),
         ...this.dF1(hand),
         ...this.dG1(hand),
+        ...this.dH1(hand),
+        ...this.dI1(hand),
+        ...this.dJ1(hand),
+        ...this.dK1(hand),
+        ...this.dL1(hand),
 
         ...this.dA2(hand),
         ...this.dB2(hand),
@@ -695,6 +723,8 @@ export class DoubleCalculator {
       ? 0
       : 1;
   }
+
+  // TODO ダブルリーチ
   dA1(h: Block[]) {
     return this.hand.reached ? [{ name: "立直", double: 1 }] : [];
   }
@@ -704,7 +734,6 @@ export class DoubleCalculator {
     const cond = h.some((b) => b.tiles.some((t) => t.has(OPERATOR.TSUMO)));
     return cond ? [{ name: "門前清自摸和", double: 1 }] : [];
   }
-
   dC1(h: Block[]) {
     if (this.minus() != 0) return [];
     return this.calcFu(h) == 20 ? [{ name: "平和", double: 1 }] : [];
@@ -753,6 +782,27 @@ export class DoubleCalculator {
       }
     });
     return ret;
+  }
+
+  // TODO 一発
+  dH1(h: Block[]) {
+    return [];
+  }
+  // TODO 嶺上開花
+  dI1(h: Block[]): { name: string; double: number }[] {
+    return [];
+  }
+  // TODO チャンカン
+  dJ1(h: Block[]) {
+    return [];
+  }
+  // TODO ハイテイ
+  dK1(h: Block[]) {
+    return [];
+  }
+  // TODO ホウテイ
+  dL1(h: Block[]) {
+    return [];
   }
 
   dA2(h: Block[]) {
@@ -890,6 +940,7 @@ export class DoubleCalculator {
     }
     return [];
   }
+
   dA3(h: Block[]) {
     const cond = !h.some((block) => block.tiles[0].k == KIND.Z);
     if (cond) return [];
@@ -922,6 +973,101 @@ export class DoubleCalculator {
       const ok = h.every((v) => v.tiles[0].k == k);
       if (ok) return [{ name: "清一色", double: 6 - this.minus() }];
     }
+    return [];
+  }
+
+  dA13(h: Block[]) {
+    if (h.length != 13) return [];
+    const double = h.some(
+      (b) =>
+        b instanceof BlockPair &&
+        b.tiles.some((t) => t.has(OPERATOR.TSUMO) || t.has(OPERATOR.RON))
+    );
+    return double
+      ? [{ name: "国士無双13面待ち", double: 26 }]
+      : [{ name: "国士無双", double: 13 }];
+  }
+  dB13(h: Block[]) {
+    return h.length == 1 ? [{ name: "九蓮宝燈", double: 13 }] : [];
+  }
+  dC13(h: Block[]) {
+    if (h.length == 7) return [];
+    const cond1 = h.every(
+      (b) =>
+        b instanceof BlockAnKan ||
+        (b instanceof BlockThree &&
+          !b.tiles.some((t) => t.has(OPERATOR.RON))) ||
+        b instanceof BlockPair
+    );
+    if (!cond1) return [];
+    const cond2 = h.some(
+      (b) =>
+        b instanceof BlockPair &&
+        b.tiles.every((t) => t.has(OPERATOR.TSUMO) || t.has(OPERATOR.RON))
+    );
+    return cond2
+      ? [{ name: "四暗刻単騎待ち", double: 26 }]
+      : [{ name: "四暗刻", double: 13 }];
+  }
+  dD13(h: Block[]) {
+    const z = [5, 6, 7];
+    const cond =
+      h.filter(
+        (b) =>
+          !(b instanceof BlockPair) &&
+          b.tiles.some((t) => t.k == KIND.Z && z.includes(t.n))
+      ).length == 3;
+    return cond ? [{ name: "大三元", double: 13 }] : [];
+  }
+  dE13(h: Block[]) {
+    const cond = h.every((b) => b.tiles.every((t) => t.k == KIND.Z));
+    return cond ? [{ name: "字一色", double: 13 }] : [];
+  }
+  dF13(h: Block[]) {
+    const cond = h.every((b) =>
+      b.tiles.every((t) => t.k != KIND.Z && [1, 9].includes(t.n))
+    );
+    return cond ? [{ name: "清老頭", double: 13 }] : [];
+  }
+  dG13(h: Block[]) {
+    const cond =
+      h.filter(
+        (b) =>
+          b instanceof BlockAnKan ||
+          b instanceof BlockShoKan ||
+          b instanceof BlockDaiKan
+      ).length == 4;
+    return cond ? [{ name: "四槓子", double: 13 }] : [];
+  }
+  dH13(h: Block[]) {
+    if (h.length == 7) return [];
+    const zn = [1, 2, 3, 4];
+    const cond1 =
+      h.filter((b) => b.tiles.some((t) => t.k == KIND.Z && zn.includes(t.n)))
+        .length == 4;
+    if (!cond1) return [];
+    const cond2 = h
+      .find((b) => b instanceof BlockPair)!
+      .tiles.some((t) => t.k == KIND.Z && zn.includes(t.n));
+    return cond2
+      ? [{ name: "小四喜", double: 13 }]
+      : [{ name: "大四喜", double: 13 }];
+  }
+  dI13(h: Block[]) {
+    const check = (t: Tile) => {
+      if (t.equals(new Tile(KIND.Z, 6))) return true;
+      if (t.k == KIND.S && [2, 3, 4, 6, 8].includes(t.n)) return true;
+      return false;
+    };
+    return h.every((b) => b.tiles.every((t) => check(t)))
+      ? [{ name: "緑一色", double: 13 }]
+      : [];
+  }
+  // TODO 天和・地和
+  dJ13(h: Block[]) {
+    return [];
+  }
+  dK13(h: Block[]) {
     return [];
   }
 
