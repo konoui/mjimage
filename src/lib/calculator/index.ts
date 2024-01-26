@@ -1,4 +1,4 @@
-import { BLOCK, KIND, OPERATOR, WIND_MAP, ROUND_MAP } from "./constants";
+import { BLOCK, KIND, OPERATOR, WIND_MAP, ROUND_MAP } from "../constants";
 import {
   Tile,
   Parser,
@@ -13,7 +13,7 @@ import {
   BlockIsolated,
   BlockThree,
   BlockRun,
-} from "./parser";
+} from "../parser";
 
 type FixedNumber = [
   number,

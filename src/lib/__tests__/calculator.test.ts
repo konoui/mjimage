@@ -7,7 +7,7 @@ import {
   DoubleCalculator,
   BoardParams,
 } from "../calculator";
-import { BLOCK, KIND, OPERATOR } from "../constants";
+import { KIND, OPERATOR } from "../constants";
 import { Block, Parser, Tile } from "../parser";
 import { handsToString } from "./utils/helper";
 

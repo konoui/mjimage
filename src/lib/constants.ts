@@ -50,3 +50,5 @@ export const WIND_MAP = {
   "3w": "西",
   "4w": "北",
 } as const;
+
+export type Wind = keyof typeof WIND_MAP;
