@@ -5,7 +5,7 @@ import {
   Hand,
   HandData,
   DoubleCalculator,
-  BoardConfig,
+  BoardParams,
 } from "../calculator";
 import { BLOCK, KIND, OPERATOR } from "../constants";
 import { Block, Parser, Tile } from "../parser";
@@ -398,17 +398,35 @@ describe("double Calculator", () => {
     test(tt.input, () => {
       const h = new Hand(tt.input);
       const c = new TileCalculator(h);
-      const cfg: BoardConfig = {
+      const cfg: BoardParams = {
         dora: [new Tile(KIND.M, 9)],
         myWind: "1w",
         placeWind: "1w",
       };
       const dc = new DoubleCalculator(h, cfg);
       const hands = c.calc(tt.lastTile);
-      const got = dc.calc(hands);
-      console.log(handsToString(hands));
-      console.log(JSON.stringify(got));
+      const got = dc.calcPatterns(hands).map((v) => {
+        return { points: v.points, fu: v.fu };
+      });
+      //console.log(handsToString(hands));
+      //console.log(JSON.stringify(got));
       expect(got).toStrictEqual(tt.want);
     });
   }
+});
+
+describe("calc", () => {
+  const input = "111333m11p,5-5-55s, -3333s";
+  const h = new Hand(input);
+  const c = new TileCalculator(h);
+  const cfg: BoardParams = {
+    dora: [new Tile(KIND.M, 9)],
+    myWind: "1w",
+    placeWind: "1w",
+    ronWind: "2w",
+  };
+  const dc = new DoubleCalculator(h, cfg);
+  const hands = c.calc(new Tile(KIND.M, 3, [OPERATOR.RON]));
+  const got = dc.calc(hands);
+  console.log(got);
 });

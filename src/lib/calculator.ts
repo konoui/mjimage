@@ -624,33 +624,160 @@ export class TileCalculator {
 
 type Wind = keyof typeof WIND_MAP;
 
-export interface BoardConfig {
+// TODO 立直棒など
+export interface BoardParams {
   dora: Tile[];
+  blindDora?: Tile[];
   placeWind: Wind;
   myWind: Wind;
+  ronWind?: Wind;
+  reached?: 1 | 2;
+  replacementWin?: boolean;
+  quadWin?: boolean;
+  finalWallWin?: boolean;
+  finalDiscardWin?: boolean;
+  oneShotWin?: boolean;
 }
 
 export class DoubleCalculator {
   hand: Hand;
   cfg: {
     doras: Tile[];
+    blindDoras: Tile[];
     placeWind: Tile;
     myWind: Tile;
-    orig: BoardConfig;
+    reached: 0 | 1 | 2;
+    replacementWin: boolean;
+    quadWin: boolean;
+    finalWallWin: boolean;
+    finalDiscardWin: boolean;
+    oneShotWin: boolean;
+    orig: BoardParams;
   };
-  constructor(hand: Hand, cfg: BoardConfig) {
+  constructor(hand: Hand, cfg: BoardParams) {
     this.hand = hand;
     this.cfg = {
       doras: [...cfg.dora],
+      blindDoras: cfg.blindDora == null ? [] : [...cfg.blindDora],
       placeWind: new Parser(cfg.placeWind).parse()[0].tiles[0],
       myWind: new Parser(cfg.myWind).parse()[0].tiles[0],
+      reached: cfg.reached ?? 0,
+      replacementWin: cfg.replacementWin ?? false,
+      quadWin: cfg.quadWin ?? false,
+      finalWallWin: cfg.finalWallWin ?? false,
+      finalDiscardWin: cfg.finalDiscardWin ?? false,
+      oneShotWin: cfg.oneShotWin ?? false,
       orig: cfg,
     };
   }
   calc(hands: Block[][]) {
+    const patterns = this.calcPatterns(hands);
+    let max = [0, 0];
+    let idx = 0;
+    for (let i = 0; i < patterns.length; i++) {
+      const pt = patterns[i];
+      const sum = pt.points.reduce(
+        (a: number, b: { name: string; double: number }) => {
+          return a + b.double;
+        },
+        0
+      );
+      if (sum > max[0]) {
+        idx = i;
+        max[0] = sum;
+        max[1] = pt.fu;
+      } else if (sum == max[0] && pt.fu > max[1]) {
+        idx = i;
+        max[0] = sum;
+        max[1] = pt.fu;
+      }
+    }
+
+    const ceil = (v: number, p = 100) => {
+      return Math.ceil(v / p) * p;
+    };
+
+    const fu = ceil(max[1], 10);
+    const sum = max[0];
+    let base = fu * 2 ** (sum + 2);
+    switch (sum) {
+      case 26:
+        base = 16000;
+        break;
+      case 13:
+        base = 8000;
+        break;
+      case 12:
+      case 11:
+        base = 6000;
+        break;
+      case 10:
+      case 9:
+      case 8:
+        base = 6000;
+        break;
+      case 7:
+      case 6:
+        base = 4000;
+        break;
+      case 5:
+        base = 2000;
+        break;
+    }
+    if (sum > 13 && sum < 26) base = 8000; // 数え役満
+
+    const isTsumo = patterns[idx].hand.some((b) =>
+      b.tiles.some((t) => t.has(OPERATOR.TSUMO))
+    );
+    const myWind = this.cfg.orig.myWind;
+    const isParent = myWind == "1w";
+
+    const result: { [key in Wind]: number } = {
+      "1w": 0,
+      "2w": 0,
+      "3w": 0,
+      "4w": 0,
+    };
+    if (!isTsumo) {
+      if (this.cfg.orig.ronWind == null)
+        throw new Error("ron wind is not specified in the parameters");
+      const coefficient = isParent ? 6 : 4;
+      const point = ceil(base * coefficient);
+      result[myWind] += point;
+      result[this.cfg.orig.ronWind] -= point;
+    } else {
+      if (isParent) {
+        const point = ceil(base * 2);
+        result["1w"] += point * 3;
+        result["2w"] -= point;
+        result["3w"] -= point;
+        result["4w"] -= point;
+      } else {
+        for (let key in Object.keys(result)) {
+          if (key == myWind) continue;
+          const coefficient = key == "1w" ? 2 : 1;
+          const point = ceil(base * coefficient);
+          result[key as Wind] -= point;
+          result[myWind] += point;
+        }
+      }
+    }
+
+    const v = {
+      result: result,
+      sum: sum,
+      fu: fu,
+      points: patterns[idx].points,
+      point: result[myWind],
+      hand: patterns[idx].hand,
+    };
+    return v;
+  }
+  calcPatterns(hands: Block[][]) {
     const ret: {
       points: { name: string; double: number }[];
       fu: number;
+      hand: Block[];
     }[] = [];
     for (let hand of hands) {
       const v = [
@@ -671,6 +798,7 @@ export class DoubleCalculator {
       ret.push({
         points: v,
         fu: 30,
+        hand: hand,
       });
     }
 
@@ -712,6 +840,7 @@ export class DoubleCalculator {
       ret.push({
         points: v,
         fu: fu,
+        hand: hand,
       });
     }
 
@@ -724,9 +853,10 @@ export class DoubleCalculator {
       : 1;
   }
 
-  // TODO ダブルリーチ
   dA1(h: Block[]) {
-    return this.hand.reached ? [{ name: "立直", double: 1 }] : [];
+    if (this.cfg.reached == 1) return [{ name: "立直", double: 1 }];
+    if (this.cfg.reached == 2) return [{ name: "ダブルリーチ", double: 2 }];
+    return [];
   }
   dB1(h: Block[]) {
     if (this.minus() != 0) return [];
@@ -784,25 +914,20 @@ export class DoubleCalculator {
     return ret;
   }
 
-  // TODO 一発
   dH1(h: Block[]) {
-    return [];
+    return this.cfg.oneShotWin ? [{ name: "一発", double: 1 }] : [];
   }
-  // TODO 嶺上開花
   dI1(h: Block[]): { name: string; double: number }[] {
-    return [];
+    return this.cfg.replacementWin ? [{ name: "嶺上開花", double: 1 }] : [];
   }
-  // TODO チャンカン
   dJ1(h: Block[]) {
-    return [];
+    return this.cfg.quadWin ? [{ name: "搶槓", double: 1 }] : [];
   }
-  // TODO ハイテイ
   dK1(h: Block[]) {
-    return [];
+    return this.cfg.finalWallWin ? [{ name: "海底摸月", double: 1 }] : [];
   }
-  // TODO ホウテイ
   dL1(h: Block[]) {
-    return [];
+    return this.cfg.finalDiscardWin ? [{ name: "河底撈魚", double: 1 }] : [];
   }
 
   dA2(h: Block[]) {
