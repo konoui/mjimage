@@ -49,13 +49,15 @@ export class Tile {
     return this.ops.includes(op);
   }
 
-  add(op: Operator) {
+  add(op: Operator): Tile {
     this.ops.push(op);
     this.ops = Array.from(new Set(this.ops));
+    return this;
   }
 
-  remove(op: Operator) {
+  remove(op: Operator): Tile {
     this.ops = this.ops.filter((v) => v != op);
+    return this;
   }
 
   equals(t: Tile, ignoreRed: boolean = false): boolean {
@@ -137,6 +139,7 @@ export class Block {
     return this.tiles[0];
   }
 
+  // clone the block with the operators
   clone() {
     const tiles = this.tiles.map((t) => new Tile(t.k, t.n, [...t.ops]));
     return blockWrapper(tiles, this.type);

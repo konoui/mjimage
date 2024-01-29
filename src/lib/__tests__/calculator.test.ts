@@ -55,6 +55,7 @@ describe("Hand", () => {
     want.called.push(chi);
     want.m[3] -= 1;
     want.m[4] -= 1;
+    want.tsumo = null;
     expect(getData(h)).toStrictEqual(want);
 
     const ankan = new Parser("_22_m").parse()[0];
@@ -401,7 +402,7 @@ describe("double Calculator", () => {
       const cfg: BoardParams = {
         dora: [new Tile(KIND.M, 9)],
         myWind: "1w",
-        placeWind: "1w",
+        round: "1w1",
       };
       const dc = new DoubleCalculator(h, cfg);
       const hands = c.calc(tt.lastTile);
@@ -422,11 +423,28 @@ describe("calc", () => {
   const cfg: BoardParams = {
     dora: [new Tile(KIND.M, 9)],
     myWind: "1w",
-    placeWind: "1w",
+    round: "1w1",
     ronWind: "2w",
   };
   const dc = new DoubleCalculator(h, cfg);
   const hands = c.calc(new Tile(KIND.M, 3, [OPERATOR.RON]));
   const got = dc.calc(hands);
-  console.log(got);
+  // console.log(got);
+});
+
+describe("calc", () => {
+  const input = "-123s,-234s,-456m, -567m, 11m";
+  const lastTile = new Tile(KIND.M, 1, [OPERATOR.TSUMO]);
+  const h = new Hand(input);
+  const c = new TileCalculator(h);
+  const cfg: BoardParams = {
+    dora: [new Tile(KIND.M, 9)],
+    myWind: "1w",
+    round: "1w1",
+    ronWind: "2w",
+  };
+  const dc = new DoubleCalculator(h, cfg);
+  const hands = c.calc(lastTile);
+  const got = dc.calc(hands);
+  // console.log(got);
 });

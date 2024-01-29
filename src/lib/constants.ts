@@ -16,6 +16,7 @@ export const OPERATOR = {
   HORIZONTAL: "-",
   COLOR_GRAYSCALE: "g",
 } as const;
+
 export const BLOCK = {
   PON: "pon",
   CHI: "chi",
@@ -51,4 +52,12 @@ export const WIND_MAP = {
   "4w": "北",
 } as const;
 
+export const WIND = {
+  EAST: "1w",
+  SOUTH: "2w",
+  WEST: "3w",
+  NORTH: "4w",
+} as const;
+
 export type Wind = keyof typeof WIND_MAP;
+export type Round = keyof typeof ROUND_MAP;
