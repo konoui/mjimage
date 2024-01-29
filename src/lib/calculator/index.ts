@@ -1,4 +1,5 @@
-import { BLOCK, KIND, OPERATOR, WIND_MAP, ROUND_MAP } from "../constants";
+import assert from "assert";
+import { BLOCK, KIND, OPERATOR, WIND_MAP, Round, Wind } from "../constants";
 import {
   Tile,
   Parser,
@@ -41,9 +42,7 @@ export interface HandData {
 
 export class Hand {
   private data: HandData;
-  input: string;
   constructor(input: string) {
-    this.input = input;
     this.data = {
       [KIND.M]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       [KIND.P]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -64,15 +63,46 @@ export class Hand {
         continue;
       } else if (b.is(BLOCK.TSUMO)) {
         const t = b.tiles[0];
-        this.inc(t);
+        this.inc([t], false);
         this.data.tsumo = t;
         continue;
       } else if (b.is(BLOCK.HAND)) {
-        this.inc(...b.tiles);
+        this.inc(b.tiles, false);
         continue;
       }
       throw new Error(`unexpected block ${b.type} ${b.toString()}`);
     }
+  }
+  get hands() {
+    const tiles: Tile[] = [];
+    for (let k of Object.values(KIND)) {
+      for (let n = 0; n < this.getArrayLen(k); n++) {
+        const count = this.get(k, n, false);
+        for (let i = 0; i < count; i++) {
+          tiles.push(new Tile(k, n));
+        }
+      }
+    }
+    if (this.drawn != null) {
+      const idx = tiles.findIndex((t) => t.equals(t));
+      assert(idx >= 0, `hand has drawn: ${this.drawn} but no tile in hands`);
+      tiles[idx].add(OPERATOR.TSUMO);
+    }
+    assert(
+      tiles.length > 0,
+      `no tiles in hand ${tiles.length}, called: ${
+        this.called
+      }, data: ${JSON.stringify(this.data, null, 2)}`
+    );
+    return tiles;
+  }
+  toString() {
+    let c = "";
+    for (let b of this.called) c = `${c},${b.toString()}`;
+
+    const tiles = this.hands;
+    const b = new Block(tiles, BLOCK.HAND).toString();
+    return `${b}${c}`;
   }
   get called() {
     return this.data.called;
@@ -99,23 +129,23 @@ export class Hand {
     for (let n = 1; n < this.getArrayLen(k); n++) sum += this.get(k, n);
     return sum;
   }
-  inc(...tiles: Tile[]) {
+  inc(tiles: Tile[], ignoreRed = true) {
     const backup: Tile[] = [];
     for (let t of tiles) {
       if (t.k != KIND.BACK && this.get(t.k, t.n) > 4) {
-        this.dec(...backup);
-        throw new Error(`unable to increase ${t}`);
+        this.dec(backup, ignoreRed);
+        throw new Error(`unable to increase ${t} in ${this.toString()}`);
       }
       backup.push(t);
       this.data[t.k][t.n] += 1;
     }
   }
-  dec(...tiles: Tile[]) {
+  dec(tiles: Tile[], ignoreRed = true) {
     const backup: Tile[] = [];
     for (let t of tiles) {
-      if (this.get(t.k, t.n) < 1) {
-        this.inc(...backup);
-        throw new Error(`unable to decrease ${t}`);
+      if (this.get(t.k, t.n, ignoreRed) < 1) {
+        this.inc(backup, ignoreRed);
+        throw new Error(`unable to decrease ${t} in ${this.toString()}`);
       }
       backup.push(t);
       this.data[t.k][t.n] -= 1;
@@ -123,32 +153,39 @@ export class Hand {
   }
   draw(t: Tile) {
     t.add(OPERATOR.TSUMO);
-    this.inc(t);
+    this.inc([t], false);
     this.data.tsumo = t;
     return this;
   }
   discard(t: Tile) {
-    this.dec(t);
+    this.dec([t], false);
     this.data.tsumo = null;
     return this;
+  }
+  reach() {
+    if (!this.canReach) throw new Error("cannnot reach");
+    if (this.data.reached) throw new Error("already reached");
+    this.data.reached = true;
   }
   call(b: BlockPon | BlockChi | BlockDaiKan) {
     if (b instanceof BlockAnKan || b instanceof BlockShoKan)
       throw new Error(`unexpected input ${b}`);
 
     const toRemove = b.tiles.filter((v) => !v.has(OPERATOR.HORIZONTAL));
-    if (toRemove == null)
-      throw new Error(`${b} does not have horizontal operator`);
+    if (toRemove.length != b.tiles.length - 1)
+      throw new Error(`removal: ${toRemove} block: ${b}`);
 
-    this.dec(...toRemove);
+    this.dec(toRemove, false);
     this.data.called.push(b);
+    this.data.tsumo = null;
     return this;
   }
   kan(b: BlockAnKan | BlockShoKan) {
     if (b instanceof BlockAnKan) {
       const t = b.tiles.filter((v) => v.k != KIND.BACK);
-      this.dec(t[0], t[0], t[0], t[0]);
+      this.dec([t[0], t[0], t[0], t[0]], false);
       this.data.called.push(b);
+      this.data.tsumo = null;
       return this;
     }
 
@@ -159,28 +196,18 @@ export class Hand {
       if (idx == -1) throw new Error(`unable to find ${b.tiles[0]}`);
       this.data.called.splice(idx, 1);
       this.data.called.push(b);
+      this.data.tsumo = null;
       return this;
     }
 
     throw new Error(`unexpected input ${b}`);
   }
+  get canReach() {
+    return this.called.filter((b) => !(b instanceof BlockAnKan)).length == 0;
+  }
   clone(): Hand {
-    const c = new Hand(this.input);
-    c.data[KIND.M] = this.data[KIND.M].concat() as FixedNumber;
-    c.data[KIND.S] = this.data[KIND.S].concat() as FixedNumber;
-    c.data[KIND.P] = this.data[KIND.P].concat() as FixedNumber;
-    c.data[KIND.Z] = this.data[KIND.Z].concat() as [
-      number,
-      number,
-      number,
-      number,
-      number,
-      number,
-      number,
-      number
-    ];
-    c.data[KIND.BACK] = this.data[KIND.BACK] as [number];
-    c.data.called = this.called.concat();
+    const c = new Hand(this.toString());
+    c.data.called = this.called.map((b) => b.clone());
     c.data.reached = this.data.reached;
     c.data.tsumo = this.data.tsumo;
     return c;
@@ -268,9 +295,9 @@ export class ShantenCalculator {
       for (let n = 1; n < this.hand.getArrayLen(k); n++) {
         if (this.hand.get(k, n) >= 2) {
           const tiles = [new Tile(k, n), new Tile(k, n)];
-          this.hand.dec(...tiles);
+          this.hand.dec(tiles);
           const r = calc(true);
-          this.hand.inc(...tiles);
+          this.hand.inc(tiles);
           if (r < min) {
             min = r;
           }
@@ -297,9 +324,9 @@ export class ShantenCalculator {
       this.hand.get(k, n + 2) > 0
     ) {
       const tiles = [new Tile(k, n), new Tile(k, n + 1), new Tile(k, n + 2)];
-      this.hand.dec(...tiles);
+      this.hand.dec(tiles);
       const r = this.commonByKind(k, n);
-      this.hand.inc(...tiles);
+      this.hand.inc(tiles);
       r.patternA[0]++, r.patternB[0]++;
       if (
         r.patternA[2] < max.patternA[2] ||
@@ -317,9 +344,9 @@ export class ShantenCalculator {
 
     if (this.hand.get(k, n) >= 3) {
       const tiles = [new Tile(k, n), new Tile(k, n), new Tile(k, n)];
-      this.hand.dec(...tiles);
+      this.hand.dec(tiles);
       const r = this.commonByKind(k, n);
-      this.hand.inc(...tiles);
+      this.hand.inc(tiles);
       r.patternA[0]++, r.patternB[0]++;
       if (
         r.patternA[2] < max.patternA[2] ||
@@ -410,6 +437,7 @@ export class TileCalculator {
   }
 
   markDrawn(hands: Block[][], lastTile: Tile) {
+    if (hands.length == 0) return [];
     const op =
       this.hand.drawn != null
         ? OPERATOR.TSUMO
@@ -434,7 +462,9 @@ export class TileCalculator {
     }
 
     if (indexes.length == 0)
-      throw new Error(`found no tile ${lastTile.toString()} in hands`);
+      throw new Error(
+        `found no tile ${lastTile.toString()} in hands ${hands[0].toString()}`
+      );
 
     const newHands: Block[][] = [];
     for (let [hidx, bidx, tidx] of indexes) {
@@ -521,7 +551,7 @@ export class TileCalculator {
       for (let n = 1; n < this.hand.getArrayLen(k); n++) {
         if (this.hand.get(k, n) >= 2) {
           const tiles = [new Tile(k, n), new Tile(k, n)];
-          this.hand.dec(...tiles);
+          this.hand.dec(tiles);
           // 1. calc all cases without two pairs
           // 2. remove non five blocks
           // 3. add two pairs to the head
@@ -532,7 +562,7 @@ export class TileCalculator {
               return arr;
             });
           ret = [...ret, ...v];
-          this.hand.inc(...tiles);
+          this.hand.inc(tiles);
         }
       }
     }
@@ -591,9 +621,9 @@ export class TileCalculator {
         new Tile(k, n + 1),
         new Tile(k, n + 2),
       ];
-      this.hand.dec(...tiles);
+      this.hand.dec(tiles);
       const nested = this.commonByKind(k, n);
-      this.hand.inc(...tiles);
+      this.hand.inc(tiles);
       if (nested.length == 0) nested.push([]);
       for (let arr of nested) {
         arr.unshift(new BlockRun(tiles));
@@ -607,9 +637,9 @@ export class TileCalculator {
         new Tile(k, n),
         new Tile(k, n),
       ];
-      this.hand.dec(...tiles);
+      this.hand.dec(tiles);
       const nested = this.commonByKind(k, n);
-      this.hand.inc(...tiles);
+      this.hand.inc(tiles);
       if (nested.length == 0) nested.push([]);
       for (let arr of nested) {
         // Note insert it to the head due to handling recursively, 111333m
@@ -622,13 +652,11 @@ export class TileCalculator {
   }
 }
 
-type Wind = keyof typeof WIND_MAP;
-
 // TODO 立直棒など
 export interface BoardParams {
   dora: Tile[];
   blindDora?: Tile[];
-  placeWind: Wind;
+  round: Round;
   myWind: Wind;
   ronWind?: Wind;
   reached?: 1 | 2;
@@ -639,12 +667,25 @@ export interface BoardParams {
   oneShotWin?: boolean;
 }
 
+export interface WinResult {
+  result: { [w in Wind]: number };
+  sum: number;
+  fu: number;
+  points: {
+    name: string;
+    double: number;
+  }[];
+  point: number;
+  hand: Block[];
+}
+
+// TODO reach and dead stick
 export class DoubleCalculator {
   hand: Hand;
   cfg: {
     doras: Tile[];
     blindDoras: Tile[];
-    placeWind: Tile;
+    roundWind: Tile;
     myWind: Tile;
     reached: 0 | 1 | 2;
     replacementWin: boolean;
@@ -659,7 +700,7 @@ export class DoubleCalculator {
     this.cfg = {
       doras: [...cfg.dora],
       blindDoras: cfg.blindDora == null ? [] : [...cfg.blindDora],
-      placeWind: new Parser(cfg.placeWind).parse()[0].tiles[0],
+      roundWind: new Parser(cfg.round.substring(0, 2)).parse()[0].tiles[0],
       myWind: new Parser(cfg.myWind).parse()[0].tiles[0],
       reached: cfg.reached ?? 0,
       replacementWin: cfg.replacementWin ?? false,
@@ -670,8 +711,9 @@ export class DoubleCalculator {
       orig: cfg,
     };
   }
-  calc(hands: Block[][]) {
+  calc(hands: Block[][]): WinResult | 0 {
     const patterns = this.calcPatterns(hands);
+    if (patterns.length == 0) return 0;
     let max = [0, 0];
     let idx = 0;
     for (let i = 0; i < patterns.length; i++) {
@@ -779,6 +821,7 @@ export class DoubleCalculator {
       fu: number;
       hand: Block[];
     }[] = [];
+    if (hands.length == 0) return ret;
     for (let hand of hands) {
       const v = [
         ...this.dA13(hand),
@@ -847,10 +890,7 @@ export class DoubleCalculator {
     return ret;
   }
   private minus() {
-    return this.hand.called.filter((block) => !(block instanceof BlockAnKan))
-      .length == 0
-      ? 0
-      : 1;
+    return this.hand.canReach ? 0 : 1;
   }
 
   dA1(h: Block[]) {
@@ -904,7 +944,7 @@ export class DoubleCalculator {
       const tile = block.tiles[0];
       if (tile.k == KIND.Z) {
         if (tile.equals(this.cfg.myWind)) ret.push({ name: "自風", double: 1 });
-        if (tile.equals(this.cfg.placeWind))
+        if (tile.equals(this.cfg.roundWind))
           ret.push({ name: "場風", double: 1 });
         if (tile.n == 5) ret.push({ name: "白", double: 1 });
         if (tile.n == 6) ret.push({ name: "發", double: 1 });
@@ -1201,7 +1241,7 @@ export class DoubleCalculator {
     let fu = base;
 
     const myWind = this.cfg.myWind.n;
-    const round = this.cfg.placeWind.n;
+    const round = this.cfg.roundWind.n;
 
     if (h.length == 7) return 25;
 
