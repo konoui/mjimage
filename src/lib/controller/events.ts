@@ -33,8 +33,15 @@ export interface RonEvent {
   type: Extract<ChoiceEvent, "RON">;
   iam: Wind;
   wind: Wind;
-  // TODO
-  // hand: Block[]
+  ret: WinResult;
+}
+
+export interface TsumoEvent {
+  id: string;
+  type: Extract<ChoiceEvent, "TSUMO">;
+  iam: Wind;
+  wind: Wind;
+  ret: WinResult;
 }
 
 export interface DiscardEvent {
@@ -85,6 +92,7 @@ export type PlayerEvent =
   | DistributeEvent
   | CallEvent
   | RonEvent
+  | TsumoEvent
   | DiscardEvent
   | DrawEvent
   | ReachEvent

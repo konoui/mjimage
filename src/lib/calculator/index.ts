@@ -1,5 +1,5 @@
 import assert from "assert";
-import { BLOCK, KIND, OPERATOR, WIND_MAP, Round, Wind } from "../constants";
+import { BLOCK, KIND, OPERATOR, Round, Wind, WIND } from "../constants";
 import {
   Tile,
   Parser,
@@ -363,7 +363,6 @@ export class ShantenCalculator {
     }
     return max;
   }
-  // http://crescent.s255.xrea.com/cabinet/others/mahjong/
   private groupRemainingTiles(k: Kind): {
     patternA: [number, number, number];
     patternB: [number, number, number];
@@ -659,6 +658,7 @@ export interface BoardParams {
   round: Round;
   myWind: Wind;
   ronWind?: Wind;
+  sticks?: { reach: number; dead: number };
   reached?: 1 | 2;
   replacementWin?: boolean;
   quadWin?: boolean;
@@ -688,6 +688,7 @@ export class DoubleCalculator {
     roundWind: Tile;
     myWind: Tile;
     reached: 0 | 1 | 2;
+    sticks: { reach: number; dead: number };
     replacementWin: boolean;
     quadWin: boolean;
     finalWallWin: boolean;
@@ -703,6 +704,7 @@ export class DoubleCalculator {
       roundWind: new Parser(cfg.round.substring(0, 2)).parse()[0].tiles[0],
       myWind: new Parser(cfg.myWind).parse()[0].tiles[0],
       reached: cfg.reached ?? 0,
+      sticks: cfg.sticks ?? { dead: 0, reach: 0 },
       replacementWin: cfg.replacementWin ?? false,
       quadWin: cfg.quadWin ?? false,
       finalWallWin: cfg.finalWallWin ?? false,
@@ -781,29 +783,33 @@ export class DoubleCalculator {
       "4w": 0,
     };
     if (!isTsumo) {
+      const deadPoint = this.cfg.sticks.dead * 300;
       if (this.cfg.orig.ronWind == null)
         throw new Error("ron wind is not specified in the parameters");
       const coefficient = isParent ? 6 : 4;
-      const point = ceil(base * coefficient);
+      const point = ceil(base * coefficient) + deadPoint;
       result[myWind] += point;
       result[this.cfg.orig.ronWind] -= point;
     } else {
+      const deadPoint = this.cfg.sticks.dead * 100;
       if (isParent) {
         const point = ceil(base * 2);
-        result["1w"] += point * 3;
-        result["2w"] -= point;
-        result["3w"] -= point;
-        result["4w"] -= point;
+        result["1w"] += point * 3 + deadPoint * 3;
+        result["2w"] -= point + deadPoint;
+        result["3w"] -= point + deadPoint;
+        result["4w"] -= point + deadPoint;
       } else {
-        for (let key in Object.keys(result)) {
+        for (let key of Object.values(WIND)) {
           if (key == myWind) continue;
           const coefficient = key == "1w" ? 2 : 1;
-          const point = ceil(base * coefficient);
-          result[key as Wind] -= point;
+          const point = ceil(base * coefficient) + deadPoint;
+          result[key] -= point;
           result[myWind] += point;
         }
       }
     }
+
+    result[myWind] += this.cfg.sticks.reach;
 
     const v = {
       result: result,

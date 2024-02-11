@@ -5,8 +5,8 @@ import {
   ShantenCalculator,
   TileCalculator,
 } from "../calculator";
-import { KIND, OPERATOR, WIND, Wind, Round } from "../constants";
-import { Block, BlockChi, BlockPon, Tile } from "../parser";
+import { KIND, OPERATOR, Wind, Round } from "../constants";
+import { BlockChi, BlockPon, Tile } from "../parser";
 import { DoubleCalculator, WinResult } from "../calculator";
 import { createControllerMachine, nextWind } from "./state-machine";
 import { createActor } from "xstate";
@@ -172,6 +172,7 @@ export class Controller {
       dora: this.wall.doras,
       round: this.placeManager.round,
       myWind: w,
+      sticks: this.placeManager.sticks,
     };
   }
   // this method will called by player client to sync
@@ -453,22 +454,76 @@ export class Player {
     this.id = playerID;
   }
   enqueue(e: PlayerEvent) {
-    if (e.type == "CHOICE_AFTER_DRAWN") {
-      this.client.reply(e.id, e);
-      return;
-    }
     if (e.type == "CHOICE_AFTER_DISCARDED") {
       this.client.reply(e.id, e);
       return;
     }
+    if (e.type == "CHOICE_AFTER_DRAWN") {
+      if (e.choices.DISCARD != 0) {
+        const ret = this.choiceForDiscard(e.choices.DISCARD);
+        e.choices.DISCARD = [ret.tile];
+      }
+      this.client.reply(e.id, e);
+      return;
+    }
     if (e.type == "CHOICE_AFTER_CALLED") {
+      if (e.choices.DISCARD != 0) {
+        const ret = this.choiceForDiscard(e.choices.DISCARD);
+        e.choices.DISCARD = [ret.tile];
+      }
       this.client.reply(e.id, e);
       return;
     }
   }
-  private choiceForDiscard() {
-    // selected least shanten tile
-    const sc = new ShantenCalculator(this.hand);
+  private choiceForDiscard(choices: Tile[]) {
+    assert(choices.length > 0, "choices to discard is zero");
+    let ret: { shanten: number; nCandidates: number; tile: Tile } = {
+      shanten: Number.POSITIVE_INFINITY,
+      nCandidates: 0,
+      tile: choices[0],
+    };
+    for (let t of choices) {
+      this.hand.dec([t], false);
+      const c = this.candidateTiles();
+      this.hand.inc([t], false);
+      if (c.shanten < ret.shanten) {
+        ret = {
+          shanten: c.shanten,
+          nCandidates: c.candidates.length,
+          tile: t,
+        };
+      } else if (
+        c.shanten == ret.shanten &&
+        ret.nCandidates < c.candidates.length
+      ) {
+        ret.nCandidates = c.candidates.length;
+        ret.tile = t;
+      }
+    }
+    return ret;
+  }
+  private candidateTiles() {
+    let r = Number.POSITIVE_INFINITY;
+    let candidates: Tile[] = [];
+    for (let k of Object.values(KIND)) {
+      if (k == KIND.BACK) continue;
+      for (let n = 1; n < this.hand.getArrayLen(k); n++) {
+        if (this.hand.get(k, n) >= 4) continue;
+        const t = new Tile(k, n);
+        this.hand.inc([t]);
+        const s = new ShantenCalculator(this.hand).calc();
+        this.hand.dec([t]);
+
+        if (s < r) {
+          r = s;
+          candidates = [t];
+        } else if (s == r) candidates.push(t);
+      }
+    }
+    return {
+      shanten: r,
+      candidates: candidates,
+    };
   }
 }
 

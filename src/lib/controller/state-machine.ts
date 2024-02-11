@@ -84,9 +84,14 @@ export const createControllerMachine = (c: Controller) => {
           },
         },
         tsumo: {
-          exit: {
-            type: "notify_end",
-          },
+          exit: [
+            {
+              type: "notify_tsumo",
+            },
+            {
+              type: "notify_end",
+            },
+          ],
           type: "final",
         },
         waiting_user_event_after_discarded: {
@@ -340,8 +345,42 @@ export const createControllerMachine = (c: Controller) => {
           const id = genEventID();
           const iam = context.currentWind;
           if (event.type == "RON") {
+            console.debug(
+              context.controller.player(iam).id,
+              `ron: ${JSON.stringify(event.ret, null, 2)}`,
+              `hand: ${context.controller.player(iam).hand.toString()}`
+            );
+
             for (let w of Object.values(WIND)) {
-              const e = { id: id, type: event.type, iam: iam, wind: w };
+              const e = {
+                id: id,
+                type: event.type,
+                iam: iam,
+                wind: w,
+                ret: event.ret,
+              };
+              context.controller.player(w).enqueue(e);
+            }
+          }
+        },
+        notify_tsumo: ({ context, event }) => {
+          const id = genEventID();
+          const iam = context.currentWind;
+          if (event.type == "TSUMO") {
+            console.debug(
+              context.controller.player(iam).id,
+              `tsumo: ${JSON.stringify(event.ret, null, 2)}`,
+              `hand: ${context.controller.player(iam).hand.toString()}`
+            );
+
+            for (let w of Object.values(WIND)) {
+              const e = {
+                id: id,
+                type: event.type,
+                iam: iam,
+                wind: w,
+                ret: event.ret,
+              };
               context.controller.player(w).enqueue(e);
             }
           }
@@ -350,9 +389,14 @@ export const createControllerMachine = (c: Controller) => {
           const id = genEventID();
           if (event.type == "REACH") {
             const iam = event.iam;
+            context.controller.player(iam).hand.reach();
+            context.controller.placeManager.incrementReachStick();
+            const pid = context.controller.placeManager.playerID(iam);
+            context.controller.scoreManager.reach(pid);
+            context.controller.player(iam).hand.discard(event.tile);
             console.debug(
               context.controller.player(iam).id,
-              `end hand: ${context.controller.player(iam).hand.toString()}`
+              `reach: ${context.controller.player(iam).hand.toString()}`
             );
             for (let w of Object.values(WIND)) {
               const e = {
@@ -360,6 +404,7 @@ export const createControllerMachine = (c: Controller) => {
                 type: event.type,
                 iam: iam,
                 wind: w,
+                tile: event.tile,
               };
               context.controller.player(w).enqueue(e);
             }
@@ -385,7 +430,7 @@ export const createControllerMachine = (c: Controller) => {
                 context.controller.river.lastTile.t
               ) != 0
             );
-          console.error(`gurads.canChi recieve ${event.type}`);
+          console.error(`guards.canChi receive ${event.type}`);
           return false;
         },
         canPon: ({ context, event }, params) => {
@@ -397,7 +442,7 @@ export const createControllerMachine = (c: Controller) => {
                 context.controller.river.lastTile.t
               ) != 0
             );
-          console.error(`gurads.canPon recieve ${event.type}`);
+          console.error(`guards.canPon receive ${event.type}`);
           return false;
         },
         canWin: ({ context, event }, params) => {
@@ -406,14 +451,14 @@ export const createControllerMachine = (c: Controller) => {
             if (t == null) t = context.controller.river.lastTile.t;
             return context.controller.doWin(event.iam, t) != 0;
           }
-          console.error(`gurads.canWin recieve ${event.type}`);
+          console.error(`guards.canWin receive ${event.type}`);
           return false;
         },
         canReach: ({ context, event }, params) => {
           if (event.type == "REACH") {
             return context.controller.doReach(event.iam) != 0;
           }
-          console.error(`gurads.canReach recieve ${event.type}`);
+          console.error(`guards.canReach receive ${event.type}`);
           return false;
         },
         cannotDraw: ({ context, event }, params) => {
