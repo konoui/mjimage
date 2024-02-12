@@ -16,6 +16,7 @@
         "build": "parcel build",
         "dev": "parcel src/index.html",
         "test": "jest",
+        "cmd": "ts-node ./src/cmd/index.ts",
         "svg-sprite": "svg-sprite -C svg-sprite.config.json -shape-transform-svgo svgo.json static/svg/*.svg",
         "tsc": "tsc --declaration --outDir ./dist/mjs",
         "prepublishOnly": "rm -rf ./dist && npm run tsc && cp -rf ./static/svg ./dist/mjs/svg/"

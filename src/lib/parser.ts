@@ -147,13 +147,13 @@ export class Block {
 }
 
 export class BlockChi extends Block {
-  constructor(tiles: Tile[]) {
+  constructor(tiles: [Tile, Tile, Tile]) {
     super(tiles, BLOCK.CHI);
   }
 }
 
 export class BlockPon extends Block {
-  constructor(tiles: Tile[]) {
+  constructor(tiles: [Tile, Tile, Tile]) {
     super(tiles, BLOCK.PON);
   }
 }
@@ -182,7 +182,7 @@ export class BlockPair extends Block {
   }
 }
 
-export class BlockSet extends Block {
+class BlockSet extends Block {
   constructor(tiles: [Tile, Tile, Tile]) {
     super(tiles, BLOCK.SET);
   }
@@ -221,9 +221,9 @@ const blockWrapper = (
   | BlockIsolated => {
   switch (type) {
     case BLOCK.CHI:
-      return new BlockChi(tiles);
+      return new BlockChi([tiles[0], tiles[1], tiles[2]]);
     case BLOCK.PON:
-      return new BlockPon(tiles);
+      return new BlockPon([tiles[0], tiles[1], tiles[2]]);
     case BLOCK.AN_KAN:
       return new BlockAnKan(tiles);
     case BLOCK.DAI_KAN:
@@ -244,7 +244,7 @@ const blockWrapper = (
 };
 
 export class Parser {
-  readonly maxInputLength = 128;
+  readonly maxInputLength = 600;
   constructor(readonly input: string) {
     this.input = input.replace(/\s/g, "");
   }
@@ -345,7 +345,7 @@ export class Parser {
   validate(input: string) {
     if (input.length == 0) return;
     if (input.length > this.maxInputLength)
-      throw new Error("exceeded maximum input length");
+      throw new Error(`exceeded maximum input length(${input.length})`);
     const lastChar = input.charAt(input.length - 1);
     // Note: dummy tile for validation
     const [_, isKind] = isKindAlias(lastChar, [new Tile(KIND.BACK, 1)]);
@@ -394,6 +394,7 @@ function detectBlockType(tiles: Tile[]): BLOCK {
 }
 
 function areConsecutiveTiles(tiles: Tile[]): boolean {
+  tiles = tiles.map((t) => t.clone()).sort(tileSortFunc);
   for (let i = 0; i < tiles.length - 1; i++) {
     let n = tiles[i].n,
       np = tiles[i + 1].n;

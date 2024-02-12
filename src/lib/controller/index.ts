@@ -6,7 +6,7 @@ import {
   TileCalculator,
 } from "../calculator";
 import { KIND, OPERATOR, Wind, Round } from "../constants";
-import { BlockChi, BlockPon, Tile } from "../parser";
+import { BlockChi, BlockPon, Parser, Tile } from "../parser";
 import { DoubleCalculator, WinResult } from "../calculator";
 import { createControllerMachine, nextWind } from "./state-machine";
 import { createActor } from "xstate";
@@ -67,7 +67,8 @@ class PlaceManager {
   }
 
   private init(ids: string[]) {
-    const n = Math.floor(Math.random() * 4) + 1;
+    // FIXME
+    const n = 1; // Math.floor(Math.random() * 4) + 1;
     const w = `${n}w` as Wind;
     this.pToW = {
       [ids[0]]: w,
@@ -273,7 +274,11 @@ export class Controller {
     } else if (sample.type == "CHOICE_AFTER_CALLED") {
       assert(
         sample.choices.DISCARD != 0,
-        `discard candidate tile is none: ${sample.choices.DISCARD}`
+        `discard candidate tile is none: ${JSON.stringify(
+          sample,
+          null,
+          2
+        )} ${this.player(sample.wind).hand.toString()}`
       );
       const w = sample.wind;
       const t = sample.choices.DISCARD[0];
@@ -303,6 +308,7 @@ export class Controller {
     if (w == whoDiscarded) return 0;
 
     const p = this.player(w);
+    if (p.hand.reached) return 0;
     if (p.hand.hands.length < 3) return 0;
     if (p.hand.get(t.k, t.n) < 2) return 0;
     const blocks: BlockPon[] = [];
@@ -339,6 +345,7 @@ export class Controller {
     if (nextWind(whoDiscarded) != w) return 0;
 
     const p = this.player(w);
+    if (p.hand.reached) return 0;
     if (p.hand.hands.length < 3) return 0;
     const blocks: BlockChi[] = [];
     const lower =
@@ -404,9 +411,11 @@ export class Controller {
     const p = this.player(w);
     if (p.hand.reached) return 0;
     if (!p.hand.canReach) return 0;
-    const sc = new ShantenCalculator(p.hand);
-    if (sc.calc() == 0) return []; // FIXME
-    return 0;
+    const s = new ShantenCalculator(p.hand).calc();
+    if (s > 0) return 0;
+    // FIXME all candidates
+    const r = p.choiceForDiscard(p.hand.hands);
+    return [r.tile];
   }
   doDiscard(w: Wind): Tile[] | 0 {
     if (this.player(w).hand.reached) return [this.player(w).hand.drawn!];
@@ -475,7 +484,7 @@ export class Player {
       return;
     }
   }
-  private choiceForDiscard(choices: Tile[]) {
+  choiceForDiscard(choices: Tile[]) {
     assert(choices.length > 0, "choices to discard is zero");
     let ret: { shanten: number; nCandidates: number; tile: Tile } = {
       shanten: Number.POSITIVE_INFINITY,
@@ -505,14 +514,15 @@ export class Player {
   private candidateTiles() {
     let r = Number.POSITIVE_INFINITY;
     let candidates: Tile[] = [];
+
     for (let k of Object.values(KIND)) {
       if (k == KIND.BACK) continue;
       for (let n = 1; n < this.hand.getArrayLen(k); n++) {
         if (this.hand.get(k, n) >= 4) continue;
         const t = new Tile(k, n);
-        this.hand.inc([t]);
+        this.hand.inc([t], false);
         const s = new ShantenCalculator(this.hand).calc();
-        this.hand.dec([t]);
+        this.hand.dec([t], false);
 
         if (s < r) {
           r = s;
@@ -528,13 +538,14 @@ export class Player {
 }
 
 export class Wall {
+  private raw = "a";
   private drawableWall: Tile[] = [];
   private deadWall: Tile[] = [];
   private replacementWall: Tile[] = [];
   private doraWall: Tile[] = [];
   private blindDoraWall: Tile[] = [];
-  constructor() {
-    this.init();
+  constructor(raw?: string) {
+    this.init(raw);
   }
   kan() {
     if (this.replacementWall.length == 0)
@@ -557,19 +568,29 @@ export class Wall {
     return this.drawableWall.length > 0;
   }
 
-  private init() {
-    for (let k of Object.values(KIND)) {
-      if (k == KIND.BACK) continue;
-      const values =
-        k == KIND.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 2, 3, 4, 5, 6, 7, 8, 9];
-      for (let i = 0; i < 4; i++) {
-        for (let n of values) {
-          if (i == 3 && n == 5) n = 0;
-          this.drawableWall.push(new Tile(k, n));
+  private init(raw?: string) {
+    if (raw != null) {
+      const blocks = new Parser(raw).parse();
+      for (let b of blocks) {
+        this.drawableWall.push(...b.tiles);
+      }
+    } else {
+      for (let k of Object.values(KIND)) {
+        if (k == KIND.BACK) continue;
+        const values =
+          k == KIND.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 2, 3, 4, 5, 6, 7, 8, 9];
+        for (let i = 0; i < 4; i++) {
+          for (let n of values) {
+            if (i == 3 && n == 5) n = 0;
+            this.drawableWall.push(new Tile(k, n));
+          }
         }
       }
+      this.shuffle(this.drawableWall);
     }
-    this.shuffle(this.drawableWall);
+
+    this.raw = this.drawableWall.map((t) => t.toString()).join();
+
     for (let i = 0; i < 13; i++) {
       this.deadWall.push(this.drawableWall.pop()!);
     }
@@ -590,6 +611,9 @@ export class Wall {
     }
     return array;
   }
+  export() {
+    return this.raw;
+  }
 }
 
 export class River {
@@ -600,7 +624,10 @@ export class River {
   }
   get lastTile() {
     const last = this.m.at(-1);
-    assert(last != null);
+    assert(
+      last != null,
+      `lastTile is null(${last}). river: ${JSON.stringify(this.m, null, 2)}`
+    );
     return last;
   }
   discards(w: Wind) {

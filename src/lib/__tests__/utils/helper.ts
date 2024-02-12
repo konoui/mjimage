@@ -35,3 +35,16 @@ export const initSvgDOM = () => {
 export const handsToString = (hands: Block[][]) => {
   return hands.map((hand) => hand.map((block) => block.toString()));
 };
+
+export const loadWallData = (): string[] => {
+  const data = loadTestData("wall.json", "", false, "__fixtures__");
+  if (data.toString() == "") return [];
+  return JSON.parse(data.toString());
+};
+
+export const storeWallData = (d: string) => {
+  const data = loadWallData();
+  data.push(d);
+  const str = JSON.stringify(data, null, 2);
+  loadTestData("wall.json", str, true, "__fixtures__");
+};

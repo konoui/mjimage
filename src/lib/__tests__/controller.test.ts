@@ -3,9 +3,19 @@ import { Controller, Wall, River } from "../controller";
 import { Tile } from "../parser";
 import { Hand } from "../calculator";
 import { KIND } from "../constants";
+import { loadWallData, storeWallData } from "./utils/helper";
 describe("controller", () => {
-  test("controller-start", () => {
-    const c = new Controller(new Wall(), new River());
+  test("existing tests", () => {
+    const walls = loadWallData().map((l) => new Wall(l));
+    for (let w of walls) {
+      const c = new Controller(w, new River());
+      c.start();
+    }
+  });
+  test("new tests", () => {
+    const w = new Wall();
+    storeWallData(w.export());
+    const c = new Controller(w, new River());
     c.start();
   });
 });

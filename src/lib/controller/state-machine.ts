@@ -1,3 +1,4 @@
+import assert from "assert";
 import { Wind, WIND_MAP, KIND, WIND, OPERATOR } from "../constants";
 import { Controller } from "./index";
 import { BlockChi, BlockPon, Tile } from "../parser";
@@ -394,9 +395,11 @@ export const createControllerMachine = (c: Controller) => {
             const pid = context.controller.placeManager.playerID(iam);
             context.controller.scoreManager.reach(pid);
             context.controller.player(iam).hand.discard(event.tile);
+            context.controller.river.discard(event.tile, iam);
             console.debug(
               context.controller.player(iam).id,
-              `reach: ${context.controller.player(iam).hand.toString()}`
+              `reach: ${context.controller.player(iam).hand.toString()}`,
+              `tile: ${event.tile}`
             );
             for (let w of Object.values(WIND)) {
               const e = {
@@ -449,7 +452,8 @@ export const createControllerMachine = (c: Controller) => {
           if (event.type == "TSUMO" || event.type == "RON") {
             let t = context.controller.player(event.iam).hand.drawn;
             if (t == null) t = context.controller.river.lastTile.t;
-            return context.controller.doWin(event.iam, t) != 0;
+            const can = context.controller.doWin(event.iam, t);
+            return can != 0;
           }
           console.error(`guards.canWin receive ${event.type}`);
           return false;

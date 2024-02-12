@@ -102,10 +102,10 @@ export class Hand {
 
     const tiles = this.hands;
     const b = new Block(tiles, BLOCK.HAND).toString();
-    return `${b}${c}`;
+    return `${b} ${c}`;
   }
   get called() {
-    return this.data.called;
+    return this.data.called.concat();
   }
   get reached() {
     return this.data.reached;
@@ -163,13 +163,19 @@ export class Hand {
     return this;
   }
   reach() {
-    if (!this.canReach) throw new Error("cannnot reach");
+    if (!this.canReach) throw new Error("cannot reach");
     if (this.data.reached) throw new Error("already reached");
     this.data.reached = true;
   }
   call(b: BlockPon | BlockChi | BlockDaiKan) {
-    if (b instanceof BlockAnKan || b instanceof BlockShoKan)
-      throw new Error(`unexpected input ${b}`);
+    if (
+      !(
+        b instanceof BlockPon ||
+        b instanceof BlockChi ||
+        b instanceof BlockDaiKan
+      )
+    )
+      throw new Error(`unexpected input ${b} ${(b as Block).type}`);
 
     const toRemove = b.tiles.filter((v) => !v.has(OPERATOR.HORIZONTAL));
     if (toRemove.length != b.tiles.length - 1)
@@ -451,7 +457,7 @@ export class TileCalculator {
       for (let j = 0; j < hand.length; j++) {
         const block = hand[j];
         if (block.isCalled()) continue;
-        const k = block.tiles.findIndex((t) => t.equals(lastTile));
+        const k = block.tiles.findIndex((t) => t.equals(lastTile, true));
         if (k < 0) continue;
         const key = buildKey(block);
         if (m[key]) continue;
@@ -651,7 +657,6 @@ export class TileCalculator {
   }
 }
 
-// TODO 立直棒など
 export interface BoardParams {
   dora: Tile[];
   blindDora?: Tile[];
@@ -679,7 +684,6 @@ export interface WinResult {
   hand: Block[];
 }
 
-// TODO reach and dead stick
 export class DoubleCalculator {
   hand: Hand;
   cfg: {
@@ -946,7 +950,7 @@ export class DoubleCalculator {
   dG1(h: Block[]) {
     const ret: { name: string; double: number }[] = [];
     h.forEach((block) => {
-      if (!(block instanceof BlockPair)) return;
+      if (block instanceof BlockPair) return;
       const tile = block.tiles[0];
       if (tile.k == KIND.Z) {
         if (tile.equals(this.cfg.myWind)) ret.push({ name: "自風", double: 1 });
