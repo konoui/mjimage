@@ -916,7 +916,12 @@ export class DoubleCalculator {
   }
   dC1(h: Block[]) {
     if (this.minus() != 0) return [];
-    return this.calcFu(h) == 20 ? [{ name: "平和", double: 1 }] : [];
+    const fu = this.calcFu(h);
+    if (fu == 20) return [{ name: "平和", double: 1 }];
+    if (!h.some((b) => b.tiles.some((t) => t.has(OPERATOR.TSUMO)))) {
+      if (fu == 30) return [{ name: "平和", double: 1 }];
+    }
+    return [];
   }
   dD1(h: Block[]) {
     const cond = h.some((block) =>
@@ -1319,7 +1324,7 @@ export class DoubleCalculator {
     if (!isCalled && fu == base) isAllRuns = true;
     if (isTsumo && !isAllRuns) fu += 2; // 平和以外のツモは2
     if (!isTsumo && !isCalled) fu += 10; // 面前ロン
-
+    if (!isTsumo && !isCalled && fu == 30) isAllRuns = true; // 面前ロンで 30 は平和
     if (isCalled && fu == base) fu = 30; // 鳴きの 20 は 30 になる
 
     return fu;

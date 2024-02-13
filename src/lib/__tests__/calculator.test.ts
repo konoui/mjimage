@@ -315,6 +315,7 @@ describe("double Calculator", () => {
       want: [
         {
           points: [
+            { name: "平和", double: 1 },
             { name: "一盃口", double: 1 },
             { name: "三色同順", double: 2 },
             { name: "混全帯么九", double: 2 },
@@ -373,7 +374,13 @@ describe("double Calculator", () => {
       lastTile: new Tile(KIND.M, 1),
       want: [
         { points: [{ name: "七対子", double: 2 }], fu: 25 },
-        { points: [{ name: "ニ盃口", double: 3 }], fu: 30 },
+        {
+          points: [
+            { name: "平和", double: 1 },
+            { name: "ニ盃口", double: 3 },
+          ],
+          fu: 30,
+        },
       ],
     },
     {

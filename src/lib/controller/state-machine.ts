@@ -247,7 +247,7 @@ export const createControllerMachine = (c: Controller) => {
               type: "CHOICE_AFTER_DISCARDED" as const,
               wind: w,
               choices: {
-                RON: context.controller.doWin(w, ltile),
+                RON: context.controller.doWin(w, ltile, discarded.w),
                 PON: context.controller.doPon(w, discarded.w, ltile),
                 CHI: context.controller.doChi(w, discarded.w, ltile),
               },
@@ -452,7 +452,11 @@ export const createControllerMachine = (c: Controller) => {
           if (event.type == "TSUMO" || event.type == "RON") {
             let t = context.controller.player(event.iam).hand.drawn;
             if (t == null) t = context.controller.river.lastTile.t;
-            const can = context.controller.doWin(event.iam, t);
+            const can = context.controller.doWin(
+              event.iam,
+              t,
+              context.controller.river.lastTile?.w
+            );
             return can != 0;
           }
           console.error(`guards.canWin receive ${event.type}`);

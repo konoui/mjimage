@@ -292,11 +292,21 @@ export class Controller {
     });
     this.actor.start();
   }
-  doWin(w: Wind, t: Tile | null | undefined): WinResult | 0 {
+  doWin(
+    w: Wind,
+    t: Tile | null | undefined,
+    whoDiscarded?: Wind
+  ): WinResult | 0 {
     if (t == null) return 0;
-    const p = this.player(w);
-    const tc = new TileCalculator(p.hand);
-    const dc = new DoubleCalculator(p.hand, this.boardParams(w));
+    let hand = this.player(w).hand;
+    const env = this.boardParams(w);
+    if (hand.drawn == null) {
+      hand = hand.clone();
+      env.ronWind = whoDiscarded;
+      hand.inc([t], false); // TODO hand.draw looks good but it adds OP.TSUMO
+    }
+    const tc = new TileCalculator(hand);
+    const dc = new DoubleCalculator(hand, env);
     const hands = tc.calc(t);
     const ret = dc.calc(hands);
     if (ret == 0) return 0;
