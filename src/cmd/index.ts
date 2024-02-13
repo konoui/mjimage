@@ -8,7 +8,7 @@ for (let w of walls) {
   c.start();
 }
 
-const count = 4000;
+const count = 1000;
 for (let i = 0; i < count; i++) {
   console.log("========");
   const c = new Controller(new Wall(), new River());

@@ -1189,6 +1189,7 @@ export class DoubleCalculator {
       : [{ name: "四暗刻", double: 13 }];
   }
   dD13(h: Block[]) {
+    if (h.length == 13) return [];
     const z = [5, 6, 7];
     const cond =
       h.filter(
@@ -1219,6 +1220,7 @@ export class DoubleCalculator {
     return cond ? [{ name: "四槓子", double: 13 }] : [];
   }
   dH13(h: Block[]) {
+    if (h.length == 13) return [];
     if (h.length == 7) return [];
     const zn = [1, 2, 3, 4];
     const cond1 =

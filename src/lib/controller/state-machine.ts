@@ -178,6 +178,7 @@ export const createControllerMachine = (c: Controller) => {
         drawn_game: {
           exit: {
             type: "notify_end",
+            params: {},
           },
           type: "final",
         },
