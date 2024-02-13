@@ -362,8 +362,8 @@ describe("double Calculator", () => {
       want: [
         {
           points: [
-            { name: "ドラ", double: 1 },
             { name: "一気通貫", double: 2 },
+            { name: "ドラ", double: 1 },
           ],
           fu: 32,
         },

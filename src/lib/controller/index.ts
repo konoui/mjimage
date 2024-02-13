@@ -354,12 +354,17 @@ export class Controller {
     if (t.k == KIND.Z) return 0;
     if (nextWind(whoDiscarded) != w) return 0;
 
+    // disable 0,1,2
+    if (t.n == 0) t.n = 5;
+
     const p = this.player(w);
     if (p.hand.reached) return 0;
     if (p.hand.hands.length < 3) return 0;
     const blocks: BlockChi[] = [];
     const lower =
-      p.hand.get(t.k, t.n - 2, true) > 0 && p.hand.get(t.k, t.n - 1, true) > 0;
+      t.n - 2 >= 1 &&
+      p.hand.get(t.k, t.n - 2, true) > 0 &&
+      p.hand.get(t.k, t.n - 1, true) > 0;
     if (lower)
       blocks.push(
         new BlockChi([
@@ -369,7 +374,9 @@ export class Controller {
         ])
       );
     const upper =
-      p.hand.get(t.k, t.n + 1, true) > 0 && p.hand.get(t.k, t.n + 2, true) > 0;
+      t.n + 2 <= 9 &&
+      p.hand.get(t.k, t.n + 1, true) > 0 &&
+      p.hand.get(t.k, t.n + 2, true) > 0;
     if (upper)
       blocks.push(
         new BlockChi([
@@ -379,7 +386,10 @@ export class Controller {
         ])
       );
     const kan =
-      p.hand.get(t.k, t.n - 1, true) > 0 && p.hand.get(t.k, t.n + 1, true) > 0;
+      t.n - 1 >= 1 &&
+      t.n + 1 <= 9 &&
+      p.hand.get(t.k, t.n - 1, true) > 0 &&
+      p.hand.get(t.k, t.n + 1, true) > 0;
     if (kan)
       blocks.push(
         new BlockChi([
@@ -388,6 +398,9 @@ export class Controller {
           new Tile(t.k, t.n + 1),
         ])
       );
+
+    if (t.n == 0) t.n = 0;
+
     // 1. check whether can-chi or not with ignoredRed pattern
     // 2. get red patterns if having red
     // 3. if not having normal 5, return only red pattern, else if concat red and normal patterns

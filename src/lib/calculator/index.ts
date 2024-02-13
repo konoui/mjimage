@@ -871,7 +871,6 @@ export class DoubleCalculator {
         ...this.dI1(hand),
         ...this.dJ1(hand),
         ...this.dK1(hand),
-        ...this.dL1(hand),
 
         ...this.dA2(hand),
         ...this.dB2(hand),
@@ -890,6 +889,7 @@ export class DoubleCalculator {
 
         ...this.dA6(hand),
       ];
+      if (v.length > 0) v.push(...this.dX1(hand)); // doras are evaluated when other double exists
       ret.push({
         points: v,
         fu: fu,
@@ -936,23 +936,6 @@ export class DoubleCalculator {
     return count == 1 ? [{ name: "一盃口", double: 1 }] : [];
   }
   dF1(h: Block[]) {
-    let dcount = 0;
-    let rcount = 0;
-    for (let b of h) {
-      for (let t of b.tiles) {
-        for (let d of this.cfg.doras) {
-          if (d.equals(t, true)) dcount++;
-        }
-        if (t.n == 0) rcount++;
-      }
-    }
-
-    const ret: { name: string; double: number }[] = [];
-    if (dcount > 0) ret.push({ name: "ドラ", double: dcount });
-    if (rcount > 0) ret.push({ name: "赤ドラ", double: rcount });
-    return ret;
-  }
-  dG1(h: Block[]) {
     const ret: { name: string; double: number }[] = [];
     h.forEach((block) => {
       if (block instanceof BlockPair) return;
@@ -968,21 +951,37 @@ export class DoubleCalculator {
     });
     return ret;
   }
-
-  dH1(h: Block[]) {
+  dG1(h: Block[]) {
     return this.cfg.oneShotWin ? [{ name: "一発", double: 1 }] : [];
   }
-  dI1(h: Block[]): { name: string; double: number }[] {
+  dH1(h: Block[]): { name: string; double: number }[] {
     return this.cfg.replacementWin ? [{ name: "嶺上開花", double: 1 }] : [];
   }
-  dJ1(h: Block[]) {
+  dI1(h: Block[]) {
     return this.cfg.quadWin ? [{ name: "搶槓", double: 1 }] : [];
   }
-  dK1(h: Block[]) {
+  dJ1(h: Block[]) {
     return this.cfg.finalWallWin ? [{ name: "海底摸月", double: 1 }] : [];
   }
-  dL1(h: Block[]) {
+  dK1(h: Block[]) {
     return this.cfg.finalDiscardWin ? [{ name: "河底撈魚", double: 1 }] : [];
+  }
+  dX1(h: Block[]) {
+    let dcount = 0;
+    let rcount = 0;
+    for (let b of h) {
+      for (let t of b.tiles) {
+        for (let d of this.cfg.doras) {
+          if (d.equals(t, true)) dcount++;
+        }
+        if (t.n == 0) rcount++;
+      }
+    }
+
+    const ret: { name: string; double: number }[] = [];
+    if (dcount > 0) ret.push({ name: "ドラ", double: dcount });
+    if (rcount > 0) ret.push({ name: "赤ドラ", double: rcount });
+    return ret;
   }
 
   dA2(h: Block[]) {

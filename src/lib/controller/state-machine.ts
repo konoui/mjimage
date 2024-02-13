@@ -390,16 +390,17 @@ export const createControllerMachine = (c: Controller) => {
           const id = genEventID();
           if (event.type == "REACH") {
             const iam = event.iam;
+            const t = event.tile.clone().add(OPERATOR.HORIZONTAL);
             context.controller.player(iam).hand.reach();
             context.controller.placeManager.incrementReachStick();
             const pid = context.controller.placeManager.playerID(iam);
             context.controller.scoreManager.reach(pid);
-            context.controller.player(iam).hand.discard(event.tile);
-            context.controller.river.discard(event.tile, iam);
+            context.controller.player(iam).hand.discard(t);
+            context.controller.river.discard(t, iam);
             console.debug(
               context.controller.player(iam).id,
               `reach: ${context.controller.player(iam).hand.toString()}`,
-              `tile: ${event.tile}`
+              `tile: ${t}`
             );
             for (let w of Object.values(WIND)) {
               const e = {
@@ -407,7 +408,7 @@ export const createControllerMachine = (c: Controller) => {
                 type: event.type,
                 iam: iam,
                 wind: w,
-                tile: event.tile,
+                tile: t,
               };
               context.controller.player(w).enqueue(e);
             }

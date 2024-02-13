@@ -12,12 +12,6 @@ describe("controller", () => {
       c.start();
     }
   });
-  // test("new tests", () => {
-  //   const w = new Wall();
-  //   storeWallData(w.export());
-  //   const c = new Controller(w, new River());
-  //   c.start();
-  // });
 });
 
 describe("callable", () => {
