@@ -41,11 +41,18 @@ class ScoreManager {
     // if 流局 then tmp => sticks
     // if 立直直後のロン then tmp => back to the reached user
   }
-  update(ret: WinResult, windMap: { [key: string]: Wind }) {
-    const s = ret.result;
+  update(
+    result: {
+      "1w": number;
+      "2w": number;
+      "3w": number;
+      "4w": number;
+    },
+    windMap: { [key: string]: Wind }
+  ) {
     for (let id in windMap) {
       const w = windMap[id];
-      const point = s[w];
+      const point = result[w];
       this.m[id] += point;
     }
   }

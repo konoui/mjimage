@@ -2,7 +2,7 @@ import assert from "assert";
 import { Wind, WIND_MAP, KIND, WIND, OPERATOR } from "../constants";
 import { Controller } from "./index";
 import { BlockChi, BlockPon, Tile } from "../parser";
-import { WinResult } from "./../calculator";
+import { ShantenCalculator, WinResult } from "./../calculator";
 
 type ControllerContext = {
   currentWind: Wind;
@@ -419,13 +419,83 @@ export const createControllerMachine = (c: Controller) => {
             }
           }
         },
+        notify_drawn_game: ({ context, event }) => {},
         notify_end: ({ context, event }) => {
-          for (let w of Object.values(WIND)) {
-            console.debug(
-              context.controller.player(w).id,
-              `end hand: ${context.controller.player(w).hand.toString()}`
-            );
+          const id = genEventID();
+          const hands: { [key in Wind]: string } = {
+            "1w": "",
+            "2w": "",
+            "3w": "",
+            "4w": "",
+          };
+          if (event.type == "RON" || event.type == "TSUMO") {
+            const pm = context.controller.placeManager.playerMap;
+            context.controller.scoreManager.update(event.ret.result, pm);
+            for (let w of Object.values(WIND)) {
+              hands[event.iam] = context.controller
+                .player(event.iam)
+                .hand.toString();
+              const e = {
+                id: id,
+                type: "END" as const,
+                wind: w,
+                scores: context.controller.scoreManager.summary,
+                results: event.ret.result,
+                hands: hands,
+              };
+              context.controller.player(w).enqueue(e);
+            }
           }
+          if (event.type == "DISCARD" && !context.controller.wall.canDraw) {
+            const wind: Wind[] = [];
+            for (let w of Object.values(WIND)) {
+              const p = context.controller.player(w);
+              const shan = new ShantenCalculator(p.hand).calc();
+              if (shan == 0) {
+                wind.push(w);
+                hands[w] = p.hand.toString();
+              }
+            }
+            let base = 3000 / wind.length;
+            if (wind.length == 0 || wind.length == 4) base = 0;
+            const ret: { [key in Wind]: number } = {
+              "1w": 0,
+              "2w": 0,
+              "3w": 0,
+              "4w": 0,
+            };
+            for (let w of Object.values(WIND)) {
+              if (wind.includes(w)) ret[w] += base;
+              else ret[w] -= base;
+            }
+
+            const pm = context.controller.placeManager.playerMap;
+            context.controller.scoreManager.update(ret, pm);
+            for (let w of Object.values(WIND)) {
+              const e = {
+                id: id,
+                type: "END" as const,
+                wind: w,
+                scores: context.controller.scoreManager.summary,
+                results: ret,
+                hands: hands,
+              };
+              context.controller.player(w).enqueue(e);
+            }
+            return;
+          }
+          for (let w of Object.values(WIND)) {
+            for (let w of Object.values(WIND)) {
+              console.debug(
+                context.controller.player(w).id,
+                `end hand: ${context.controller.player(w).hand.toString()}`
+              );
+            }
+          }
+          console.debug(
+            "scores",
+            JSON.stringify(context.controller.scoreManager.summary, null, 2)
+          );
         },
       },
       actors: {},
