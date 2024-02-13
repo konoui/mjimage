@@ -345,8 +345,8 @@ export const createControllerMachine = (c: Controller) => {
         },
         notify_ron: ({ context, event }) => {
           const id = genEventID();
-          const iam = context.currentWind;
           if (event.type == "RON") {
+            const iam = event.iam;
             console.debug(
               context.controller.player(iam).id,
               `ron: ${JSON.stringify(event.ret, null, 2)}`,
