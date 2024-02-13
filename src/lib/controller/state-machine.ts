@@ -16,6 +16,10 @@ export const nextWind = (w: Wind): Wind => {
   return `${n}w` as Wind;
 };
 
+export const prevWind = (w: Wind): Wind => {
+  return nextWind(nextWind(nextWind(w)));
+};
+
 import { createMachine } from "xstate";
 
 export const createControllerMachine = (c: Controller) => {

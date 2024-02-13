@@ -8,7 +8,7 @@ import {
 import { KIND, OPERATOR, Wind, Round } from "../constants";
 import { BlockChi, BlockPon, Parser, Tile } from "../parser";
 import { DoubleCalculator, WinResult } from "../calculator";
-import { createControllerMachine, nextWind } from "./state-machine";
+import { createControllerMachine, nextWind, prevWind } from "./state-machine";
 import { createActor } from "xstate";
 import {
   ChoiceAfterDiscardedEvent,
@@ -61,22 +61,25 @@ class PlaceManager {
   };
   round: Round;
   sticks: { reach: number; dead: number } = { reach: 0, dead: 0 };
-  constructor(playerIDs: string[]) {
+  constructor(playerIDs: string[], init?: Wind) {
     this.round = "1w1";
-    this.init(playerIDs);
+    const w = init == null ? this.randWind() : prevWind(init);
+    this.init(playerIDs, w);
   }
 
-  private init(ids: string[]) {
-    // FIXME
-    const n = 1; // Math.floor(Math.random() * 4) + 1;
-    const w = `${n}w` as Wind;
+  private init(ids: string[], init: Wind) {
     this.pToW = {
-      [ids[0]]: w,
-      [ids[1]]: nextWind(w),
-      [ids[2]]: nextWind(nextWind(w)),
-      [ids[3]]: nextWind(nextWind(nextWind(w))),
+      [ids[0]]: init,
+      [ids[1]]: nextWind(init),
+      [ids[2]]: nextWind(nextWind(init)),
+      [ids[3]]: nextWind(nextWind(nextWind(init))),
     };
     this.update();
+  }
+  private randWind() {
+    const n = Math.floor(Math.random() * 4) + 1;
+    const w = `${n}w` as Wind;
+    return prevWind(w);
   }
   private update() {
     for (let playerID in this.pToW) {
@@ -128,13 +131,13 @@ export class Controller {
   scoreManager: ScoreManager;
   actor = createActor(createControllerMachine(this));
   mailBox: { [id: string]: PlayerEvent[] };
-  constructor(wall: Wall, river: River) {
+  constructor(wall: Wall, river: River, params?: { initWind: Wind }) {
     this.wall = wall;
     this.river = river;
     this.mailBox = {};
 
     this.playerIDs = ["player-1", "player-2", "player-3", "player-4"];
-    this.placeManager = new PlaceManager(this.playerIDs);
+    this.placeManager = new PlaceManager(this.playerIDs, params?.initWind);
     this.scoreManager = new ScoreManager(this.playerIDs);
     const client = new SyncReplyClient(
       (evenId: string, event: PlayerEvent) => this.enqueue(evenId, event) // bind this

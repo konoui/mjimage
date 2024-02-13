@@ -3,12 +3,12 @@ import { Controller, Wall, River } from "../controller";
 import { Tile } from "../parser";
 import { Hand } from "../calculator";
 import { KIND, OPERATOR } from "../constants";
-import { loadWallData, storeWallData } from "./utils/helper";
+import { loadWallData } from "./utils/helper";
 describe("controller", () => {
   test("existing tests", () => {
     const walls = loadWallData().map((l) => new Wall(l));
     for (let w of walls) {
-      const c = new Controller(w, new River());
+      const c = new Controller(w, new River(), { initWind: "2w" });
       c.start();
     }
   });
