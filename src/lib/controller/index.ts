@@ -5,10 +5,15 @@ import {
   ShantenCalculator,
   TileCalculator,
 } from "../calculator";
-import { KIND, OPERATOR, Wind, Round } from "../constants";
+import { KIND, OPERATOR, Wind, Round, ROUND_MAP } from "../constants";
 import { BlockChi, BlockPon, Parser, Tile } from "../parser";
 import { DoubleCalculator, WinResult } from "../calculator";
-import { createControllerMachine, nextWind, prevWind } from "./state-machine";
+import {
+  createControllerMachine,
+  nextWind,
+  prevWind,
+  createWindMap,
+} from "./state-machine";
 import { createActor } from "xstate";
 import {
   ChoiceAfterDiscardedEvent,
@@ -60,12 +65,7 @@ class ScoreManager {
 
 class PlaceManager {
   private pToW: { [key: string]: Wind } = {};
-  private wToP: { [key in Wind]: string } = {
-    "1w": "",
-    "2w": "",
-    "3w": "",
-    "4w": "",
-  };
+  private wToP = createWindMap("");
   round: Round;
   sticks: { reach: number; dead: number } = { reach: 0, dead: 0 };
   constructor(playerIDs: string[], init?: Wind) {
@@ -106,8 +106,8 @@ class PlaceManager {
     this.round = next;
     this.update();
   }
-  isLastRound() {
-    return this.round == "2w4";
+  is(r: Round) {
+    return this.round == r;
   }
   wind(id: string) {
     return this.pToW[id];
@@ -120,7 +120,7 @@ class PlaceManager {
   }
   static nextRound(r: Round) {
     let w = r.substring(0, 2) as Wind;
-    let n = Number(r.substring(3, 1));
+    let n = Number(r.substring(2, 3));
     if (n == 4) {
       n = 1;
       w = nextWind(w);
@@ -150,29 +150,13 @@ export class Controller {
       (evenId: string, event: PlayerEvent) => this.enqueue(evenId, event) // bind this
     );
 
-    const m = this.initHands();
     this.players = {
-      [this.playerIDs[0]]: new Player(
-        this.playerIDs[0],
-        m[0].toString(),
-        client
-      ),
-      [this.playerIDs[1]]: new Player(
-        this.playerIDs[1],
-        m[1].toString(),
-        client
-      ),
-      [this.playerIDs[2]]: new Player(
-        this.playerIDs[2],
-        m[2].toString(),
-        client
-      ),
-      [this.playerIDs[3]]: new Player(
-        this.playerIDs[3],
-        m[3].toString(),
-        client
-      ),
+      [this.playerIDs[0]]: new Player(this.playerIDs[0], client),
+      [this.playerIDs[1]]: new Player(this.playerIDs[1], client),
+      [this.playerIDs[2]]: new Player(this.playerIDs[2], client),
+      [this.playerIDs[3]]: new Player(this.playerIDs[3], client),
     };
+    this.initHands();
   }
   player(w: Wind) {
     const id = this.placeManager.playerID(w);
@@ -301,6 +285,26 @@ export class Controller {
       console.debug("Value:", snapshot.value);
     });
     this.actor.start();
+    const v = this.actor.getSnapshot().status;
+    if (!(v == "done")) throw new Error(`unexpected state ${v}`);
+  }
+  startGame() {
+    for (;;) {
+      console.debug(`start========${this.placeManager.round}=============`);
+      this.start();
+      const v = this.actor.getSnapshot().value;
+      if (v == "drawn_game") this.placeManager.continueRound();
+      else if (v == "roned" || v == "tsumo") this.placeManager.incrementRound();
+      else throw new Error(`unexpected state ${v}`);
+
+      this.wall = new Wall();
+      this.river = new River();
+      this.initHands();
+      this.mailBox = {};
+      this.actor = createActor(createControllerMachine(this));
+
+      if (this.placeManager.is("3w1")) break;
+    }
   }
   doWin(
     w: Wind,
@@ -364,52 +368,50 @@ export class Controller {
     if (t.k == KIND.Z) return 0;
     if (nextWind(whoDiscarded) != w) return 0;
 
-    // disable 0,1,2
-    if (t.n == 0) t.n = 5;
+    const fake = t.clone();
+    if (fake.n == 0) fake.n = 5;
 
     const p = this.player(w);
     if (p.hand.reached) return 0;
     if (p.hand.hands.length < 3) return 0;
     const blocks: BlockChi[] = [];
     const lower =
-      t.n - 2 >= 1 &&
-      p.hand.get(t.k, t.n - 2, true) > 0 &&
-      p.hand.get(t.k, t.n - 1, true) > 0;
+      fake.n - 2 >= 1 &&
+      p.hand.get(t.k, fake.n - 2, true) > 0 &&
+      p.hand.get(t.k, fake.n - 1, true) > 0;
     if (lower)
       blocks.push(
         new BlockChi([
           t.clone().add(OPERATOR.HORIZONTAL),
-          new Tile(t.k, t.n - 1),
-          new Tile(t.k, t.n - 2),
+          new Tile(t.k, fake.n - 1),
+          new Tile(t.k, fake.n - 2),
         ])
       );
     const upper =
-      t.n + 2 <= 9 &&
-      p.hand.get(t.k, t.n + 1, true) > 0 &&
-      p.hand.get(t.k, t.n + 2, true) > 0;
+      fake.n + 2 <= 9 &&
+      p.hand.get(t.k, fake.n + 1, true) > 0 &&
+      p.hand.get(t.k, fake.n + 2, true) > 0;
     if (upper)
       blocks.push(
         new BlockChi([
           t.clone().add(OPERATOR.HORIZONTAL),
-          new Tile(t.k, t.n + 1),
-          new Tile(t.k, t.n + 2),
+          new Tile(t.k, fake.n + 1),
+          new Tile(t.k, fake.n + 2),
         ])
       );
     const kan =
-      t.n - 1 >= 1 &&
-      t.n + 1 <= 9 &&
-      p.hand.get(t.k, t.n - 1, true) > 0 &&
-      p.hand.get(t.k, t.n + 1, true) > 0;
+      fake.n - 1 >= 1 &&
+      fake.n + 1 <= 9 &&
+      p.hand.get(t.k, fake.n - 1, true) > 0 &&
+      p.hand.get(t.k, fake.n + 1, true) > 0;
     if (kan)
       blocks.push(
         new BlockChi([
           t.clone().add(OPERATOR.HORIZONTAL),
-          new Tile(t.k, t.n - 1),
-          new Tile(t.k, t.n + 1),
+          new Tile(t.k, fake.n - 1),
+          new Tile(t.k, fake.n + 1),
         ])
       );
-
-    if (t.n == 0) t.n = 0;
 
     // 1. check whether can-chi or not with ignoredRed pattern
     // 2. get red patterns if having red
@@ -467,7 +469,11 @@ export class Controller {
     m[1].push(this.wall.draw());
     m[2].push(this.wall.draw());
     m[3].push(this.wall.draw());
-    return m;
+    let idx = 0;
+    for (let id in this.players) {
+      this.players[id].newHand(m[idx].toString());
+      idx++;
+    }
   }
 }
 
@@ -487,13 +493,15 @@ class SyncReplyClient implements ReplyClient {
 }
 
 export class Player {
-  hand: Hand;
-  client: ReplyClient;
   id: string;
-  constructor(playerID: string, input: string, client: ReplyClient) {
-    this.hand = new Hand(input);
+  hand: Hand = new Hand(""); // empty hand for init
+  client: ReplyClient;
+  constructor(playerID: string, client: ReplyClient) {
     this.client = client;
     this.id = playerID;
+  }
+  newHand(input: string) {
+    this.hand = new Hand(input);
   }
   enqueue(e: PlayerEvent) {
     if (e.type == "CHOICE_AFTER_DISCARDED") {
@@ -571,7 +579,7 @@ export class Player {
 }
 
 export class Wall {
-  private raw = "a";
+  private raw = "";
   private drawableWall: Tile[] = [];
   private deadWall: Tile[] = [];
   private replacementWall: Tile[] = [];

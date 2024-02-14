@@ -9,7 +9,8 @@ type Event =
   | "CHOICE_AFTER_DISCARDED"
   | "CHOICE_AFTER_CALLED"
   | "DISTRIBUTE"
-  | "END";
+  | "WIN_GAME"
+  | "DRAWN_GAME";
 
 type ChoiceEvent = "PON" | "CHI" | "RON" | "DISCARD" | "TSUMO" | "REACH";
 
@@ -70,7 +71,7 @@ export interface ReachEvent {
 
 export interface EndEvent {
   id: string;
-  type: Extract<Event, "END">;
+  type: Extract<Event, "WIN_GAME" | "DRAWN_GAME">;
   wind: Wind;
   scores: { [key: string]: number };
   results: { [key in Wind]: number };

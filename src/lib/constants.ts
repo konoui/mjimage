@@ -34,6 +34,13 @@ export const BLOCK = {
   ISOLATED: "isolated",
 } as const;
 
+export const WIND = {
+  EAST: "1w",
+  SOUTH: "2w",
+  WEST: "3w",
+  NORTH: "4w",
+} as const;
+
 export const ROUND_MAP = {
   "1w1": "東１局",
   "1w2": "東２局",
@@ -43,20 +50,21 @@ export const ROUND_MAP = {
   "2w2": "南２局",
   "2w3": "南３局",
   "2w4": "南４局",
+  "3w1": "西1局",
+  "3w2": "西2局",
+  "3w3": "西3局",
+  "3w4": "西4局",
+  "4w1": "北1局",
+  "4w2": "北2局",
+  "4w3": "北3局",
+  "4w4": "北４局",
 } as const;
 
 export const WIND_MAP = {
-  "1w": "東",
-  "2w": "南",
-  "3w": "西",
-  "4w": "北",
-} as const;
-
-export const WIND = {
-  EAST: "1w",
-  SOUTH: "2w",
-  WEST: "3w",
-  NORTH: "4w",
+  [WIND.EAST]: "東",
+  [WIND.SOUTH]: "南",
+  [WIND.WEST]: "西",
+  [WIND.NORTH]: "北",
 } as const;
 
 export type Wind = keyof typeof WIND_MAP;

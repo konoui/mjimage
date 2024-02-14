@@ -20,6 +20,16 @@ export const prevWind = (w: Wind): Wind => {
   return nextWind(nextWind(nextWind(w)));
 };
 
+export function createWindMap<T>(initial: T) {
+  const m: { [key in Wind]: T } = {
+    "1w": initial,
+    "2w": initial,
+    "3w": initial,
+    "4w": initial,
+  };
+  return m;
+}
+
 import { createMachine } from "xstate";
 
 export const createControllerMachine = (c: Controller) => {
@@ -207,6 +217,13 @@ export const createControllerMachine = (c: Controller) => {
         },
         notify_hands: ({ context, event }) => {
           const id = genEventID();
+          console.debug(
+            `scores: ${JSON.stringify(
+              context.controller.scoreManager.summary,
+              null,
+              2
+            )}`
+          );
           for (let w of Object.values(WIND)) {
             console.debug(
               context.controller.player(w).id,
@@ -422,12 +439,7 @@ export const createControllerMachine = (c: Controller) => {
         notify_drawn_game: ({ context, event }) => {},
         notify_end: ({ context, event }) => {
           const id = genEventID();
-          const hands: { [key in Wind]: string } = {
-            "1w": "",
-            "2w": "",
-            "3w": "",
-            "4w": "",
-          };
+          const hands = createWindMap("");
           if (event.type == "RON" || event.type == "TSUMO") {
             const pm = context.controller.placeManager.playerMap;
             context.controller.scoreManager.update(event.ret.result, pm);
@@ -437,7 +449,7 @@ export const createControllerMachine = (c: Controller) => {
                 .hand.toString();
               const e = {
                 id: id,
-                type: "END" as const,
+                type: "WIN_GAME" as const,
                 wind: w,
                 scores: context.controller.scoreManager.summary,
                 results: event.ret.result,
@@ -456,14 +468,10 @@ export const createControllerMachine = (c: Controller) => {
                 hands[w] = p.hand.toString();
               }
             }
+
             let base = 3000 / wind.length;
             if (wind.length == 0 || wind.length == 4) base = 0;
-            const ret: { [key in Wind]: number } = {
-              "1w": 0,
-              "2w": 0,
-              "3w": 0,
-              "4w": 0,
-            };
+            const ret = createWindMap(0);
             for (let w of Object.values(WIND)) {
               if (wind.includes(w)) ret[w] += base;
               else ret[w] -= base;
@@ -474,7 +482,7 @@ export const createControllerMachine = (c: Controller) => {
             for (let w of Object.values(WIND)) {
               const e = {
                 id: id,
-                type: "END" as const,
+                type: "DRAWN_GAME" as const,
                 wind: w,
                 scores: context.controller.scoreManager.summary,
                 results: ret,
@@ -485,12 +493,10 @@ export const createControllerMachine = (c: Controller) => {
             return;
           }
           for (let w of Object.values(WIND)) {
-            for (let w of Object.values(WIND)) {
-              console.debug(
-                context.controller.player(w).id,
-                `end hand: ${context.controller.player(w).hand.toString()}`
-              );
-            }
+            console.debug(
+              context.controller.player(w).id,
+              `end hand: ${context.controller.player(w).hand.toString()}`
+            );
           }
           console.debug(
             "scores",

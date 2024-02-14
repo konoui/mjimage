@@ -717,6 +717,7 @@ export class DoubleCalculator {
       orig: cfg,
     };
   }
+
   calc(hands: Block[][]): WinResult | 0 {
     const patterns = this.calcPatterns(hands);
     if (patterns.length == 0) return 0;
@@ -745,7 +746,7 @@ export class DoubleCalculator {
       return Math.ceil(v / p) * p;
     };
 
-    const fu = ceil(max[1], 10);
+    const fu = max[1] != 25 ? ceil(max[1], 10) : 25; // 七対子
     const sum = max[0];
     let base = fu * 2 ** (sum + 2);
     switch (sum) {
@@ -813,7 +814,7 @@ export class DoubleCalculator {
       }
     }
 
-    result[myWind] += this.cfg.sticks.reach;
+    result[myWind] += 1000 * this.cfg.sticks.reach;
 
     const v = {
       result: result,
