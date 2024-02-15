@@ -1,5 +1,5 @@
 import { KIND, OPERATOR, WIND, Wind, Round } from "../constants";
-import { BlockChi, BlockPon, Tile } from "../parser";
+import { BlockAnKan, BlockChi, BlockPon, BlockShoKan, Tile } from "../parser";
 import { WinResult } from "../calculator";
 
 type Event =
@@ -12,7 +12,15 @@ type Event =
   | "WIN_GAME"
   | "DRAWN_GAME";
 
-type ChoiceEvent = "PON" | "CHI" | "RON" | "DISCARD" | "TSUMO" | "REACH";
+type ChoiceEvent =
+  | "PON"
+  | "CHI"
+  | "RON"
+  | "DISCARD"
+  | "TSUMO"
+  | "REACH"
+  | "AN_KAN"
+  | "SHO_KAN";
 
 export interface DistributeEvent {
   id: string;
@@ -24,10 +32,10 @@ export interface DistributeEvent {
 
 export interface CallEvent {
   id: string;
-  type: Extract<ChoiceEvent, "PON" | "CHI">;
+  type: Extract<ChoiceEvent, "PON" | "CHI" | "AN_KAN" | "SHO_KAN">;
   iam: Wind;
   wind: Wind;
-  block: BlockPon | BlockChi;
+  block: BlockPon | BlockChi | BlockAnKan | BlockShoKan;
 }
 
 export interface RonEvent {
@@ -120,8 +128,10 @@ interface DiscardedChoice {
 
 interface DrawnChoice {
   TSUMO: 0 | WinResult;
-  DISCARD: 0 | Tile[];
   REACH: 0 | Tile[];
+  AN_KAN: 0 | BlockAnKan[];
+  SHO_KAN: 0 | BlockShoKan[];
+  DISCARD: 0 | Tile[];
 }
 
 type ChoiceType = DiscardedChoice | DrawnChoice;
@@ -139,7 +149,13 @@ export function prioritizeDiscardedEvents(events: ChoiceAfterDiscardedEvent[]) {
 }
 
 export function prioritizeDrawnEvents(events: ChoiceAfterDrawnEvent[]) {
-  const order: ChoiceOrder<DrawnChoice> = ["TSUMO", "REACH", "DISCARD"];
+  const order: ChoiceOrder<DrawnChoice> = [
+    "TSUMO",
+    "REACH",
+    "AN_KAN",
+    "SHO_KAN",
+    "DISCARD",
+  ];
   const choices = events.map((e) => e.choices);
   const indexes = prioritizeEvents(choices, order);
   const selected = indexes.map((idx) => events[idx]);

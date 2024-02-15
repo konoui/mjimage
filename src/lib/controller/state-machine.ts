@@ -66,10 +66,6 @@ export const createControllerMachine = (c: Controller) => {
         waiting_user_event_after_drawn: {
           description: "ツモった1ユーザからのレスポンス待ち",
           on: {
-            DISCARD: {
-              target: "discarded",
-              description: "入力に牌が必須",
-            },
             TSUMO: {
               target: "tsumo",
               guard: "canWin",
@@ -82,6 +78,16 @@ export const createControllerMachine = (c: Controller) => {
               },
               description:
                 "入力に牌が必要\\\n立直直後のロンは立直棒が点数にならないので\\\n別途状態を保つ必要がある",
+            },
+            SHO_KAN: {
+              target: "an_sho_kaned",
+            },
+            AN_KAN: {
+              target: "an_sho_kaned",
+            },
+            DISCARD: {
+              target: "discarded",
+              description: "入力に牌が必須",
             },
           },
         },
@@ -189,6 +195,27 @@ export const createControllerMachine = (c: Controller) => {
             },
           },
         },
+        an_sho_kaned: {
+          exit: [
+            {
+              type: "notify_kan",
+            },
+            {
+              type: "notify_new_dora_if_needed",
+            },
+          ],
+          always: {
+            target: "waiting_chankan_event",
+            actions: {
+              type: "notify_choice_for_chankan",
+            },
+          },
+        },
+        waiting_chankan_event: {
+          description: "チャンカンを待つ",
+          on: {},
+          type: "final", // FIXME roned or chan_kaned
+        },
         drawn_game: {
           exit: {
             type: "notify_end",
@@ -205,7 +232,9 @@ export const createControllerMachine = (c: Controller) => {
           | { type: "RON"; ret: WinResult; iam: Wind }
           | { type: "TSUMO"; ret: WinResult; iam: Wind }
           | { type: "REACH"; tile: Tile; iam: Wind }
-          | { type: "DISCARD"; tile: Tile; iam: Wind },
+          | { type: "DISCARD"; tile: Tile; iam: Wind }
+          | { type: "AN_KAN"; block: BlockPon; iam: Wind }
+          | { type: "SHO_KAN"; block: BlockPon; iam: Wind },
         context: {} as ControllerContext,
       },
     },
@@ -252,8 +281,10 @@ export const createControllerMachine = (c: Controller) => {
             wind: context.currentWind,
             choices: {
               TSUMO: context.controller.doWin(w, drawn),
-              DISCARD: context.controller.doDiscard(w),
               REACH: context.controller.doReach(w),
+              AN_KAN: context.controller.doAnKan(w),
+              SHO_KAN: context.controller.doShoKan(w),
+              DISCARD: context.controller.doDiscard(w),
             },
           };
           context.controller.player(w).enqueue(e);
@@ -436,7 +467,46 @@ export const createControllerMachine = (c: Controller) => {
             }
           }
         },
-        notify_drawn_game: ({ context, event }) => {},
+        notify_kan: ({ context, event }) => {
+          const id = genEventID();
+          if (event.type == "AN_KAN" || event.type == "SHO_KAN") {
+            const iam = event.iam;
+            context.controller.player(iam).hand.kan(event.block);
+            console.debug(
+              context.controller.player(iam).id,
+              `kan: ${event.block}`,
+              `hand: ${context.controller.player(iam).hand.toString()}`
+            );
+            for (let w of Object.values(WIND)) {
+              const e = {
+                id: id,
+                type: event.type,
+                iam: iam,
+                wind: w,
+                block: event.block,
+              };
+              context.controller.player(w).enqueue(e);
+            }
+          }
+        },
+        notify_new_dora_if_needed: ({ context, event }) => {
+          const id = genEventID();
+          if (event.type == "AN_KAN") {
+            for (let w of Object.values(WIND)) {
+              const doras = context.controller.wall.doras;
+              const e = {
+                id: id,
+                type: "DORAS",
+                wind: w,
+                doras: doras,
+              };
+              //              context.controller.player(w).enqueue(e);
+            }
+          }
+          if (event.type == "AN_KAN") {
+            // nothing because handling by discarded
+          }
+        },
         notify_end: ({ context, event }) => {
           const id = genEventID();
           const hands = createWindMap("");

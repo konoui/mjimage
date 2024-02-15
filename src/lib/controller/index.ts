@@ -6,7 +6,15 @@ import {
   TileCalculator,
 } from "../calculator";
 import { KIND, OPERATOR, Wind, Round, ROUND_MAP } from "../constants";
-import { BlockChi, BlockPon, Parser, Tile } from "../parser";
+import {
+  Block,
+  BlockAnKan,
+  BlockChi,
+  BlockPon,
+  BlockShoKan,
+  Parser,
+  Tile,
+} from "../parser";
 import { DoubleCalculator, WinResult } from "../calculator";
 import {
   createControllerMachine,
@@ -249,6 +257,20 @@ export class Controller {
           tile: e.choices.REACH[0].remove(OPERATOR.TSUMO),
           iam: w,
         });
+      } else if (selected.type == "AN_KAN") {
+        assert(e.choices.AN_KAN != 0, "ankan choice is none");
+        this.actor.send({
+          type: "AN_KAN",
+          block: e.choices.AN_KAN[0],
+          iam: w,
+        });
+      } else if (selected.type == "SHO_KAN") {
+        assert(e.choices.SHO_KAN != 0, "ankan choice is none");
+        this.actor.send({
+          type: "SHO_KAN",
+          block: e.choices.SHO_KAN[0],
+          iam: w,
+        });
       } else if (selected.type == "DISCARD") {
         assert(e.choices.DISCARD != 0, "discard choice is none");
         this.actor.send({
@@ -282,7 +304,10 @@ export class Controller {
     });
     this.actor.start();
     const v = this.actor.getSnapshot().status;
-    if (!(v == "done")) throw new Error(`unexpected state ${v}`);
+    if (!(v == "done"))
+      throw new Error(
+        `unexpected state ${this.actor.getSnapshot().value}(${v})`
+      );
   }
   startGame() {
     for (;;) {
@@ -454,6 +479,43 @@ export class Controller {
   doDiscard(w: Wind): Tile[] | 0 {
     if (this.player(w).hand.reached) return [this.player(w).hand.drawn!];
     return this.player(w).hand.hands;
+  }
+  doAnKan(w: Wind): BlockAnKan[] | 0 {
+    const p = this.player(w);
+    const b: BlockAnKan[] = [];
+    if (p.hand.reached) return 0; // FIXME 待ち変更がなければできる
+    for (let k of Object.values(KIND)) {
+      for (let n = 1; n < p.hand.getArrayLen(k); n++) {
+        if (p.hand.get(k, n) == 4) {
+          const tiles = [
+            new Tile(k, n),
+            new Tile(KIND.BACK, 0),
+            new Tile(KIND.BACK, 0),
+            new Tile(k, n),
+          ];
+          if (k != KIND.Z && n == 0) tiles[0].n = 0;
+          b.push(new BlockAnKan(tiles));
+        }
+      }
+    }
+    return b.length > 0 ? b : 0;
+  }
+  doShoKan(w: Wind): BlockShoKan[] | 0 {
+    const p = this.player(w);
+    if (p.hand.reached) return 0;
+    const called = p.hand.called.filter((b) => b instanceof BlockPon);
+    const b: BlockShoKan[] = [];
+    if (called.length == 0) return 0;
+    for (let c of called) {
+      const pick = c.tiles[0];
+      if (p.hand.get(pick.k, pick.n) == 1) {
+        const n = c.clone();
+        n.tiles.push(new Tile(pick.k, pick.n, [OPERATOR.HORIZONTAL]));
+        if (pick.n == 5 && p.hand.get(pick.k, 0, false) == 1) n.tiles[3].n == 0;
+        b.push(new BlockShoKan(n.tiles));
+      }
+    }
+    return b.length > 0 ? b : 0;
   }
   private initHands() {
     const m: [Tile[], Tile[], Tile[], Tile[]] = [[], [], [], []];
