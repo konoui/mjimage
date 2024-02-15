@@ -42,7 +42,7 @@ class ScoreManager {
     const base = 1000;
     this.m[id] -= base;
     this.tmp[id] = 1;
-    // TODO register callback
+    // FIXME register callback
     // if 流局 then tmp => sticks
     // if 立直直後のロン then tmp => back to the reached user
   }
@@ -132,7 +132,7 @@ class PlaceManager {
 export class Controller {
   wall: Wall;
   river: River;
-  private players: { [key: string]: Player };
+  private players: { [key: string]: Player } = {};
   playerIDs: string[];
   placeManager: PlaceManager;
   scoreManager: ScoreManager;
@@ -150,12 +150,8 @@ export class Controller {
       (evenId: string, event: PlayerEvent) => this.enqueue(evenId, event) // bind this
     );
 
-    this.players = {
-      [this.playerIDs[0]]: new Player(this.playerIDs[0], client),
-      [this.playerIDs[1]]: new Player(this.playerIDs[1], client),
-      [this.playerIDs[2]]: new Player(this.playerIDs[2], client),
-      [this.playerIDs[3]]: new Player(this.playerIDs[3], client),
-    };
+    // init players and hands
+    for (let id of this.playerIDs) this.players[id] = new Player(id, client);
     this.initHands();
   }
   player(w: Wind) {
@@ -297,6 +293,7 @@ export class Controller {
       else if (v == "roned" || v == "tsumo") this.placeManager.incrementRound();
       else throw new Error(`unexpected state ${v}`);
 
+      // TODO arrange as function
       this.wall = new Wall();
       this.river = new River();
       this.initHands();
@@ -317,8 +314,10 @@ export class Controller {
     if (hand.drawn == null) {
       hand = hand.clone();
       env.ronWind = whoDiscarded;
+      env.finalDiscardWin = !this.wall.canDraw;
       hand.inc([t], false); // TODO hand.draw looks good but it adds OP.TSUMO
-    }
+    } else env.finalWallWin = !this.wall.canDraw;
+    // if (hand.reached)  FIXME oneshot
     const tc = new TileCalculator(hand);
     const dc = new DoubleCalculator(hand, env);
     const hands = tc.calc(t);
@@ -465,10 +464,8 @@ export class Controller {
         }
       }
     }
-    m[0].push(this.wall.draw());
-    m[1].push(this.wall.draw());
-    m[2].push(this.wall.draw());
-    m[3].push(this.wall.draw());
+    for (let i = 0; i < 4; i++) m[i].push(this.wall.draw());
+
     let idx = 0;
     for (let id in this.players) {
       this.players[id].newHand(m[idx].toString());

@@ -560,7 +560,11 @@ export const createControllerMachine = (c: Controller) => {
   );
 };
 
-let id = 0;
-const genEventID = (): string => {
-  return (id++).toString();
-};
+function incrementalIDGenerator(start = 0) {
+  let idx = start;
+  return () => {
+    return (idx++).toString();
+  };
+}
+
+const genEventID = incrementalIDGenerator();
