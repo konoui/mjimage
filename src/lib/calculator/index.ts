@@ -137,7 +137,14 @@ export class Hand {
         throw new Error(`unable to increase ${t} in ${this.toString()}`);
       }
       backup.push(t);
-      this.data[t.k][t.n] += 1;
+      if (
+        ignoreRed &&
+        t.k != KIND.Z &&
+        (t.n == 5 || t.n == 0) &&
+        this.get(t.k, 5, false) == 3
+      )
+        this.data[t.k][0] = 1;
+      else this.data[t.k][t.n] += 1;
     }
   }
   dec(tiles: Tile[], ignoreRed = true) {
@@ -148,7 +155,14 @@ export class Hand {
         throw new Error(`unable to decrease ${t} in ${this.toString()}`);
       }
       backup.push(t);
-      this.data[t.k][t.n] -= 1;
+      if (
+        ignoreRed &&
+        t.k != KIND.Z &&
+        (t.n == 5 || t.n == 0) &&
+        this.get(t.k, 5, false) == 0
+      )
+        this.data[t.k][0] -= 1;
+      else this.data[t.k][t.n] -= 1;
     }
   }
   draw(t: Tile) {
@@ -189,7 +203,7 @@ export class Hand {
   kan(b: BlockAnKan | BlockShoKan) {
     if (b instanceof BlockAnKan) {
       const t = b.tiles.filter((v) => v.k != KIND.BACK);
-      this.dec([t[0], t[0], t[0], t[0]], false);
+      this.dec([t[0], t[0], t[0], t[0]], true);
       this.data.called.push(b);
       this.data.tsumo = null;
       return this;
@@ -197,10 +211,11 @@ export class Hand {
 
     if (b instanceof BlockShoKan) {
       const idx = this.data.called.findIndex(
-        (v) => v.is(BLOCK.PON) && v.tiles[0].equals(b.tiles[0])
+        (v) => v.is(BLOCK.PON) && v.tiles[0].equals(b.tiles[0], true) // FIXME handle which tile is called
       );
       if (idx == -1) throw new Error(`unable to find ${b.tiles[0]}`);
       this.data.called.splice(idx, 1);
+      this.dec([b.tiles[0]], true); // dec remaining tile
       this.data.called.push(b);
       this.data.tsumo = null;
       return this;

@@ -29,6 +29,7 @@ import {
   ChoiceAfterDrawnEvent,
   prioritizeDiscardedEvents,
   prioritizeDrawnEvents,
+  ChoiceForChanKan,
 } from "./events";
 
 class ScoreManager {
@@ -210,6 +211,7 @@ export class Controller {
             type: selected.type,
             iam: e.wind,
             ret: e.choices.RON,
+            tileInfo: e.tileInfo,
           });
         } else if (selected.type == "PON") {
           assert(e.choices.PON != 0, "pon choice is none");
@@ -248,6 +250,7 @@ export class Controller {
         this.actor.send({
           type: "TSUMO",
           ret: e.choices.TSUMO,
+          lastTile: e.tileInfo.tile,
           iam: w,
         });
       } else if (selected.type == "REACH") {
@@ -296,6 +299,25 @@ export class Controller {
       const t = sample.choices.DISCARD[0];
       assert(t != null, `undefined tile ${this.player(w).hand.toString()}`);
       this.actor.send({ type: "DISCARD", tile: t, iam: w });
+    } else if (sample.type == "CHOICE_FOR_CHAN_KAN") {
+      const selected = events.filter((e) => {
+        const ce = e as ChoiceForChanKan;
+        return ce.choices.RON != 0;
+      }) as ChoiceForChanKan[];
+
+      if (selected.length == 0) this.actor.send({ type: "" });
+      else {
+        const e = selected[0];
+        assert(e.choices.RON != 0, "ron choice is none");
+        console.error(`chankan event ${JSON.stringify(e, null, 2)}`);
+        this.actor.send({
+          type: "RON",
+          iam: e.wind,
+          ret: e.choices.RON,
+          quadWin: true,
+          tileInfo: e.tileInfo,
+        });
+      }
     }
   }
   start() {
@@ -304,10 +326,10 @@ export class Controller {
     });
     this.actor.start();
     const v = this.actor.getSnapshot().status;
-    if (!(v == "done"))
-      throw new Error(
-        `unexpected state ${this.actor.getSnapshot().value}(${v})`
-      );
+    // if (!(v == "done"))
+    //   throw new Error(
+    //     `unexpected state ${this.actor.getSnapshot().value}(${v})`
+    //   );
   }
   startGame() {
     for (;;) {
@@ -331,7 +353,8 @@ export class Controller {
   doWin(
     w: Wind,
     t: Tile | null | undefined,
-    whoDiscarded?: Wind
+    whoDiscarded?: Wind,
+    quadWin?: boolean
   ): WinResult | 0 {
     if (t == null) return 0;
     let hand = this.player(w).hand;
@@ -340,6 +363,7 @@ export class Controller {
       hand = hand.clone();
       env.ronWind = whoDiscarded;
       env.finalDiscardWin = !this.wall.canDraw;
+      env.quadWin = quadWin;
       hand.inc([t], false); // TODO hand.draw looks good but it adds OP.TSUMO
     } else env.finalWallWin = !this.wall.canDraw;
     // if (hand.reached)  FIXME oneshot
@@ -580,6 +604,10 @@ export class Player {
         const ret = this.choiceForDiscard(e.choices.DISCARD);
         e.choices.DISCARD = [ret.tile];
       }
+      this.client.reply(e.id, e);
+      return;
+    }
+    if (e.type == "CHOICE_FOR_CHAN_KAN") {
       this.client.reply(e.id, e);
       return;
     }

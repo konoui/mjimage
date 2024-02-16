@@ -8,6 +8,7 @@ type Event =
   | "CHOICE_AFTER_DRAWN"
   | "CHOICE_AFTER_DISCARDED"
   | "CHOICE_AFTER_CALLED"
+  | "CHOICE_FOR_CHAN_KAN"
   | "DISTRIBUTE"
   | "WIN_GAME"
   | "DRAWN_GAME";
@@ -44,6 +45,8 @@ export interface RonEvent {
   iam: Wind;
   wind: Wind;
   ret: WinResult;
+  tileInfo: { wind: Wind; tile: Tile };
+  quadWin?: boolean;
 }
 
 export interface TsumoEvent {
@@ -51,6 +54,7 @@ export interface TsumoEvent {
   type: Extract<ChoiceEvent, "TSUMO">;
   iam: Wind;
   wind: Wind;
+  lastTile: Tile;
   ret: WinResult;
 }
 
@@ -90,6 +94,7 @@ export interface ChoiceAfterDrawnEvent {
   id: string;
   type: Extract<Event, "CHOICE_AFTER_DRAWN">;
   wind: Wind;
+  tileInfo: { wind: Wind; tile: Tile };
   choices: DrawnChoice;
 }
 
@@ -97,6 +102,7 @@ export interface ChoiceAfterDiscardedEvent {
   id: string;
   type: Extract<Event, "CHOICE_AFTER_DISCARDED">;
   wind: Wind;
+  tileInfo: { wind: Wind; tile: Tile };
   choices: DiscardedChoice;
 }
 
@@ -105,6 +111,14 @@ export interface ChoiceAfterCalled {
   type: Extract<Event, "CHOICE_AFTER_CALLED">;
   wind: Wind;
   choices: Pick<DrawnChoice, "DISCARD">;
+}
+
+export interface ChoiceForChanKan {
+  id: string;
+  type: Extract<Event, "CHOICE_FOR_CHAN_KAN">;
+  wind: Wind;
+  tileInfo: { wind: Wind; tile: Tile };
+  choices: Pick<DiscardedChoice, "RON">;
 }
 
 export type PlayerEvent =
@@ -118,7 +132,8 @@ export type PlayerEvent =
   | ReachEvent
   | ChoiceAfterDrawnEvent
   | ChoiceAfterDiscardedEvent
-  | ChoiceAfterCalled;
+  | ChoiceAfterCalled
+  | ChoiceForChanKan;
 
 interface DiscardedChoice {
   RON: 0 | WinResult;

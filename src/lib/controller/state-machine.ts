@@ -213,8 +213,23 @@ export const createControllerMachine = (c: Controller) => {
         },
         waiting_chankan_event: {
           description: "チャンカンを待つ",
-          on: {},
-          type: "final", // FIXME roned or chan_kaned
+          exit: [
+            {
+              type: "notify_kan_draw",
+            },
+            {
+              type: "notify_choice_after_drawn",
+            },
+          ],
+          on: {
+            RON: {
+              target: "roned",
+              guard: "canWin",
+            },
+            "*": {
+              target: "waiting_user_event_after_drawn",
+            },
+          },
         },
         drawn_game: {
           exit: {
@@ -229,8 +244,14 @@ export const createControllerMachine = (c: Controller) => {
           | { type: "" }
           | { type: "CHI"; block: BlockChi; iam: Wind }
           | { type: "PON"; block: BlockPon; iam: Wind }
-          | { type: "RON"; ret: WinResult; iam: Wind }
-          | { type: "TSUMO"; ret: WinResult; iam: Wind }
+          | {
+              type: "RON";
+              ret: WinResult;
+              iam: Wind;
+              tileInfo: { wind: Wind; tile: Tile };
+              quadWin?: boolean;
+            }
+          | { type: "TSUMO"; ret: WinResult; iam: Wind; lastTile: Tile }
           | { type: "REACH"; tile: Tile; iam: Wind }
           | { type: "DISCARD"; tile: Tile; iam: Wind }
           | { type: "AN_KAN"; block: BlockPon; iam: Wind }
@@ -273,12 +294,13 @@ export const createControllerMachine = (c: Controller) => {
         },
         notify_choice_after_drawn: ({ context, event }) => {
           const w = context.currentWind;
-          const drawn = context.controller.player(w).hand.drawn;
+          const drawn = context.controller.player(w).hand.drawn; // FIXME null
           const id = genEventID();
           const e = {
             id: id,
             type: "CHOICE_AFTER_DRAWN" as const,
-            wind: context.currentWind,
+            wind: w,
+            tileInfo: { wind: w, tile: drawn! },
             choices: {
               TSUMO: context.controller.doWin(w, drawn),
               REACH: context.controller.doReach(w),
@@ -299,6 +321,7 @@ export const createControllerMachine = (c: Controller) => {
               id: id,
               type: "CHOICE_AFTER_DISCARDED" as const,
               wind: w,
+              tileInfo: { wind: discarded.w, tile: discarded.t },
               choices: {
                 RON: context.controller.doWin(w, ltile, discarded.w),
                 PON: context.controller.doPon(w, discarded.w, ltile),
@@ -372,6 +395,29 @@ export const createControllerMachine = (c: Controller) => {
             }
           }
         },
+        notify_kan_draw: ({ context, event }) => {
+          const id = genEventID();
+          const drawn = context.controller.wall.kan();
+          const iam = context.currentWind;
+          context.controller.player(iam).hand.draw(drawn); // draw
+          console.debug(
+            context.controller.player(iam).id,
+            `kan draw: ${drawn}`,
+            `hand: ${context.controller.player(iam).hand.toString()}`
+          );
+          for (let w of Object.values(WIND)) {
+            let t = new Tile(KIND.BACK, 0); // mask tile for other players
+            if (w == iam) t = drawn;
+            const e = {
+              id: id,
+              type: "DRAW" as const,
+              iam: iam,
+              wind: w,
+              tile: t,
+            };
+            context.controller.player(w).enqueue(e);
+          }
+        },
         notify_draw: ({ context, event }) => {
           const id = genEventID();
           const drawn = context.controller.wall.draw();
@@ -411,6 +457,7 @@ export const createControllerMachine = (c: Controller) => {
                 type: event.type,
                 iam: iam,
                 wind: w,
+                tileInfo: event.tileInfo,
                 ret: event.ret,
               };
               context.controller.player(w).enqueue(e);
@@ -433,6 +480,7 @@ export const createControllerMachine = (c: Controller) => {
                 type: event.type,
                 iam: iam,
                 wind: w,
+                lastTile: context.controller.player(iam).hand.drawn!, // FIXME null
                 ret: event.ret,
               };
               context.controller.player(w).enqueue(e);
@@ -471,6 +519,7 @@ export const createControllerMachine = (c: Controller) => {
           const id = genEventID();
           if (event.type == "AN_KAN" || event.type == "SHO_KAN") {
             const iam = event.iam;
+            context.currentWind = iam;
             context.controller.player(iam).hand.kan(event.block);
             console.debug(
               context.controller.player(iam).id,
@@ -487,6 +536,31 @@ export const createControllerMachine = (c: Controller) => {
               };
               context.controller.player(w).enqueue(e);
             }
+          }
+        },
+        notify_choice_for_chankan: ({ context, event }) => {
+          if (event.type == "SHO_KAN" || event.type == "AN_KAN") {
+            const id = genEventID();
+            const t = event.block.tiles[0].clone().remove(OPERATOR.HORIZONTAL);
+            for (let w of Object.values(WIND)) {
+              const ron = context.controller.doWin(
+                w,
+                event.block.tiles[0].clone().remove(OPERATOR.HORIZONTAL),
+                event.iam,
+                true
+              ); // TODO which tile is kaned for 0/5
+              const e = {
+                id: id,
+                type: "CHOICE_FOR_CHAN_KAN" as const,
+                wind: w,
+                tileInfo: { wind: event.iam, tile: t },
+                choices: {
+                  RON: event.type == "SHO_KAN" ? ron : 0,
+                },
+              };
+              context.controller.player(w).enqueue(e);
+            }
+            context.controller.pollReplies(id, Object.values(WIND));
           }
         },
         notify_new_dora_if_needed: ({ context, event }) => {
@@ -602,13 +676,10 @@ export const createControllerMachine = (c: Controller) => {
         },
         canWin: ({ context, event }, params) => {
           if (event.type == "TSUMO" || event.type == "RON") {
-            let t = context.controller.player(event.iam).hand.drawn;
-            if (t == null) t = context.controller.river.lastTile.t;
-            const can = context.controller.doWin(
-              event.iam,
-              t,
-              context.controller.river.lastTile?.w
-            );
+            let quadWin = event.type == "RON" ? event.quadWin : undefined;
+            let t = event.type != "RON" ? event.lastTile : event.tileInfo.tile;
+            let w = event.type == "RON" ? event.tileInfo.wind : undefined;
+            const can = context.controller.doWin(event.iam, t, w, quadWin);
             return can != 0;
           }
           console.error(`guards.canWin receive ${event.type}`);
