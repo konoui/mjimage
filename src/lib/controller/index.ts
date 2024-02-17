@@ -315,7 +315,7 @@ export class Controller {
       hand = hand.clone();
       env.ronWind = whoDiscarded;
       env.finalDiscardWin = !this.wall.canDraw;
-      hand.inc([t], false); // TODO hand.draw looks good but it adds OP.TSUMO
+      hand.inc([t]); // TODO hand.draw looks good but it adds OP.TSUMO
     } else env.finalWallWin = !this.wall.canDraw;
     // if (hand.reached)  FIXME oneshot
     const tc = new TileCalculator(hand);
@@ -335,7 +335,7 @@ export class Controller {
     if (p.hand.hands.length < 3) return 0;
     if (p.hand.get(t.k, t.n) < 2) return 0;
     const blocks: BlockPon[] = [];
-    if (t.n == 5 && p.hand.get(t.k, 0, false) > 0) {
+    if (t.n == 5 && p.hand.get(t.k, 0) > 0) {
       blocks.push(
         new BlockPon([
           new Tile(t.k, t.n, [OPERATOR.HORIZONTAL]),
@@ -343,7 +343,7 @@ export class Controller {
           new Tile(t.k, t.n),
         ])
       );
-      if (p.hand.get(t.k, t.n, false) > 2) {
+      if (p.hand.get(t.k, t.n) > 2) {
         blocks.push(
           new BlockPon([
             new Tile(t.k, t.n, [OPERATOR.HORIZONTAL]),
@@ -376,8 +376,8 @@ export class Controller {
     const blocks: BlockChi[] = [];
     const lower =
       fake.n - 2 >= 1 &&
-      p.hand.get(t.k, fake.n - 2, true) > 0 &&
-      p.hand.get(t.k, fake.n - 1, true) > 0;
+      p.hand.get(t.k, fake.n - 2) > 0 &&
+      p.hand.get(t.k, fake.n - 1) > 0;
     if (lower)
       blocks.push(
         new BlockChi([
@@ -388,8 +388,8 @@ export class Controller {
       );
     const upper =
       fake.n + 2 <= 9 &&
-      p.hand.get(t.k, fake.n + 1, true) > 0 &&
-      p.hand.get(t.k, fake.n + 2, true) > 0;
+      p.hand.get(t.k, fake.n + 1) > 0 &&
+      p.hand.get(t.k, fake.n + 2) > 0;
     if (upper)
       blocks.push(
         new BlockChi([
@@ -401,8 +401,8 @@ export class Controller {
     const kan =
       fake.n - 1 >= 1 &&
       fake.n + 1 <= 9 &&
-      p.hand.get(t.k, fake.n - 1, true) > 0 &&
-      p.hand.get(t.k, fake.n + 1, true) > 0;
+      p.hand.get(t.k, fake.n - 1) > 0 &&
+      p.hand.get(t.k, fake.n + 1) > 0;
     if (kan)
       blocks.push(
         new BlockChi([
@@ -416,9 +416,9 @@ export class Controller {
     // 2. get red patterns if having red
     // 3. if not having normal 5, return only red pattern, else if concat red and normal patterns
     if (blocks.length == 0) return 0;
-    const hasRed = p.hand.get(t.k, 0, false) > 0;
+    const hasRed = p.hand.get(t.k, 0) > 0;
     const reds = this.redPattern(blocks, hasRed);
-    if (reds.length > 0 && p.hand.get(t.k, 5, false) == 0) return reds;
+    if (reds.length > 0 && p.hand.get(t.k, 5) == 1) return reds;
     return blocks.concat(reds);
   }
   redPattern(blocks: BlockChi[], hasRed: boolean): BlockChi[] {
@@ -530,9 +530,9 @@ export class Player {
       tile: choices[0],
     };
     for (let t of choices) {
-      this.hand.dec([t], false);
+      this.hand.dec([t]);
       const c = this.candidateTiles();
-      this.hand.inc([t], false);
+      this.hand.inc([t]);
       if (c.shanten < ret.shanten) {
         ret = {
           shanten: c.shanten,
@@ -558,9 +558,9 @@ export class Player {
       for (let n = 1; n < this.hand.getArrayLen(k); n++) {
         if (this.hand.get(k, n) >= 4) continue;
         const t = new Tile(k, n);
-        this.hand.inc([t], false);
+        this.hand.inc([t]);
         const s = new ShantenCalculator(this.hand).calc();
-        this.hand.dec([t], false);
+        this.hand.dec([t]);
 
         if (s < r) {
           r = s;

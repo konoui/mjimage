@@ -251,7 +251,7 @@ export const createControllerMachine = (c: Controller) => {
             type: "CHOICE_AFTER_DRAWN" as const,
             wind: context.currentWind,
             choices: {
-              TSUMO: context.controller.doWin(w, drawn),
+              TSUMO: 0 as const, //context.controller.doWin(w, drawn),
               DISCARD: context.controller.doDiscard(w),
               REACH: context.controller.doReach(w),
             },

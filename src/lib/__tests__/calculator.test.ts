@@ -193,7 +193,7 @@ describe("Tile Calculator", () => {
     {
       name: "nine gates",
       input: "11123456789990m",
-      want: [["11123450678999m"]],
+      want: [["11123405678999m"]],
       handler: "Nine",
     },
     {
