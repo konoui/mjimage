@@ -73,9 +73,9 @@ class BaseHelper {
     return g;
   }
 
-  createStackImage(tile: Tile, x: number, y: number) {
-    const base = this.createRotate90Image(tile, 0, 0, true);
-    const up = this.createRotate90Image(tile, 0, this.tileWidth, true);
+  createStackImage(baseTile: Tile, upTile: Tile, x: number, y: number) {
+    const base = this.createRotate90Image(baseTile, 0, 0, true);
+    const up = this.createRotate90Image(upTile, 0, this.tileWidth, true);
     const g = new G().translate(x, y).add(base).add(up);
     return g;
   }
@@ -147,10 +147,24 @@ export class ImageHelper extends BaseHelper {
     if (block.type == BLOCK.SHO_KAN) {
       const diff = this.tileWidth * 2 - this.tileHeight;
 
+      let lastIdx = idx;
+      let i = 0;
+      for (let t of block.tiles) {
+        if (t.has(OPERATOR.HORIZONTAL)) lastIdx = i;
+        i++;
+      }
+
       for (let i = 0; i < block.tiles.length; i++) {
-        if (i == idx + 1) continue;
+        if (i == lastIdx) continue;
         if (i == idx) {
-          let img = this.createStackImage(block.tiles[idx], pos, 0);
+          // Note first index is added tile
+          // TODO but first index is upper
+          let img = this.createStackImage(
+            block.tiles[idx],
+            block.tiles[lastIdx],
+            pos,
+            0
+          );
           pos += this.tileHeight;
           g.add(img);
           continue;

@@ -360,6 +360,7 @@ export class Controller {
     let hand = this.player(w).hand;
     const env = this.boardParams(w);
     if (hand.drawn == null) {
+      if (whoDiscarded == w) return 0;
       hand = hand.clone();
       env.ronWind = whoDiscarded;
       env.finalDiscardWin = !this.wall.canDraw;
@@ -527,16 +528,15 @@ export class Controller {
     const p = this.player(w);
     if (p.hand.reached) return 0;
     const called = p.hand.called.filter((b) => b instanceof BlockPon);
-    const b: BlockShoKan[] = [];
     if (called.length == 0) return 0;
+    const b: BlockShoKan[] = [];
     for (let c of called) {
       const pick = c.tiles[0];
       if (p.hand.get(pick.k, pick.n) == 1) {
-        const n = c.clone();
         const cb = c.clone();
         cb.tiles.push(new Tile(pick.k, pick.n, [OPERATOR.HORIZONTAL]));
-        if (pick.n == 5 && p.hand.get(pick.k, 0) == 1) n.tiles[3].n == 0;
-        b.push(new BlockShoKan(n.tiles));
+        if (pick.n == 5 && p.hand.get(pick.k, 0) == 1) cb.tiles[3].n == 0;
+        b.push(new BlockShoKan(cb.tiles));
       }
     }
     return b.length > 0 ? b : 0;
@@ -677,7 +677,7 @@ export class Wall {
   }
   kan() {
     if (this.replacementWall.length == 0)
-      throw new Error("exceeded maximum open doras");
+      throw new Error(`exceeded maximum kan`);
     const t = this.replacementWall.pop()!;
     this.drawableWall.pop();
     return t;
@@ -686,11 +686,15 @@ export class Wall {
     if (!this.drawableWall) throw new Error("cannot draw any more");
     return this.drawableWall.pop()!;
   }
+
   get doras() {
     return this.doraWall.slice(0, 4 - this.replacementWall.length);
   }
   get blindDoras() {
     return this.blindDoraWall.slice(0, 4 - this.replacementWall.length);
+  }
+  get canKan() {
+    return this.replacementWall.length > 0;
   }
   get canDraw() {
     return this.drawableWall.length > 0;
@@ -722,13 +726,13 @@ export class Wall {
     for (let i = 0; i < 13; i++) {
       this.deadWall.push(this.drawableWall.pop()!);
     }
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
       this.blindDoras.push(this.deadWall.pop()!);
     }
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
       this.doras.push(this.deadWall.pop()!);
     }
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
       this.replacementWall.push(this.deadWall.pop()!);
     }
   }

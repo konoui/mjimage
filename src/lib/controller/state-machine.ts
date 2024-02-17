@@ -177,7 +177,7 @@ export const createControllerMachine = (c: Controller) => {
           always: [
             {
               target: "drawn_game",
-              guard: "cannotDraw",
+              guard: "cannotContinue",
             },
             {
               target: "drawn",
@@ -692,8 +692,10 @@ export const createControllerMachine = (c: Controller) => {
           console.error(`guards.canReach receive ${event.type}`);
           return false;
         },
-        cannotDraw: ({ context, event }, params) => {
-          return !context.controller.wall.canDraw;
+        cannotContinue: ({ context, event }, params) => {
+          return (
+            !context.controller.wall.canDraw || !context.controller.wall.canKan
+          );
         },
       },
       delays: {},

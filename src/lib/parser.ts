@@ -80,6 +80,9 @@ export class Block {
       });
       return;
     }
+    if (type == BLOCK.SHO_KAN) {
+      return;
+    }
     if (type != BLOCK.DISCARD) {
       tiles.sort(tileSortFunc);
     }
@@ -161,6 +164,14 @@ export class BlockPon extends Block {
 export class BlockAnKan extends Block {
   constructor(tiles: Tile[]) {
     super(tiles, BLOCK.AN_KAN);
+  }
+  toString() {
+    const tiles = this.tiles.map((t) => t.clone());
+    tiles[1] = new Tile(KIND.BACK, 0);
+    tiles[2] = new Tile(KIND.BACK, 0);
+    return tiles.reduce((s: string, t: Tile) => {
+      return `${s}${t.toString()}`;
+    }, "");
   }
 }
 

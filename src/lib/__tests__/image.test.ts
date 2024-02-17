@@ -36,6 +36,16 @@ describe("generate svg", () => {
     expect(want.toString()).toBe(got);
   });
 
+  test("handle 0s and 5s as same for AN_KAN", () => {
+    const blocks = new Parser("5-0-55m").parse();
+
+    const draw = SVG();
+    drawBlocks(draw, blocks, helperConfig);
+    const got = draw.svg();
+    const want = loadTestData("image.05sho-kan.svg", got, update);
+    expect(want.toString()).toBe(got);
+  });
+
   test("chi", () => {
     const blocks = new Parser("-406s").parse();
 

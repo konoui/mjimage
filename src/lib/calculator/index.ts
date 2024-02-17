@@ -184,12 +184,12 @@ export class Hand {
     t.add(OPERATOR.TSUMO);
     this.inc([t]);
     this.data.tsumo = t;
-    return this;
+    return;
   }
   discard(t: Tile) {
     this.dec([t]);
     this.data.tsumo = null;
-    return this;
+    return;
   }
   reach() {
     if (!this.canReach) throw new Error("cannot reach");
@@ -213,7 +213,7 @@ export class Hand {
     this.dec(toRemove);
     this.data.called.push(b);
     this.data.tsumo = null;
-    return this;
+    return;
   }
   kan(b: BlockAnKan | BlockShoKan) {
     if (b instanceof BlockAnKan) {
@@ -222,7 +222,7 @@ export class Hand {
       this.dec([t[0], t[0], t[0], t[0]]);
       this.data.called.push(b);
       this.data.tsumo = null;
-      return this;
+      return;
     }
 
     if (b instanceof BlockShoKan) {
@@ -230,11 +230,16 @@ export class Hand {
         (v) => v.is(BLOCK.PON) && v.tiles[0].equals(b.tiles[0], true) // FIXME handle which tile is called
       );
       if (idx == -1) throw new Error(`unable to find ${b.tiles[0]}`);
+      let t = b.tiles[0].clone();
+      if (t.k != KIND.Z && t.n == 0) {
+        t = new Tile(t.k, 5);
+      }
+
       this.data.called.splice(idx, 1);
-      this.dec([b.tiles[0].clone()]); // FIXME which tile is kakanned
+      this.dec([t]);
       this.data.called.push(b);
       this.data.tsumo = null;
-      return this;
+      return;
     }
 
     throw new Error(`unexpected input ${b}`);
@@ -246,7 +251,7 @@ export class Hand {
     const c = new Hand(this.toString());
     c.data.called = this.called.map((b) => b.clone());
     c.data.reached = this.data.reached;
-    c.data.tsumo = this.data.tsumo;
+    c.data.tsumo = this.data.tsumo == null ? null : this.data.tsumo.clone();
     return c;
   }
 }
