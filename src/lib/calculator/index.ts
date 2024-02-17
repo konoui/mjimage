@@ -63,11 +63,11 @@ export class Hand {
         continue;
       } else if (b.is(BLOCK.TSUMO)) {
         const t = b.tiles[0];
-        this.inc([t], false);
+        this.inc([t]);
         this.data.tsumo = t;
         continue;
       } else if (b.is(BLOCK.HAND)) {
-        this.inc(b.tiles, false);
+        this.inc(b.tiles);
         continue;
       }
       throw new Error(`unexpected block ${b.type} ${b.toString()}`);
@@ -77,7 +77,8 @@ export class Hand {
     const tiles: Tile[] = [];
     for (let k of Object.values(KIND)) {
       for (let n = 0; n < this.getArrayLen(k); n++) {
-        const count = this.get(k, n, false);
+        let count = this.get(k, n);
+        if (k != KIND.Z && n == 5) count -= this.get(k, 0); // for retd
         for (let i = 0; i < count; i++) {
           tiles.push(new Tile(k, n));
         }
@@ -102,21 +103,13 @@ export class Hand {
 
     const tiles = this.hands;
     const b = new Block(tiles, BLOCK.HAND).toString();
-    return `${b} ${c}`;
+    return `${b}${c}`;
   }
   get called() {
     return this.data.called.concat();
   }
   get reached() {
     return this.data.reached;
-  }
-  get(k: Kind, n: number, ignoreRed = true) {
-    if (k == KIND.Z || k == KIND.BACK) return this.data[k][n];
-    if (ignoreRed) {
-      if (n == 5) return this.data[k][5] + this.data[k][0];
-      if (n == 0) return 0;
-    }
-    return this.data[k][n];
   }
   get drawn() {
     return this.data.tsumo;
@@ -129,50 +122,72 @@ export class Hand {
     for (let n = 1; n < this.getArrayLen(k); n++) sum += this.get(k, n);
     return sum;
   }
-  inc(tiles: Tile[], ignoreRed = true) {
+  get(k: Kind, n: number) {
+    return this.data[k][n];
+  }
+  inc(tiles: Tile[]): Tile[] {
     const backup: Tile[] = [];
     for (let t of tiles) {
       if (t.k != KIND.BACK && this.get(t.k, t.n) > 4) {
-        this.dec(backup, ignoreRed);
+        this.dec(backup);
         throw new Error(`unable to increase ${t} in ${this.toString()}`);
       }
       backup.push(t);
+      if (!(t.k == KIND.Z || t.k == KIND.BACK) && t.n == 0) {
+        this.data[t.k][5] += 1;
+      }
+      this.data[t.k][t.n] += 1;
       if (
-        ignoreRed &&
         t.k != KIND.Z &&
-        (t.n == 5 || t.n == 0) &&
-        this.get(t.k, 5, false) == 3
-      )
+        t.n == 5 &&
+        this.get(t.k, 5) == 4 &&
+        this.get(t.k, 0) == 0
+      ) {
         this.data[t.k][0] = 1;
-      else this.data[t.k][t.n] += 1;
+        const c = backup.pop()!.clone();
+        c.n = 0;
+        backup.push(c);
+      }
     }
+    return backup;
   }
-  dec(tiles: Tile[], ignoreRed = true) {
+  dec(tiles: Tile[]): Tile[] {
     const backup: Tile[] = [];
     for (let t of tiles) {
-      if (this.get(t.k, t.n, ignoreRed) < 1) {
-        this.inc(backup, ignoreRed);
-        throw new Error(`unable to decrease ${t} in ${this.toString()}`);
+      if (this.get(t.k, t.n) < 1) {
+        this.inc(backup);
+        throw new Error(
+          `unable to decrease ${t.toString()} in ${this.toString()}`
+        );
       }
+
       backup.push(t);
+      if (!(t.k == KIND.Z || t.k == KIND.BACK) && t.n == 0) {
+        this.data[t.k][5] -= 1;
+      }
+      this.data[t.k][t.n] -= 1;
       if (
-        ignoreRed &&
         t.k != KIND.Z &&
-        (t.n == 5 || t.n == 0) &&
-        this.get(t.k, 5, false) == 0
-      )
-        this.data[t.k][0] -= 1;
-      else this.data[t.k][t.n] -= 1;
+        t.n == 5 &&
+        this.get(t.k, 5) == 0 &&
+        this.get(t.k, 0) > 0
+      ) {
+        this.data[t.k][0] = 0;
+        const c = backup.pop()!.clone();
+        c.n = 0;
+        backup.push(c);
+      }
     }
+    return backup;
   }
   draw(t: Tile) {
     t.add(OPERATOR.TSUMO);
-    this.inc([t], false);
+    this.inc([t]);
     this.data.tsumo = t;
     return this;
   }
   discard(t: Tile) {
-    this.dec([t], false);
+    this.dec([t]);
     this.data.tsumo = null;
     return this;
   }
@@ -195,15 +210,16 @@ export class Hand {
     if (toRemove.length != b.tiles.length - 1)
       throw new Error(`removal: ${toRemove} block: ${b}`);
 
-    this.dec(toRemove, false);
+    this.dec(toRemove);
     this.data.called.push(b);
     this.data.tsumo = null;
     return this;
   }
   kan(b: BlockAnKan | BlockShoKan) {
     if (b instanceof BlockAnKan) {
-      const t = b.tiles.filter((v) => v.k != KIND.BACK);
-      this.dec([t[0], t[0], t[0], t[0]], true);
+      // Note: there is a case that t.len == 1
+      const t = b.tiles.filter((v) => v.k != KIND.BACK && v.n != 0);
+      this.dec([t[0], t[0], t[0], t[0]]);
       this.data.called.push(b);
       this.data.tsumo = null;
       return this;
@@ -215,7 +231,7 @@ export class Hand {
       );
       if (idx == -1) throw new Error(`unable to find ${b.tiles[0]}`);
       this.data.called.splice(idx, 1);
-      this.dec([b.tiles[0]], true); // dec remaining tile
+      this.dec([b.tiles[0].clone()]); // FIXME which tile is kakanned
       this.data.called.push(b);
       this.data.tsumo = null;
       return this;
@@ -315,8 +331,7 @@ export class ShantenCalculator {
     for (let k of Object.values(KIND)) {
       for (let n = 1; n < this.hand.getArrayLen(k); n++) {
         if (this.hand.get(k, n) >= 2) {
-          const tiles = [new Tile(k, n), new Tile(k, n)];
-          this.hand.dec(tiles);
+          const tiles = this.hand.dec([new Tile(k, n), new Tile(k, n)]);
           const r = calc(true);
           this.hand.inc(tiles);
           if (r < min) {
@@ -344,8 +359,11 @@ export class ShantenCalculator {
       this.hand.get(k, n + 1) > 0 &&
       this.hand.get(k, n + 2) > 0
     ) {
-      const tiles = [new Tile(k, n), new Tile(k, n + 1), new Tile(k, n + 2)];
-      this.hand.dec(tiles);
+      const tiles = this.hand.dec([
+        new Tile(k, n),
+        new Tile(k, n + 1),
+        new Tile(k, n + 2),
+      ]);
       const r = this.commonByKind(k, n);
       this.hand.inc(tiles);
       r.patternA[0]++, r.patternB[0]++;
@@ -364,8 +382,11 @@ export class ShantenCalculator {
     }
 
     if (this.hand.get(k, n) >= 3) {
-      const tiles = [new Tile(k, n), new Tile(k, n), new Tile(k, n)];
-      this.hand.dec(tiles);
+      const tiles = this.hand.dec([
+        new Tile(k, n),
+        new Tile(k, n),
+        new Tile(k, n),
+      ]);
       const r = this.commonByKind(k, n);
       this.hand.inc(tiles);
       r.patternA[0]++, r.patternB[0]++;
@@ -547,18 +568,7 @@ export class TileCalculator {
         cond(k, 8, [1, 2]);
       const cond2 = this.hand.sum(k) == 14;
       if (cond1 && cond2) {
-        let tiles: Tile[] = [];
-        for (let n = 1; n < this.hand.getArrayLen(k); n++) {
-          const count = this.hand.get(k, n);
-          if (n == 5) {
-            const red = this.hand.get(k, 0, false);
-            for (let i = 0; i < count - red; i++) tiles.push(new Tile(k, n));
-            for (let i = 0; i < red; i++) tiles.push(new Tile(k, 0));
-            continue;
-          }
-          for (let i = 0; i < count; i++) tiles.push(new Tile(k, n));
-        }
-        return [[new Block(tiles, BLOCK.HAND)]];
+        return [[new Block(this.hand.hands, BLOCK.HAND)]];
       }
     }
     return [];
@@ -570,8 +580,7 @@ export class TileCalculator {
       if (k == KIND.BACK) continue;
       for (let n = 1; n < this.hand.getArrayLen(k); n++) {
         if (this.hand.get(k, n) >= 2) {
-          const tiles = [new Tile(k, n), new Tile(k, n)];
-          this.hand.dec(tiles);
+          const tiles = this.hand.dec([new Tile(k, n), new Tile(k, n)]);
           // 1. calc all cases without two pairs
           // 2. remove non five blocks
           // 3. add two pairs to the head
@@ -636,35 +645,33 @@ export class TileCalculator {
       this.hand.get(k, n + 1) > 0 &&
       this.hand.get(k, n + 2) > 0
     ) {
-      const tiles: [Tile, Tile, Tile] = [
+      const tiles = this.hand.dec([
         new Tile(k, n),
         new Tile(k, n + 1),
         new Tile(k, n + 2),
-      ];
-      this.hand.dec(tiles);
+      ]);
       const nested = this.commonByKind(k, n);
       this.hand.inc(tiles);
       if (nested.length == 0) nested.push([]);
       for (let arr of nested) {
-        arr.unshift(new BlockRun(tiles));
+        arr.unshift(new BlockRun([tiles[0], tiles[1], tiles[2]]));
         ret.push(arr);
       }
     }
 
     if (this.hand.get(k, n) == 3) {
-      const tiles: [Tile, Tile, Tile] = [
+      const tiles = this.hand.dec([
         new Tile(k, n),
         new Tile(k, n),
         new Tile(k, n),
-      ];
-      this.hand.dec(tiles);
+      ]);
       const nested = this.commonByKind(k, n);
       this.hand.inc(tiles);
       if (nested.length == 0) nested.push([]);
       for (let arr of nested) {
         // Note insert it to the head due to handling recursively, 111333m
         // first arr will have [333m]
-        arr.unshift(new BlockThree(tiles));
+        arr.unshift(new BlockThree([tiles[0], tiles[1], tiles[2]]));
         ret.push(arr);
       }
     }

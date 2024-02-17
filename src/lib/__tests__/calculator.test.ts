@@ -68,6 +68,25 @@ describe("Hand", () => {
       h.discard(tsumo);
     }).toThrow(/unable to decrease/);
   });
+
+  test("inc/dec", () => {
+    const h = new Hand("406m");
+    const dtiles = h.dec([new Tile(KIND.M, 5)]);
+    h.inc(dtiles);
+    expect("406m").toStrictEqual(h.toString());
+  });
+  test("inc/dec", () => {
+    const h = new Hand("405556m");
+    const dtiles = h.dec([new Tile(KIND.M, 0)]);
+    h.inc(dtiles);
+    expect("405556m").toStrictEqual(h.toString());
+  });
+  test("inc/dec", () => {
+    const h = new Hand("4556m");
+    const itiles = h.inc([new Tile(KIND.M, 0)]);
+    h.dec(itiles);
+    expect("4556m").toStrictEqual(h.toString());
+  });
 });
 
 describe("Shanten Calculator", () => {
@@ -193,7 +212,7 @@ describe("Tile Calculator", () => {
     {
       name: "nine gates",
       input: "11123456789990m",
-      want: [["11123450678999m"]],
+      want: [["11123405678999m"]],
       handler: "Nine",
     },
     {
