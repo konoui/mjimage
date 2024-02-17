@@ -10,6 +10,7 @@ import {
   Block,
   BlockAnKan,
   BlockChi,
+  BlockDaiKan,
   BlockPon,
   BlockShoKan,
   Parser,
@@ -540,6 +541,28 @@ export class Controller {
       }
     }
     return b.length > 0 ? b : 0;
+  }
+  doDaiKan(w: Wind, whoDiscarded: Wind, t: Tile): BlockDaiKan | 0 {
+    const p = this.player(w);
+    if (p.hand.reached) return 0;
+    if (w == whoDiscarded) return 0;
+    const fake = t.clone().remove(OPERATOR.HORIZONTAL);
+    if (fake.k != KIND.Z && fake.n == 0) fake.n = 5;
+    if (p.hand.get(fake.k, fake.n) != 3) return 0;
+    const b = new BlockDaiKan([
+      fake.clone(),
+      fake.clone(),
+      fake.clone(),
+      fake.clone(),
+    ]);
+
+    let idx = Math.abs(Number(w[0]) - Number(whoDiscarded[0]));
+    if (idx == 3) idx = 0;
+    if (idx == 1) idx = 3;
+    b.tiles[idx] = t.clone().add(OPERATOR.HORIZONTAL);
+    if (fake.k != KIND.Z && fake.n == 5 && t.n == 5)
+      b.tiles[(idx % 3) + 1].n = 0;
+    return b;
   }
   private initHands() {
     const m: [Tile[], Tile[], Tile[], Tile[]] = [[], [], [], []];

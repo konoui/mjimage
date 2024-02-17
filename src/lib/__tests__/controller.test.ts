@@ -27,4 +27,16 @@ describe("callable", () => {
     const got = c.doWin("1w", new Tile(KIND.S, 4), "2w");
     expect(got != 0).toBe(true);
   });
+  test("can-dai-kan", () => {
+    const c = new Controller(new Wall(), new River());
+    c.player("1w").hand = new Hand("505m");
+    const got = c.doDaiKan("1w", "4w", new Tile(KIND.M, 5));
+    expect(got.toString()).toBe("-5055m");
+  });
+  test("can-dai-kan", () => {
+    const c = new Controller(new Wall(), new River());
+    c.player("1w").hand = new Hand("555m");
+    const got = c.doDaiKan("1w", "2w", new Tile(KIND.M, 0));
+    expect(got.toString()).toBe("555-0m");
+  });
 });
