@@ -60,6 +60,10 @@ export class Tile {
     return this;
   }
 
+  isNum() {
+    return this.k == KIND.M || this.k == KIND.P || this.k == KIND.S;
+  }
+
   equals(t: Tile, ignoreRed: boolean = false): boolean {
     let ok = this.n == t.n;
     if (ignoreRed)

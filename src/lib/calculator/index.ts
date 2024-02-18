@@ -231,7 +231,7 @@ export class Hand {
       );
       if (idx == -1) throw new Error(`unable to find ${b.tiles[0]}`);
       let t = b.tiles[0].clone();
-      if (t.k != KIND.Z && t.n == 0) {
+      if (t.isNum() && t.n == 0) {
         t = new Tile(t.k, 5);
       }
 

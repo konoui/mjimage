@@ -384,7 +384,7 @@ export class Controller {
     if (p.hand.hands.length < 3) return 0;
 
     const fake = t.clone().remove(OPERATOR.HORIZONTAL);
-    if (t.k != KIND.Z && t.n == 0) fake.n = 5;
+    if (t.isNum() && t.n == 0) fake.n = 5;
     if (p.hand.get(t.k, fake.n) < 2) return 0;
 
     const blocks: BlockPon[] = [];
@@ -395,11 +395,11 @@ export class Controller {
 
     const b = new BlockPon([fake.clone(), fake.clone(), fake.clone()]);
     b.tiles[idx] = t.clone().add(OPERATOR.HORIZONTAL);
-    if (t.k != KIND.Z && fake.n == 5 && p.hand.get(t.k, 0) > 0)
+    if (t.isNum() && fake.n == 5 && p.hand.get(t.k, 0) > 0)
       b.tiles[(idx % 2) + 1].n = 0;
     blocks.push(b);
 
-    if (t.k != KIND.Z && t.n == 5 && p.hand.get(t.k, fake.n) == 3) {
+    if (t.isNum() && t.n == 5 && p.hand.get(t.k, fake.n) == 3) {
       const red = b.clone();
       red.tiles[(idx % 2) + 1].n = 5;
       blocks.push(red);
@@ -409,7 +409,7 @@ export class Controller {
   }
   doChi(w: Wind, whoDiscarded: Wind, t?: Tile): BlockChi[] | 0 {
     if (t == null) return 0;
-    if (t.k == KIND.Z) return 0;
+    if (!t.isNum()) return 0;
     if (nextWind(whoDiscarded) != w) return 0;
 
     const fake = t.clone();
@@ -542,7 +542,7 @@ export class Controller {
     if (p.hand.reached) return 0;
     if (w == whoDiscarded) return 0;
     const fake = t.clone().remove(OPERATOR.HORIZONTAL);
-    if (fake.k != KIND.Z && fake.n == 0) fake.n = 5;
+    if (fake.isNum() && fake.n == 0) fake.n = 5;
     if (p.hand.get(fake.k, fake.n) != 3) return 0;
     const b = new BlockDaiKan([
       fake.clone(),
@@ -555,8 +555,7 @@ export class Controller {
     if (idx == 3) idx = 0;
     if (idx == 1) idx = 3;
     b.tiles[idx] = t.clone().add(OPERATOR.HORIZONTAL);
-    if (fake.k != KIND.Z && fake.n == 5 && t.n == 5)
-      b.tiles[(idx % 3) + 1].n = 0;
+    if (fake.isNum() && fake.n == 5 && t.n == 5) b.tiles[(idx % 3) + 1].n = 0;
     return b;
   }
   private initHands() {
