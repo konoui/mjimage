@@ -327,10 +327,10 @@ export class Controller {
     });
     this.actor.start();
     const v = this.actor.getSnapshot().status;
-    // if (!(v == "done"))
-    //   throw new Error(
-    //     `unexpected state ${this.actor.getSnapshot().value}(${v})`
-    //   );
+    if (!(v == "done"))
+      throw new Error(
+        `unexpected state ${this.actor.getSnapshot().value}(${v})`
+      );
   }
   startGame() {
     for (;;) {
@@ -379,38 +379,33 @@ export class Controller {
   doPon(w: Wind, whoDiscarded: Wind, t?: Tile): BlockPon[] | 0 {
     if (t == null) return 0;
     if (w == whoDiscarded) return 0;
-
     const p = this.player(w);
     if (p.hand.reached) return 0;
     if (p.hand.hands.length < 3) return 0;
-    if (p.hand.get(t.k, t.n) < 2) return 0;
+
+    const fake = t.clone().remove(OPERATOR.HORIZONTAL);
+    if (t.k != KIND.Z && t.n == 0) fake.n = 5;
+    if (p.hand.get(t.k, fake.n) < 2) return 0;
+
     const blocks: BlockPon[] = [];
-    if (t.n == 5 && p.hand.get(t.k, 0) > 0) {
-      blocks.push(
-        new BlockPon([
-          new Tile(t.k, t.n, [OPERATOR.HORIZONTAL]),
-          new Tile(t.k, 0), // red
-          new Tile(t.k, t.n),
-        ])
-      );
-      if (p.hand.get(t.k, t.n) > 2) {
-        blocks.push(
-          new BlockPon([
-            new Tile(t.k, t.n, [OPERATOR.HORIZONTAL]),
-            new Tile(t.k, t.n),
-            new Tile(t.k, t.n),
-          ])
-        );
-      }
-      return blocks;
+    let idx = Math.abs(Number(w[0]) - Number(whoDiscarded[0]));
+    if (idx == 3) idx = 0;
+    if (idx == 2) idx = 1;
+    if (idx == 1) idx = 2;
+
+    const b = new BlockPon([fake.clone(), fake.clone(), fake.clone()]);
+    b.tiles[idx] = t.clone().add(OPERATOR.HORIZONTAL);
+    if (t.k != KIND.Z && fake.n == 5 && p.hand.get(t.k, 0) > 0)
+      b.tiles[(idx % 2) + 1].n = 0;
+    blocks.push(b);
+
+    if (t.k != KIND.Z && t.n == 5 && p.hand.get(t.k, fake.n) == 3) {
+      const red = b.clone();
+      red.tiles[(idx % 2) + 1].n = 5;
+      blocks.push(red);
     }
-    return [
-      new BlockPon([
-        new Tile(t.k, t.n, [OPERATOR.HORIZONTAL]),
-        new Tile(t.k, t.n),
-        new Tile(t.k, t.n),
-      ]),
-    ];
+
+    return blocks;
   }
   doChi(w: Wind, whoDiscarded: Wind, t?: Tile): BlockChi[] | 0 {
     if (t == null) return 0;
