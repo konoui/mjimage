@@ -1,5 +1,12 @@
 import { KIND, OPERATOR, WIND, Wind, Round } from "../constants";
-import { BlockAnKan, BlockChi, BlockPon, BlockShoKan, Tile } from "../parser";
+import {
+  BlockAnKan,
+  BlockChi,
+  BlockDaiKan,
+  BlockPon,
+  BlockShoKan,
+  Tile,
+} from "../parser";
 import { WinResult } from "../calculator";
 
 type Event =
@@ -21,7 +28,8 @@ type ChoiceEvent =
   | "TSUMO"
   | "REACH"
   | "AN_KAN"
-  | "SHO_KAN";
+  | "SHO_KAN"
+  | "DAI_KAN";
 
 export interface DistributeEvent {
   id: string;
@@ -33,10 +41,10 @@ export interface DistributeEvent {
 
 export interface CallEvent {
   id: string;
-  type: Extract<ChoiceEvent, "PON" | "CHI" | "AN_KAN" | "SHO_KAN">;
+  type: Extract<ChoiceEvent, "PON" | "CHI" | "AN_KAN" | "SHO_KAN" | "DAI_KAN">;
   iam: Wind;
   wind: Wind;
-  block: BlockPon | BlockChi | BlockAnKan | BlockShoKan;
+  block: BlockPon | BlockChi | BlockAnKan | BlockShoKan | BlockDaiKan;
 }
 
 export interface RonEvent {
@@ -139,6 +147,7 @@ interface DiscardedChoice {
   RON: 0 | WinResult;
   PON: 0 | BlockPon[];
   CHI: 0 | BlockChi[];
+  DAI_KAN: 0 | BlockDaiKan;
 }
 
 interface DrawnChoice {
@@ -153,7 +162,7 @@ type ChoiceType = DiscardedChoice | DrawnChoice;
 type ChoiceOrder<T extends ChoiceType> = (keyof T)[];
 
 export function prioritizeDiscardedEvents(events: ChoiceAfterDiscardedEvent[]) {
-  const order: ChoiceOrder<DiscardedChoice> = ["RON", "PON", "CHI"];
+  const order: ChoiceOrder<DiscardedChoice> = ["RON", "DAI_KAN", "PON", "CHI"];
   const choices = events.map((e) => e.choices);
   const indexes = prioritizeEvents(choices, order);
   const selected = indexes.map((idx) => events[idx]);

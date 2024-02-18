@@ -1,7 +1,14 @@
 import assert from "assert";
 import { Wind, WIND_MAP, KIND, WIND, OPERATOR } from "../constants";
 import { Controller } from "./index";
-import { BlockChi, BlockPon, Tile } from "../parser";
+import {
+  BlockAnKan,
+  BlockChi,
+  BlockDaiKan,
+  BlockPon,
+  BlockShoKan,
+  Tile,
+} from "../parser";
 import { ShantenCalculator, WinResult } from "./../calculator";
 
 type ControllerContext = {
@@ -131,6 +138,9 @@ export const createControllerMachine = (c: Controller) => {
               target: "chied",
               guard: "canChi",
             },
+            DAI_KAN: {
+              target: "dai_kaned",
+            },
             "*": {
               target: "wildcard_after_discarded",
             },
@@ -195,6 +205,22 @@ export const createControllerMachine = (c: Controller) => {
             },
           },
         },
+        dai_kaned: {
+          exit: {
+            type: "notify_kan",
+          },
+          always: {
+            target: "waiting_user_event_after_drawn",
+            actions: [
+              {
+                type: "notify_kan_draw",
+              },
+              {
+                type: "notify_choice_after_drawn",
+              },
+            ],
+          },
+        },
         an_sho_kaned: {
           exit: [
             {
@@ -254,8 +280,9 @@ export const createControllerMachine = (c: Controller) => {
           | { type: "TSUMO"; ret: WinResult; iam: Wind; lastTile: Tile }
           | { type: "REACH"; tile: Tile; iam: Wind }
           | { type: "DISCARD"; tile: Tile; iam: Wind }
-          | { type: "AN_KAN"; block: BlockPon; iam: Wind }
-          | { type: "SHO_KAN"; block: BlockPon; iam: Wind },
+          | { type: "AN_KAN"; block: BlockAnKan; iam: Wind }
+          | { type: "SHO_KAN"; block: BlockShoKan; iam: Wind }
+          | { type: "DAI_KAN"; block: BlockDaiKan; iam: Wind },
         context: {} as ControllerContext,
       },
     },
@@ -326,6 +353,7 @@ export const createControllerMachine = (c: Controller) => {
                 RON: context.controller.doWin(w, ltile, discarded.w),
                 PON: context.controller.doPon(w, discarded.w, ltile),
                 CHI: context.controller.doChi(w, discarded.w, ltile),
+                DAI_KAN: context.controller.doDaiKan(w, discarded.w, ltile),
               },
             };
             // TODO if no choice, skip enqueue
@@ -517,10 +545,16 @@ export const createControllerMachine = (c: Controller) => {
         },
         notify_kan: ({ context, event }) => {
           const id = genEventID();
-          if (event.type == "AN_KAN" || event.type == "SHO_KAN") {
+          if (
+            event.type == "AN_KAN" ||
+            event.type == "SHO_KAN" ||
+            event.type == "DAI_KAN"
+          ) {
             const iam = event.iam;
             context.currentWind = iam;
-            context.controller.player(iam).hand.kan(event.block);
+            if (event.type == "DAI_KAN")
+              context.controller.player(iam).hand.call(event.block);
+            else context.controller.player(iam).hand.kan(event.block);
             console.debug(
               context.controller.player(iam).id,
               `kan: ${event.block}`,

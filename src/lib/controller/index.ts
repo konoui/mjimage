@@ -214,6 +214,17 @@ export class Controller {
             ret: e.choices.RON,
             tileInfo: e.tileInfo,
           });
+        } else if (selected.type == "DAI_KAN") {
+          assert(e.choices.DAI_KAN != 0, "pon choice is none");
+          assert(
+            selected.events.length == 1,
+            `found more than one selected: ${JSON.stringify(selected, null, 2)}`
+          );
+          this.actor.send({
+            type: selected.type,
+            iam: e.wind,
+            block: e.choices.DAI_KAN,
+          });
         } else if (selected.type == "PON") {
           assert(e.choices.PON != 0, "pon choice is none");
           assert(
@@ -502,7 +513,7 @@ export class Controller {
   }
   doAnKan(w: Wind): BlockAnKan[] | 0 {
     const p = this.player(w);
-    const b: BlockAnKan[] = [];
+    const blocks: BlockAnKan[] = [];
     if (p.hand.reached) return 0; // FIXME 待ち変更がなければできる
     for (let k of Object.values(KIND)) {
       for (let n = 1; n < p.hand.getArrayLen(k); n++) {
@@ -514,28 +525,41 @@ export class Controller {
             new Tile(k, n),
           ];
           if (k != KIND.Z && n == 5) tiles[0].n = 0;
-          b.push(new BlockAnKan(tiles));
+          blocks.push(new BlockAnKan(tiles));
         }
       }
     }
-    return b.length > 0 ? b : 0;
+    if (blocks.length == 0) return 0;
+    for (let b of blocks)
+      assert(
+        b.tiles.filter((t) => t.has(OPERATOR.HORIZONTAL)).length == 0,
+        `h op ${b.toString()}`
+      );
+    return blocks;
   }
   doShoKan(w: Wind): BlockShoKan[] | 0 {
     const p = this.player(w);
     if (p.hand.reached) return 0;
     const called = p.hand.called.filter((b) => b instanceof BlockPon);
     if (called.length == 0) return 0;
-    const b: BlockShoKan[] = [];
+    const blocks: BlockShoKan[] = [];
     for (let c of called) {
       const pick = c.tiles[0];
       if (p.hand.get(pick.k, pick.n) == 1) {
         const cb = c.clone();
-        cb.tiles.push(new Tile(pick.k, pick.n, [OPERATOR.HORIZONTAL]));
+        cb.tiles.push(new Tile(pick.k, pick.n, [OPERATOR.HORIZONTAL])); // FIXME position of horizontal
         if (pick.n == 5 && p.hand.get(pick.k, 0) == 1) cb.tiles[3].n == 0;
-        b.push(new BlockShoKan(cb.tiles));
+        blocks.push(new BlockShoKan(cb.tiles));
       }
     }
-    return b.length > 0 ? b : 0;
+    if (blocks.length == 0) return 0;
+    for (let b of blocks)
+      assert(
+        b.tiles.filter((t) => t.has(OPERATOR.HORIZONTAL)).length == 2,
+        `h op ${b.toString()}`
+      );
+
+    return blocks;
   }
   doDaiKan(w: Wind, whoDiscarded: Wind, t: Tile): BlockDaiKan | 0 {
     const p = this.player(w);
@@ -556,6 +580,10 @@ export class Controller {
     if (idx == 1) idx = 3;
     b.tiles[idx] = t.clone().add(OPERATOR.HORIZONTAL);
     if (fake.isNum() && fake.n == 5 && t.n == 5) b.tiles[(idx % 3) + 1].n = 0;
+    assert(
+      b.tiles.filter((t) => t.has(OPERATOR.HORIZONTAL)).length == 1,
+      `h op ${b.toString()}`
+    );
     return b;
   }
   private initHands() {
