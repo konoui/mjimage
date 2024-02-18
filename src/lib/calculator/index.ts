@@ -850,6 +850,7 @@ export class DoubleCalculator {
       points: patterns[idx].points,
       point: result[myWind],
       hand: patterns[idx].hand,
+      params: this.cfg,
     };
     return v;
   }

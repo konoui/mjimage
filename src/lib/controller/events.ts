@@ -18,6 +18,7 @@ type Event =
   | "CHOICE_FOR_CHAN_KAN"
   | "DISTRIBUTE"
   | "WIN_GAME"
+  | "NEW_DORA"
   | "DRAWN_GAME";
 
 type ChoiceEvent =
@@ -89,6 +90,12 @@ export interface ReachEvent {
   wind: Wind;
 }
 
+export interface NewDoraEvent {
+  id: string;
+  type: Extract<Event, "NEW_DORA">;
+  tile: Tile;
+}
+
 export interface EndEvent {
   id: string;
   type: Extract<Event, "WIN_GAME" | "DRAWN_GAME">;
@@ -138,6 +145,7 @@ export type PlayerEvent =
   | DiscardEvent
   | DrawEvent
   | ReachEvent
+  | NewDoraEvent
   | ChoiceAfterDrawnEvent
   | ChoiceAfterDiscardedEvent
   | ChoiceAfterCalled

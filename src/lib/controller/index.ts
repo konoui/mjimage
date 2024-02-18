@@ -169,11 +169,14 @@ export class Controller {
     return this.players[id];
   }
   boardParams(w: Wind): BoardParams {
+    const p = this.player(w);
     return {
       dora: this.wall.doras,
       round: this.placeManager.round,
       myWind: w,
       sticks: this.placeManager.sticks,
+      blindDora: p.hand.reached ? this.wall.blindDoras : undefined, // FIXME blind doras are clear when game ended
+      oneShotWin: false, // FIXME
     };
   }
   // this method will called by player client to sync
@@ -717,6 +720,7 @@ export class Wall {
   private replacementWall: Tile[] = [];
   private doraWall: Tile[] = [];
   private blindDoraWall: Tile[] = [];
+  private openedDoraCount = 1;
   constructor(raw?: string) {
     this.init(raw);
   }
@@ -732,11 +736,17 @@ export class Wall {
     return this.drawableWall.pop()!;
   }
 
+  openDora() {
+    if (this.openedDoraCount >= 4)
+      throw new Error("exceeded maximum open dora");
+    this.openedDoraCount++;
+    return this.doraWall[this.openedDoraCount - 1].clone();
+  }
   get doras() {
-    return this.doraWall.slice(0, 4 - this.replacementWall.length);
+    return this.doraWall.slice(0, this.openedDoraCount - 1);
   }
   get blindDoras() {
-    return this.blindDoraWall.slice(0, 4 - this.replacementWall.length);
+    return this.blindDoraWall.slice(0, this.openedDoraCount - 1);
   }
   get canKan() {
     return this.replacementWall.length > 0;
@@ -768,14 +778,14 @@ export class Wall {
 
     this.raw = this.drawableWall.map((t) => t.toString()).join();
 
-    for (let i = 0; i < 13; i++) {
+    for (let i = 0; i < 14; i++) {
       this.deadWall.push(this.drawableWall.pop()!);
     }
     for (let i = 0; i < 4; i++) {
       this.blindDoras.push(this.deadWall.pop()!);
     }
     for (let i = 0; i < 4; i++) {
-      this.doras.push(this.deadWall.pop()!);
+      this.doraWall.push(this.deadWall.pop()!);
     }
     for (let i = 0; i < 4; i++) {
       this.replacementWall.push(this.deadWall.pop()!);

@@ -206,9 +206,11 @@ export const createControllerMachine = (c: Controller) => {
           },
         },
         dai_kaned: {
-          exit: {
-            type: "notify_kan",
-          },
+          exit: [
+            {
+              type: "notify_kan",
+            },
+          ],
           always: {
             target: "waiting_user_event_after_drawn",
             actions: [
@@ -600,18 +602,18 @@ export const createControllerMachine = (c: Controller) => {
         notify_new_dora_if_needed: ({ context, event }) => {
           const id = genEventID();
           if (event.type == "AN_KAN") {
+            const tile = context.controller.wall.openDora();
             for (let w of Object.values(WIND)) {
-              const doras = context.controller.wall.doras;
               const e = {
                 id: id,
-                type: "DORAS",
+                type: "NEW_DORA" as const,
                 wind: w,
-                doras: doras,
+                tile: tile,
               };
-              //              context.controller.player(w).enqueue(e);
+              context.controller.player(w).enqueue(e);
             }
           }
-          if (event.type == "AN_KAN") {
+          if (event.type == "SHO_KAN") {
             // nothing because handling by discarded
           }
         },
