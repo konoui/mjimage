@@ -24,7 +24,7 @@ describe("callable", () => {
   test("can-ron", () => {
     const c = new Controller(new Wall(), new River());
     c.player("1w").hand = new Hand("406m123456p1123s");
-    const got = c.doWin("1w", new Tile(KIND.S, 4), "2w");
+    const got = c.doWin("1w", new Tile(KIND.S, 4), { whoDiscarded: "2w" });
     expect(got != 0).toBe(true);
   });
   test("can-pon", () => {

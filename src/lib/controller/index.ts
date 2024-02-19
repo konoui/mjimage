@@ -34,6 +34,7 @@ import {
 } from "./events";
 
 class ScoreManager {
+  private reachValue = 1000;
   private m: { [key: string]: number } = {};
   private tmp: { [key: string]: number } = {};
   constructor(playerIDs: string[]) {
@@ -49,12 +50,16 @@ class ScoreManager {
     return this.m;
   }
   reach(id: string) {
-    const base = 1000;
-    this.m[id] -= base;
+    this.m[id] -= this.reachValue;
     this.tmp[id] = 1;
-    // FIXME register callback
-    // if 流局 then tmp => sticks
-    // if 立直直後のロン then tmp => back to the reached user
+  }
+  /**
+   * 立直後のロンに対する立直棒の戻し
+   */
+  restoreReachStick(id: string) {
+    assert(this.tmp[id] > 0);
+    this.tmp[id] = 0;
+    this.m[id] += this.reachValue;
   }
   update(
     result: {
@@ -176,7 +181,6 @@ export class Controller {
       myWind: w,
       sticks: this.placeManager.sticks,
       blindDora: p.hand.reached ? this.wall.blindDoras : undefined, // FIXME blind doras are clear when game ended
-      oneShotWin: false, // FIXME
     };
   }
   // this method will called by player client to sync
@@ -324,7 +328,6 @@ export class Controller {
       else {
         const e = selected[0];
         assert(e.choices.RON != 0, "ron choice is none");
-        console.error(`chankan event ${JSON.stringify(e, null, 2)}`);
         this.actor.send({
           type: "RON",
           iam: e.wind,
@@ -368,25 +371,30 @@ export class Controller {
   doWin(
     w: Wind,
     t: Tile | null | undefined,
-    whoDiscarded?: Wind,
-    quadWin?: boolean,
-    replacementWin?: boolean
+    params?: {
+      quadWin?: boolean;
+      replacementWin?: boolean;
+      oneShot?: boolean;
+      whoDiscarded?: Wind;
+    }
   ): WinResult | 0 {
     if (t == null) return 0;
     let hand = this.player(w).hand;
     const env = this.boardParams(w);
     if (hand.drawn == null) {
-      if (whoDiscarded == w) return 0;
+      if (params == null) throw new Error("should ron but params == null");
+      if (params.whoDiscarded == w) return 0;
       hand = hand.clone();
-      env.ronWind = whoDiscarded;
+      env.ronWind = params.whoDiscarded;
       env.finalDiscardWin = !this.wall.canDraw;
-      env.quadWin = quadWin;
+      env.quadWin = params.quadWin;
       hand.inc([t]); // TODO hand.draw looks good but it adds OP.TSUMO
     } else {
       env.finalWallWin = !this.wall.canDraw;
-      env.replacementWin = replacementWin;
+      env.replacementWin = params?.replacementWin;
     }
-    // if (hand.reached)  FIXME oneshot
+    env.oneShotWin = params?.oneShot;
+
     const tc = new TileCalculator(hand);
     const dc = new DoubleCalculator(hand, env);
     const hands = tc.calc(t);

@@ -13,6 +13,7 @@ import { ShantenCalculator, WinResult } from "./../calculator";
 
 type ControllerContext = {
   currentWind: Wind;
+  oneShotMap: { [key in Wind]: boolean };
   controller: Controller;
 };
 
@@ -46,6 +47,7 @@ export const createControllerMachine = (c: Controller) => {
       initial: "distribute",
       context: {
         currentWind: "1w",
+        oneShotMap: createWindMap(false),
         controller: c,
       },
       states: {
@@ -95,6 +97,9 @@ export const createControllerMachine = (c: Controller) => {
             DISCARD: {
               target: "discarded",
               description: "入力に牌が必須",
+              actions: {
+                type: "disable_one_shot_for_me",
+              },
             },
           },
         },
@@ -149,6 +154,9 @@ export const createControllerMachine = (c: Controller) => {
         roned: {
           exit: [
             {
+              type: "restore_reach_stick",
+            },
+            {
               type: "notify_ron",
             },
             {
@@ -161,6 +169,9 @@ export const createControllerMachine = (c: Controller) => {
           exit: [
             {
               type: "notify_called",
+            },
+            {
+              type: "disable_one_shot",
             },
           ],
           always: {
@@ -175,6 +186,9 @@ export const createControllerMachine = (c: Controller) => {
             {
               type: "notify_called",
             },
+            {
+              type: "disable_one_shot",
+            },
           ],
           always: {
             target: "waiting_discard_event",
@@ -184,6 +198,7 @@ export const createControllerMachine = (c: Controller) => {
           },
         },
         wildcard_after_discarded: {
+          exit: [],
           always: [
             {
               target: "drawn_game",
@@ -191,9 +206,11 @@ export const createControllerMachine = (c: Controller) => {
             },
             {
               target: "drawn",
-              actions: {
-                type: "updateNextWind",
-              },
+              actions: [
+                {
+                  type: "updateNextWind",
+                },
+              ],
             },
           ],
         },
@@ -209,6 +226,9 @@ export const createControllerMachine = (c: Controller) => {
           exit: [
             {
               type: "notify_kan",
+            },
+            {
+              type: "disable_one_shot",
             },
           ],
           always: {
@@ -230,6 +250,9 @@ export const createControllerMachine = (c: Controller) => {
             },
             {
               type: "notify_new_dora_if_needed",
+            },
+            {
+              type: "disable_one_shot",
             },
           ],
           always: {
@@ -331,7 +354,9 @@ export const createControllerMachine = (c: Controller) => {
             wind: w,
             tileInfo: { wind: w, tile: drawn! },
             choices: {
-              TSUMO: context.controller.doWin(w, drawn),
+              TSUMO: context.controller.doWin(w, drawn, {
+                oneShot: context.oneShotMap[w],
+              }),
               REACH: context.controller.doReach(w),
               AN_KAN: context.controller.doAnKan(w),
               SHO_KAN: context.controller.doShoKan(w),
@@ -352,7 +377,10 @@ export const createControllerMachine = (c: Controller) => {
               wind: w,
               tileInfo: { wind: discarded.w, tile: discarded.t },
               choices: {
-                RON: context.controller.doWin(w, ltile, discarded.w),
+                RON: context.controller.doWin(w, ltile, {
+                  whoDiscarded: discarded.w,
+                  oneShot: context.oneShotMap[w],
+                }),
                 PON: context.controller.doPon(w, discarded.w, ltile),
                 CHI: context.controller.doChi(w, discarded.w, ltile),
                 DAI_KAN: context.controller.doDaiKan(w, discarded.w, ltile),
@@ -494,6 +522,16 @@ export const createControllerMachine = (c: Controller) => {
             }
           }
         },
+        restore_reach_stick: ({ context, event }) => {
+          if (event.type == "RON") {
+            const ronWind = event.tileInfo.wind;
+            const cur = context.currentWind;
+            if (ronWind == cur && context.oneShotMap[cur] == true) {
+              const id = context.controller.placeManager.playerID(cur);
+              context.controller.scoreManager.restoreReachStick(id);
+            }
+          }
+        },
         notify_tsumo: ({ context, event }) => {
           const id = genEventID();
           const iam = context.currentWind;
@@ -523,9 +561,10 @@ export const createControllerMachine = (c: Controller) => {
             const iam = event.iam;
             const t = event.tile.clone().add(OPERATOR.HORIZONTAL);
             context.controller.player(iam).hand.reach();
-            context.controller.placeManager.incrementReachStick();
             const pid = context.controller.placeManager.playerID(iam);
             context.controller.scoreManager.reach(pid);
+            context.controller.placeManager.incrementReachStick();
+            context.oneShotMap[iam] = true; // enable one shot
             context.controller.player(iam).hand.discard(t);
             context.controller.river.discard(t, iam);
             console.debug(
@@ -582,8 +621,11 @@ export const createControllerMachine = (c: Controller) => {
               const ron = context.controller.doWin(
                 w,
                 event.block.tiles[0].clone().remove(OPERATOR.HORIZONTAL),
-                event.iam,
-                true
+                {
+                  whoDiscarded: event.iam,
+                  quadWin: true,
+                  oneShot: context.oneShotMap[w],
+                }
               ); // TODO which tile is kaned for 0/5
               const e = {
                 id: id,
@@ -616,6 +658,12 @@ export const createControllerMachine = (c: Controller) => {
           if (event.type == "SHO_KAN") {
             // nothing because handling by discarded
           }
+        },
+        disable_one_shot: ({ context, event }) => {
+          for (let w of Object.values(WIND)) context.oneShotMap[w] = false;
+        },
+        disable_one_shot_for_me: ({ context, event }) => {
+          context.oneShotMap[context.currentWind] = false;
         },
         notify_end: ({ context, event }) => {
           const id = genEventID();
@@ -715,7 +763,11 @@ export const createControllerMachine = (c: Controller) => {
             let quadWin = event.type == "RON" ? event.quadWin : undefined;
             let t = event.type != "RON" ? event.lastTile : event.tileInfo.tile;
             let w = event.type == "RON" ? event.tileInfo.wind : undefined;
-            const can = context.controller.doWin(event.iam, t, w, quadWin);
+            const can = context.controller.doWin(event.iam, t, {
+              whoDiscarded: w,
+              quadWin: quadWin,
+              oneShot: context.oneShotMap[event.iam],
+            });
             return can != 0;
           }
           console.error(`guards.canWin receive ${event.type}`);
