@@ -369,7 +369,8 @@ export class Controller {
     w: Wind,
     t: Tile | null | undefined,
     whoDiscarded?: Wind,
-    quadWin?: boolean
+    quadWin?: boolean,
+    replacementWin?: boolean
   ): WinResult | 0 {
     if (t == null) return 0;
     let hand = this.player(w).hand;
@@ -379,8 +380,12 @@ export class Controller {
       hand = hand.clone();
       env.ronWind = whoDiscarded;
       env.finalDiscardWin = !this.wall.canDraw;
+      env.quadWin = quadWin;
       hand.inc([t]); // TODO hand.draw looks good but it adds OP.TSUMO
-    } else env.finalWallWin = !this.wall.canDraw;
+    } else {
+      env.finalWallWin = !this.wall.canDraw;
+      env.replacementWin = replacementWin;
+    }
     // if (hand.reached)  FIXME oneshot
     const tc = new TileCalculator(hand);
     const dc = new DoubleCalculator(hand, env);
