@@ -121,6 +121,13 @@ class PlaceManager {
     this.round = next;
     this.update();
   }
+  decrementReachStick() {
+    this.sticks.reach--;
+    assert(this.sticks.reach >= 0);
+  }
+  resetSticks() {
+    this.sticks = { reach: 0, dead: 0 };
+  }
   is(r: Round) {
     return this.round == r;
   }
@@ -181,6 +188,11 @@ export class Controller {
       myWind: w,
       sticks: this.placeManager.sticks,
       blindDora: p.hand.reached ? this.wall.blindDoras : undefined, // FIXME blind doras are clear when game ended
+      reached: !p.hand.reached
+        ? undefined
+        : this.river.discards(w).length != 0
+        ? 1
+        : 2,
     };
   }
   // this method will called by player client to sync
@@ -649,6 +661,9 @@ export class Player {
   }
   enqueue(e: PlayerEvent) {
     if (e.type == "CHOICE_AFTER_DISCARDED") {
+      e.choices.CHI = 0;
+      e.choices.PON = 0;
+      e.choices.DAI_KAN = 0;
       this.client.reply(e.id, e);
       return;
     }
@@ -756,10 +771,10 @@ export class Wall {
     return this.doraWall[this.openedDoraCount - 1].clone();
   }
   get doras() {
-    return this.doraWall.slice(0, this.openedDoraCount - 1);
+    return this.doraWall.slice(0, this.openedDoraCount);
   }
   get blindDoras() {
-    return this.blindDoraWall.slice(0, this.openedDoraCount - 1);
+    return this.blindDoraWall.slice(0, this.openedDoraCount);
   }
   get canKan() {
     return this.replacementWall.length > 0;

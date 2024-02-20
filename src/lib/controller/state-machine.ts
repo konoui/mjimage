@@ -324,6 +324,11 @@ export const createControllerMachine = (c: Controller) => {
               context.controller.scoreManager.summary,
               null,
               2
+            )}`,
+            `sticks: ${JSON.stringify(
+              context.controller.placeManager.sticks,
+              null,
+              2
             )}`
           );
           for (let w of Object.values(WIND)) {
@@ -420,6 +425,7 @@ export const createControllerMachine = (c: Controller) => {
             if (event.type == "AN_KAN" || event.type == "SHO_KAN")
               context.controller.player(iam).hand.kan(event.block);
             else context.controller.player(iam).hand.call(event.block);
+            // FIXME mark river tile as called
             console.debug(
               context.controller.player(iam).id,
               `call: ${event.block.toString()}`,
@@ -537,6 +543,8 @@ export const createControllerMachine = (c: Controller) => {
             if (ronWind == cur && context.oneShotMap[cur] == true) {
               const id = context.controller.placeManager.playerID(cur);
               context.controller.scoreManager.restoreReachStick(id);
+              context.controller.placeManager.decrementReachStick();
+              // FIXME remove reach stick from result
             }
           }
         },
@@ -707,7 +715,12 @@ export const createControllerMachine = (c: Controller) => {
           }
           console.debug(
             "scores",
-            JSON.stringify(context.controller.scoreManager.summary, null, 2)
+            JSON.stringify(context.controller.scoreManager.summary, null, 2),
+            `sticks: ${JSON.stringify(
+              context.controller.placeManager.sticks,
+              null,
+              2
+            )}`
           );
         },
       },
