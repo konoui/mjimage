@@ -168,7 +168,7 @@ export const createControllerMachine = (c: Controller) => {
         poned: {
           exit: [
             {
-              type: "notify_called",
+              type: "notify_call",
             },
             {
               type: "disable_one_shot",
@@ -184,7 +184,7 @@ export const createControllerMachine = (c: Controller) => {
         chied: {
           exit: [
             {
-              type: "notify_called",
+              type: "notify_call",
             },
             {
               type: "disable_one_shot",
@@ -225,7 +225,7 @@ export const createControllerMachine = (c: Controller) => {
         dai_kaned: {
           exit: [
             {
-              type: "notify_kan",
+              type: "notify_call",
             },
             {
               type: "disable_one_shot",
@@ -246,7 +246,7 @@ export const createControllerMachine = (c: Controller) => {
         an_sho_kaned: {
           exit: [
             {
-              type: "notify_kan",
+              type: "notify_call",
             },
             {
               type: "notify_new_dora_if_needed",
@@ -406,12 +406,20 @@ export const createControllerMachine = (c: Controller) => {
           context.controller.player(w).enqueue(e);
           context.controller.pollReplies(id, [w]);
         },
-        notify_called: ({ context, event }) => {
+        notify_call: ({ context, event }) => {
           const id = genEventID();
-          if (event.type == "CHI" || event.type == "PON") {
+          if (
+            event.type == "CHI" ||
+            event.type == "PON" ||
+            event.type == "DAI_KAN" ||
+            event.type == "AN_KAN" ||
+            event.type == "SHO_KAN"
+          ) {
             const iam = event.iam;
             context.currentWind = iam; // update current wind
-            context.controller.player(iam).hand.call(event.block); // call
+            if (event.type == "AN_KAN" || event.type == "SHO_KAN")
+              context.controller.player(iam).hand.kan(event.block);
+            else context.controller.player(iam).hand.call(event.block);
             console.debug(
               context.controller.player(iam).id,
               `call: ${event.block.toString()}`,
@@ -579,35 +587,6 @@ export const createControllerMachine = (c: Controller) => {
                 iam: iam,
                 wind: w,
                 tile: t,
-              };
-              context.controller.player(w).enqueue(e);
-            }
-          }
-        },
-        notify_kan: ({ context, event }) => {
-          const id = genEventID();
-          if (
-            event.type == "AN_KAN" ||
-            event.type == "SHO_KAN" ||
-            event.type == "DAI_KAN"
-          ) {
-            const iam = event.iam;
-            context.currentWind = iam;
-            if (event.type == "DAI_KAN")
-              context.controller.player(iam).hand.call(event.block);
-            else context.controller.player(iam).hand.kan(event.block);
-            console.debug(
-              context.controller.player(iam).id,
-              `kan: ${event.block}`,
-              `hand: ${context.controller.player(iam).hand.toString()}`
-            );
-            for (let w of Object.values(WIND)) {
-              const e = {
-                id: id,
-                type: event.type,
-                iam: iam,
-                wind: w,
-                block: event.block,
               };
               context.controller.player(w).enqueue(e);
             }
