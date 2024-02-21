@@ -1,5 +1,4 @@
-import assert from "assert";
-import { Wind, WIND_MAP, KIND, WIND, OPERATOR } from "../constants";
+import { Wind, KIND, WIND, OPERATOR } from "../constants";
 import { Controller } from "./index";
 import {
   BlockAnKan,
@@ -10,6 +9,7 @@ import {
   Tile,
 } from "../parser";
 import { ShantenCalculator, WinResult } from "./../calculator";
+import { nextWind, createWindMap } from "./managers";
 
 type ControllerContext = {
   currentWind: Wind;
@@ -17,29 +17,7 @@ type ControllerContext = {
   controller: Controller;
 };
 
-export const nextWind = (w: Wind): Wind => {
-  let n = Number(w.toString()[0]);
-  if (n == 4) n = 1;
-  else n++;
-  return `${n}w` as Wind;
-};
-
-export const prevWind = (w: Wind): Wind => {
-  return nextWind(nextWind(nextWind(w)));
-};
-
-export function createWindMap<T>(initial: T) {
-  const m: { [key in Wind]: T } = {
-    "1w": initial,
-    "2w": initial,
-    "3w": initial,
-    "4w": initial,
-  };
-  return m;
-}
-
 import { createMachine } from "xstate";
-import { boolean } from "zod";
 
 export const createControllerMachine = (c: Controller) => {
   return createMachine(
@@ -341,11 +319,14 @@ export const createControllerMachine = (c: Controller) => {
               context.controller.player(w).id,
               `init hand: ${context.controller.player(w).hand.toString()}`
             );
+            const hands = createWindMap("_____________");
+            hands[w] = context.controller.player(w).hand.toString();
             const e = {
               id: id,
               type: "DISTRIBUTE" as const,
-              hand: context.controller.player(w).hand.toString(),
+              hands: hands,
               wind: w,
+              sticks: context.controller.placeManager.sticks,
               round: context.controller.placeManager.round,
               players: context.controller.playerIDs,
               places: context.controller.placeManager.playerMap,
@@ -660,16 +641,35 @@ export const createControllerMachine = (c: Controller) => {
                 .hand.toString();
               const e = {
                 id: id,
-                type: "WIN_GAME" as const,
+                type: "END_GAME" as const,
                 wind: w,
+                sticks: { reach: 0, dead: 0 },
                 scores: context.controller.scoreManager.summary,
                 results: event.ret.result,
                 hands: hands,
               };
               context.controller.player(w).enqueue(e);
             }
-          }
-          if (event.type == "DISCARD" && !context.controller.wall.canDraw) {
+            context.controller.placeManager.resetSticks();
+            return;
+          } else if (
+            !context.controller.wall.canKan ||
+            context.controller.river.cannotContinue()
+          ) {
+            for (let w of Object.values(WIND)) {
+              const e = {
+                id: id,
+                type: "END_GAME" as const,
+                wind: w,
+                sticks: context.controller.placeManager.sticks,
+                scores: context.controller.scoreManager.summary,
+                results: createWindMap(0),
+                hands: createWindMap(""),
+              };
+              context.controller.player(w).enqueue(e);
+            }
+            return;
+          } else if (!context.controller.wall.canDraw) {
             const wind: Wind[] = [];
             for (let w of Object.values(WIND)) {
               const p = context.controller.player(w);
@@ -693,8 +693,9 @@ export const createControllerMachine = (c: Controller) => {
             for (let w of Object.values(WIND)) {
               const e = {
                 id: id,
-                type: "DRAWN_GAME" as const,
+                type: "END_GAME" as const,
                 wind: w,
+                sticks: context.controller.placeManager.sticks,
                 scores: context.controller.scoreManager.summary,
                 results: ret,
                 hands: hands,

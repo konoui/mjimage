@@ -1,5 +1,5 @@
 import { describe, test, expect } from "@jest/globals";
-import { Controller, Wall, River } from "../controller";
+import { Wall, River, Controller } from "../controller";
 import { Tile } from "../parser";
 import { Hand } from "../calculator";
 import { KIND, OPERATOR } from "../constants";
