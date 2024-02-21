@@ -832,7 +832,7 @@ export class Wall {
 }
 
 export class River {
-  m: { w: Wind; t: Tile }[] = [];
+  m: { w: Wind; t: Tile; callMarker?: boolean }[] = [];
   constructor() {}
   discard(t: Tile, w: Wind) {
     this.m.push({ w: w, t: t });
@@ -847,5 +847,8 @@ export class River {
   }
   discards(w: Wind) {
     return this.m.filter((v) => v.w == w);
+  }
+  markCalled() {
+    this.lastTile.callMarker = true;
   }
 }

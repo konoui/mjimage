@@ -351,7 +351,7 @@ export const createControllerMachine = (c: Controller) => {
         },
         notify_choice_after_drawn: ({ context, event }) => {
           const w = context.currentWind;
-          const drawn = context.controller.player(w).hand.drawn; // FIXME null
+          const drawn = context.controller.player(w).hand.drawn;
           const id = genEventID();
           const e = {
             id: id,
@@ -424,8 +424,10 @@ export const createControllerMachine = (c: Controller) => {
             context.currentWind = iam; // update current wind
             if (event.type == "AN_KAN" || event.type == "SHO_KAN")
               context.controller.player(iam).hand.kan(event.block);
-            else context.controller.player(iam).hand.call(event.block);
-            // FIXME mark river tile as called
+            else {
+              context.controller.player(iam).hand.call(event.block);
+              context.controller.river.markCalled(); // remove tile from the river
+            }
             console.debug(
               context.controller.player(iam).id,
               `call: ${event.block.toString()}`,
@@ -544,7 +546,9 @@ export const createControllerMachine = (c: Controller) => {
               const id = context.controller.placeManager.playerID(cur);
               context.controller.scoreManager.restoreReachStick(id);
               context.controller.placeManager.decrementReachStick();
-              // FIXME remove reach stick from result
+              // TODO re calculate for ron to handle blind doras
+              event.ret.point -= 1000;
+              event.ret.result[event.iam] -= 1000;
             }
           }
         },
@@ -564,7 +568,7 @@ export const createControllerMachine = (c: Controller) => {
                 type: event.type,
                 iam: iam,
                 wind: w,
-                lastTile: context.controller.player(iam).hand.drawn!, // FIXME null
+                lastTile: context.controller.player(iam).hand.drawn!,
                 ret: event.ret,
               };
               context.controller.player(w).enqueue(e);
