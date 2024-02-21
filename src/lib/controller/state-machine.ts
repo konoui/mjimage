@@ -235,10 +235,12 @@ export const createControllerMachine = (c: Controller) => {
             target: "waiting_user_event_after_drawn",
             actions: [
               {
-                type: "notify_kan_draw",
+                type: "notify_draw",
+                params: { action: "kan" },
               },
               {
                 type: "notify_choice_after_drawn",
+                params: { replacementWin: true },
               },
             ],
           },
@@ -266,10 +268,12 @@ export const createControllerMachine = (c: Controller) => {
           description: "チャンカンを待つ",
           exit: [
             {
-              type: "notify_kan_draw",
+              type: "notify_draw",
+              params: { action: "kan" },
             },
             {
               type: "notify_choice_after_drawn",
+              params: { replacementWin: true },
             },
           ],
           on: {
@@ -349,7 +353,7 @@ export const createControllerMachine = (c: Controller) => {
             context.controller.player(w).enqueue(e);
           }
         },
-        notify_choice_after_drawn: ({ context, event }) => {
+        notify_choice_after_drawn: ({ context, event }, params) => {
           const w = context.currentWind;
           const drawn = context.controller.player(w).hand.drawn;
           const id = genEventID();
@@ -361,6 +365,9 @@ export const createControllerMachine = (c: Controller) => {
             choices: {
               TSUMO: context.controller.doWin(w, drawn, {
                 oneShot: context.oneShotMap[w],
+                replacementWin: (
+                  params as { replacementWin: boolean } | undefined
+                )?.replacementWin,
               }),
               REACH: context.controller.doReach(w),
               AN_KAN: context.controller.doAnKan(w),
@@ -469,32 +476,16 @@ export const createControllerMachine = (c: Controller) => {
             }
           }
         },
-        notify_kan_draw: ({ context, event }) => {
+        notify_draw: ({ context, event }, params) => {
           const id = genEventID();
-          const drawn = context.controller.wall.kan();
-          const iam = context.currentWind;
-          context.controller.player(iam).hand.draw(drawn); // draw
-          console.debug(
-            context.controller.player(iam).id,
-            `kan draw: ${drawn}`,
-            `hand: ${context.controller.player(iam).hand.toString()}`
-          );
-          for (let w of Object.values(WIND)) {
-            let t = new Tile(KIND.BACK, 0); // mask tile for other players
-            if (w == iam) t = drawn;
-            const e = {
-              id: id,
-              type: "DRAW" as const,
-              iam: iam,
-              wind: w,
-              tile: t,
-            };
-            context.controller.player(w).enqueue(e);
+          const action = (params as { action: string } | undefined)?.action; // TODO avoid as
+          let drawn: Tile | undefined = undefined;
+          if (action == "kan") {
+            drawn = context.controller.wall.kan();
+          } else {
+            drawn = context.controller.wall.draw();
           }
-        },
-        notify_draw: ({ context, event }) => {
-          const id = genEventID();
-          const drawn = context.controller.wall.draw();
+
           const iam = context.currentWind;
           context.controller.player(iam).hand.draw(drawn); // draw
           console.debug(
@@ -756,15 +747,7 @@ export const createControllerMachine = (c: Controller) => {
         },
         canWin: ({ context, event }, params) => {
           if (event.type == "TSUMO" || event.type == "RON") {
-            let quadWin = event.type == "RON" ? event.quadWin : undefined;
-            let t = event.type != "RON" ? event.lastTile : event.tileInfo.tile;
-            let w = event.type == "RON" ? event.tileInfo.wind : undefined;
-            const can = context.controller.doWin(event.iam, t, {
-              whoDiscarded: w,
-              quadWin: quadWin,
-              oneShot: context.oneShotMap[event.iam],
-            });
-            return can != 0;
+            return true; // TODO
           }
           console.error(`guards.canWin receive ${event.type}`);
           return false;
