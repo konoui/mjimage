@@ -1,4 +1,4 @@
-import { KIND, OPERATOR, WIND, Wind, Round } from "../constants";
+import { Wind, Round } from "../constants";
 import {
   BlockAnKan,
   BlockChi,
@@ -17,9 +17,8 @@ type Event =
   | "CHOICE_AFTER_CALLED"
   | "CHOICE_FOR_CHAN_KAN"
   | "DISTRIBUTE"
-  | "WIN_GAME"
   | "NEW_DORA"
-  | "DRAWN_GAME";
+  | "END_GAME";
 
 type ChoiceEvent =
   | "PON"
@@ -35,9 +34,20 @@ type ChoiceEvent =
 export interface DistributeEvent {
   id: string;
   type: Extract<Event, "DISTRIBUTE">;
-  hand: string;
+  hands: { [key in Wind]: string };
   wind: Wind;
+  sticks: { reach: number; dead: number };
   round: Round;
+}
+
+export interface EndEvent {
+  id: string;
+  type: Extract<Event, "END_GAME">;
+  wind: Wind;
+  scores: { [key: string]: number };
+  sticks: { reach: number; dead: number };
+  results: { [key in Wind]: number };
+  hands: { [key in Wind]: string };
 }
 
 export interface CallEvent {
@@ -94,15 +104,6 @@ export interface NewDoraEvent {
   id: string;
   type: Extract<Event, "NEW_DORA">;
   tile: Tile;
-}
-
-export interface EndEvent {
-  id: string;
-  type: Extract<Event, "WIN_GAME" | "DRAWN_GAME">;
-  wind: Wind;
-  scores: { [key: string]: number };
-  results: { [key in Wind]: number };
-  hands: { [key in Wind]: string };
 }
 
 export interface ChoiceAfterDrawnEvent {

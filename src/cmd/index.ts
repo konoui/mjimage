@@ -1,4 +1,6 @@
-import { Controller, Wall, River } from "./../lib/controller";
+import { Controller } from "./../lib/controller";
+import { River } from "../lib/controller/river";
+import { Wall } from "../lib/controller/wall";
 import { loadWallData, storeWallData } from "./../lib/__tests__/utils/helper";
 
 const type = process.argv[2];
