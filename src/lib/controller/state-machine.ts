@@ -39,6 +39,7 @@ export function createWindMap<T>(initial: T) {
 }
 
 import { createMachine } from "xstate";
+import { boolean } from "zod";
 
 export const createControllerMachine = (c: Controller) => {
   return createMachine(
@@ -761,7 +762,9 @@ export const createControllerMachine = (c: Controller) => {
         },
         cannotContinue: ({ context, event }, params) => {
           return (
-            !context.controller.wall.canDraw || !context.controller.wall.canKan
+            !context.controller.wall.canDraw ||
+            !context.controller.wall.canKan ||
+            context.controller.river.cannotContinue()
           );
         },
       },
