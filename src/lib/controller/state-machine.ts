@@ -642,6 +642,7 @@ export const createControllerMachine = (c: Controller) => {
               const e = {
                 id: id,
                 type: "END_GAME" as const,
+                subType: "WIN_GAME" as const,
                 wind: w,
                 sticks: { reach: 0, dead: 0 },
                 scores: context.controller.scoreManager.summary,
@@ -651,15 +652,22 @@ export const createControllerMachine = (c: Controller) => {
               context.controller.player(w).enqueue(e);
             }
             context.controller.placeManager.resetSticks();
+            if (event.iam == "1w")
+              context.controller.placeManager.continueRound();
+            else context.controller.placeManager.nextRound();
             return;
           } else if (
             !context.controller.wall.canKan ||
             context.controller.river.cannotContinue()
           ) {
+            const subType = !context.controller.wall.canKan
+              ? ("FOUR_KAN" as const)
+              : ("FOUR_WIND" as const);
             for (let w of Object.values(WIND)) {
               const e = {
                 id: id,
                 type: "END_GAME" as const,
+                subType: subType,
                 wind: w,
                 sticks: context.controller.placeManager.sticks,
                 scores: context.controller.scoreManager.summary,
@@ -668,6 +676,7 @@ export const createControllerMachine = (c: Controller) => {
               };
               context.controller.player(w).enqueue(e);
             }
+            context.controller.placeManager.continueRound();
             return;
           } else if (!context.controller.wall.canDraw) {
             const wind: Wind[] = [];
@@ -694,6 +703,7 @@ export const createControllerMachine = (c: Controller) => {
               const e = {
                 id: id,
                 type: "END_GAME" as const,
+                subType: "DRAWN_GAME" as const,
                 wind: w,
                 sticks: context.controller.placeManager.sticks,
                 scores: context.controller.scoreManager.summary,
@@ -702,6 +712,8 @@ export const createControllerMachine = (c: Controller) => {
               };
               context.controller.player(w).enqueue(e);
             }
+            if (ret["1w"] > 0) context.controller.placeManager.continueRound();
+            else context.controller.placeManager.nextRound();
             return;
           }
           for (let w of Object.values(WIND)) {
