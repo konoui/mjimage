@@ -326,6 +326,7 @@ export const createControllerMachine = (c: Controller) => {
               type: "DISTRIBUTE" as const,
               hands: hands,
               wind: w,
+              dora: context.controller.wall.doras[0],
               sticks: context.controller.placeManager.sticks,
               round: context.controller.placeManager.round,
               players: context.controller.playerIDs,

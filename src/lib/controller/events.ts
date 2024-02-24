@@ -36,6 +36,7 @@ export interface DistributeEvent {
   type: Extract<Event, "DISTRIBUTE">;
   hands: { [key in Wind]: string };
   wind: Wind;
+  dora: Tile;
   sticks: { reach: number; dead: number };
   round: Round;
 }

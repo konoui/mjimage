@@ -42,7 +42,7 @@ export class Tile {
   }
 
   clone() {
-    return new Tile(this.k, this.n, this.ops);
+    return new Tile(this.k, this.n, [...this.ops]);
   }
 
   has(op: Operator) {

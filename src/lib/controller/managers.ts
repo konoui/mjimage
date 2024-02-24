@@ -3,18 +3,14 @@ import { Wind, Round } from "../constants";
 
 export class ScoreManager {
   private reachValue = 1000;
-  private m: { [key: string]: number } = {};
-  constructor(playerIDs: string[]) {
-    this.init(playerIDs);
-  }
-  init(ids: string[]) {
-    const base = 25000;
-    for (let id of ids) {
-      this.m[id] = base;
-    }
+  private m: { [key: string]: number };
+  constructor(initial: { [key: string]: number }) {
+    this.m = initial;
   }
   get summary() {
-    return this.m;
+    const c: { [key: string]: number } = {};
+    for (let k in this.m) c[k] = this.m[k];
+    return c;
   }
   reach(id: string) {
     this.m[id] -= this.reachValue;
@@ -47,26 +43,12 @@ export class PlaceManager {
   private wToP = createWindMap("");
   round: Round;
   sticks: { reach: number; dead: number } = { reach: 0, dead: 0 };
-  constructor(playerIDs: string[], init?: Wind) {
+  constructor(initial: { [key: string]: Wind }) {
     this.round = "1w1";
-    const w = init == null ? this.randWind() : prevWind(init);
-    this.init(playerIDs, w);
+    this.pToW = initial;
+    for (let playerID in this.pToW) this.wToP[this.pToW[playerID]] = playerID;
   }
 
-  private init(ids: string[], init: Wind) {
-    this.pToW = {
-      [ids[0]]: init,
-      [ids[1]]: nextWind(init),
-      [ids[2]]: nextWind(nextWind(init)),
-      [ids[3]]: nextWind(nextWind(nextWind(init))),
-    };
-    this.update();
-  }
-  private randWind() {
-    const n = Math.floor(Math.random() * 4) + 1;
-    const w = `${n}w` as Wind;
-    return prevWind(w);
-  }
   private update() {
     for (let playerID in this.pToW) {
       const next = nextWind(this.pToW[playerID]);
@@ -81,7 +63,7 @@ export class PlaceManager {
     this.sticks.reach++;
   }
   nextRound() {
-    const next = PlaceManager.nextRound(this.round);
+    const next = nextRound(this.round);
     this.round = next;
     this.update();
   }
@@ -104,16 +86,17 @@ export class PlaceManager {
   get playerMap() {
     return this.pToW;
   }
-  static nextRound(r: Round) {
-    let w = r.substring(0, 2) as Wind;
-    let n = Number(r.substring(2, 3));
-    if (n == 4) {
-      n = 1;
-      w = nextWind(w);
-    } else n++;
-    return `${w}${n}` as Round;
-  }
 }
+
+const nextRound = (r: Round) => {
+  let w = r.substring(0, 2) as Wind;
+  let n = Number(r.substring(2, 3));
+  if (n == 4) {
+    n = 1;
+    w = nextWind(w);
+  } else n++;
+  return `${w}${n}` as Round;
+};
 
 export const nextWind = (w: Wind): Wind => {
   let n = Number(w.toString()[0]);
@@ -134,4 +117,12 @@ export function createWindMap<T>(initial: T) {
     "4w": initial,
   };
   return m;
+}
+
+export function shuffle<T>(array: T[]) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
 }
