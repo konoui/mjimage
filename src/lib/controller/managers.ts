@@ -80,7 +80,7 @@ export class PlaceManager {
   incrementReachStick() {
     this.sticks.reach++;
   }
-  incrementRound() {
+  nextRound() {
     const next = PlaceManager.nextRound(this.round);
     this.round = next;
     this.update();

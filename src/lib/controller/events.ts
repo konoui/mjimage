@@ -43,6 +43,7 @@ export interface DistributeEvent {
 export interface EndEvent {
   id: string;
   type: Extract<Event, "END_GAME">;
+  subType: "WIN_GAME" | "DRAWN_GAME" | "FOUR_KAN" | "FOUR_WIND";
   wind: Wind;
   scores: { [key: string]: number };
   sticks: { reach: number; dead: number };

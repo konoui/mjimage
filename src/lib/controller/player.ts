@@ -224,11 +224,6 @@ export class Controller {
     for (;;) {
       console.debug(`start========${this.placeManager.round}=============`);
       this.start();
-      const v = this.actor.getSnapshot().value;
-      if (v == "drawn_game")
-        this.placeManager.continueRound(); // FIXME テンパイ
-      else if (v == "roned" || v == "tsumo") this.placeManager.incrementRound();
-      else throw new Error(`unexpected state ${v}`);
 
       // TODO arrange as function
       this.wall = new Wall();
@@ -520,29 +515,25 @@ export class Player {
     this.hand = new Hand(input);
   }
   enqueue(e: PlayerEvent) {
-    if (e.type == "CHOICE_AFTER_DISCARDED") {
-      this.client.reply(e.id, e);
-      return;
-    }
-    if (e.type == "CHOICE_AFTER_DRAWN") {
-      if (e.choices.DISCARD != 0) {
-        const ret = this.choiceForDiscard(e.choices.DISCARD);
-        e.choices.DISCARD = [ret.tile];
-      }
-      this.client.reply(e.id, e);
-      return;
-    }
-    if (e.type == "CHOICE_AFTER_CALLED") {
-      if (e.choices.DISCARD != 0) {
-        const ret = this.choiceForDiscard(e.choices.DISCARD);
-        e.choices.DISCARD = [ret.tile];
-      }
-      this.client.reply(e.id, e);
-      return;
-    }
-    if (e.type == "CHOICE_FOR_CHAN_KAN") {
-      this.client.reply(e.id, e);
-      return;
+    switch (e.type) {
+      case "CHOICE_AFTER_CALLED":
+        this.client.reply(e.id, e);
+        break;
+      case "CHOICE_AFTER_DISCARDED":
+        this.client.reply(e.id, e);
+        break;
+      case "CHOICE_AFTER_DRAWN":
+        if (e.choices.DISCARD != 0) {
+          const ret = this.choiceForDiscard(e.choices.DISCARD);
+          e.choices.DISCARD = [ret.tile];
+        }
+        this.client.reply(e.id, e);
+        break;
+      case "CHOICE_FOR_CHAN_KAN":
+        this.client.reply(e.id, e);
+        break;
+      default:
+        this.client.reply(e.id, e);
     }
   }
   choiceForDiscard(choices: Tile[]) {
