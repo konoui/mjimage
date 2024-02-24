@@ -5,7 +5,7 @@ import {
   ShantenCalculator,
   TileCalculator,
 } from "../calculator";
-import { KIND, OPERATOR, Wind } from "../constants";
+import { KIND, OPERATOR, Wind, Round } from "../constants";
 import {
   BlockAnKan,
   BlockChi,
@@ -25,9 +25,9 @@ import {
   prioritizeDrawnEvents,
   ChoiceForChanKan,
 } from "./events";
-import { Wall } from "./wall";
+import { Wall, WallProps } from "./wall";
 import { River } from "./river";
-import { PlaceManager, ScoreManager, nextWind } from "./managers";
+import { PlaceManager, ScoreManager, nextWind, shuffle } from "./managers";
 
 export class Controller {
   wall: Wall;
@@ -38,14 +38,34 @@ export class Controller {
   scoreManager: ScoreManager;
   actor = createActor(createControllerMachine(this));
   mailBox: { [id: string]: PlayerEvent[] };
-  constructor(wall: Wall, river: River, params?: { initWind: Wind }) {
+  histories: {
+    round: Round;
+    scores: { [key in string]: number };
+    players: { [key in string]: Wind };
+    sticks: { reach: number; dead: number };
+    wall: WallProps;
+    choiceEvents: { [id: string]: PlayerEvent[] };
+  }[] = [];
+  constructor(wall: Wall, river: River, params?: { fixedOrder: boolean }) {
     this.wall = wall;
     this.river = river;
     this.mailBox = {};
 
     this.playerIDs = ["player-1", "player-2", "player-3", "player-4"];
-    this.placeManager = new PlaceManager(this.playerIDs, params?.initWind);
-    this.scoreManager = new ScoreManager(this.playerIDs);
+
+    const shuffled = params?.fixedOrder
+      ? this.playerIDs.concat()
+      : shuffle(this.playerIDs.concat());
+
+    this.placeManager = new PlaceManager({
+      [shuffled[0]]: "1w",
+      [shuffled[1]]: "2w",
+      [shuffled[2]]: "3w",
+      [shuffled[3]]: "4w",
+    });
+
+    const initial = Object.fromEntries(this.playerIDs.map((i) => [i, 25000]));
+    this.scoreManager = new ScoreManager(initial);
     const client = new SyncReplyClient(
       (evenId: string, event: PlayerEvent) => this.enqueue(evenId, event) // bind this
     );
@@ -209,13 +229,35 @@ export class Controller {
       });
     }
   }
+  export() {
+    return this.histories.concat();
+  }
+  load(v: string) {
+    const h = JSON.parse(v) as (typeof this.histories)[0];
+    this.placeManager = new PlaceManager(h.players);
+    this.placeManager.round = h.round;
+    this.placeManager.sticks = h.sticks;
+    this.scoreManager = new ScoreManager(h.scores);
+    this.mailBox = h.choiceEvents;
+    this.wall = new Wall(h.wall);
+  }
   start() {
     this.actor.subscribe((snapshot) => {
-      console.debug("Value:", snapshot.value);
+      console.debug("State:", snapshot.value);
     });
+
+    const ent = {
+      scores: this.scoreManager.summary,
+      round: this.placeManager.round,
+      players: this.placeManager.playerMap,
+      wall: this.wall.export(),
+      choiceEvents: this.mailBox,
+      sticks: this.placeManager.sticks,
+    };
     this.actor.start();
+    this.histories.push(ent);
     const v = this.actor.getSnapshot().status;
-    if (!(v == "done"))
+    if (v != "done")
       throw new Error(
         `unexpected state ${this.actor.getSnapshot().value}(${v})`
       );
@@ -533,7 +575,7 @@ export class Player {
         this.client.reply(e.id, e);
         break;
       default:
-        this.client.reply(e.id, e);
+      // this.client.reply(e.id, e);
     }
   }
   choiceForDiscard(choices: Tile[]) {

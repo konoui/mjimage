@@ -1,54 +1,64 @@
 import { KIND } from "../constants";
-import { Parser, Tile } from "../parser";
+import { Tile } from "../parser";
+import { shuffle } from "./managers";
+
+export interface WallProps {
+  drawable: Tile[];
+  dead: Tile[];
+  replacement: Tile[];
+  dora: Tile[];
+  blindDora: Tile[];
+}
 
 export class Wall {
-  private raw = "";
-  private drawableWall: Tile[] = [];
-  private deadWall: Tile[] = [];
-  private replacementWall: Tile[] = [];
-  private doraWall: Tile[] = [];
-  private blindDoraWall: Tile[] = [];
+  private walls: WallProps = {
+    replacement: [],
+    dead: [],
+    dora: [],
+    blindDora: [],
+    drawable: [],
+  };
+  private backup: WallProps;
   private openedDoraCount = 1;
-  constructor(raw?: string) {
-    this.init(raw);
+  constructor(backup?: WallProps) {
+    this.init(backup);
+    this.backup = Wall.clone(this.walls);
   }
   kan() {
-    if (this.replacementWall.length == 0)
+    if (this.walls.replacement.length == 0)
       throw new Error(`exceeded maximum kan`);
-    const t = this.replacementWall.pop()!;
-    this.drawableWall.pop();
+    const t = this.walls.replacement.pop()!;
+    this.walls.drawable.pop();
     return t;
   }
   draw() {
-    if (!this.drawableWall) throw new Error("cannot draw any more");
-    return this.drawableWall.pop()!;
+    if (!this.walls.drawable) throw new Error("cannot draw any more");
+    return this.walls.drawable.pop()!;
   }
 
   openDora() {
     if (this.openedDoraCount >= 4)
       throw new Error("exceeded maximum open dora");
     this.openedDoraCount++;
-    return this.doraWall[this.openedDoraCount - 1].clone();
+    return this.walls.dora[this.openedDoraCount - 1].clone();
   }
   get doras() {
-    return this.doraWall.slice(0, this.openedDoraCount);
+    return this.walls.dora.slice(0, this.openedDoraCount);
   }
   get blindDoras() {
-    return this.blindDoraWall.slice(0, this.openedDoraCount);
+    return this.walls.blindDora.slice(0, this.openedDoraCount);
   }
   get canKan() {
-    return this.replacementWall.length > 0;
+    return this.walls.replacement.length > 0;
   }
   get canDraw() {
-    return this.drawableWall.length > 0;
+    return this.walls.drawable.length > 0;
   }
 
-  private init(raw?: string) {
-    if (raw != null) {
-      const blocks = new Parser(raw).parse();
-      for (let b of blocks) {
-        this.drawableWall.push(...b.tiles);
-      }
+  private init(backup?: WallProps) {
+    if (backup != null) {
+      this.walls = Wall.clone(backup);
+      return;
     } else {
       for (let k of Object.values(KIND)) {
         if (k == KIND.BACK) continue;
@@ -57,36 +67,36 @@ export class Wall {
         for (let i = 0; i < 4; i++) {
           for (let n of values) {
             if (i == 3 && n == 5) n = 0;
-            this.drawableWall.push(new Tile(k, n));
+            this.walls.drawable.push(new Tile(k, n));
           }
         }
       }
-      this.shuffle(this.drawableWall);
+      shuffle(this.walls.drawable);
     }
-
-    this.raw = this.drawableWall.map((t) => t.toString()).join();
 
     for (let i = 0; i < 14; i++) {
-      this.deadWall.push(this.drawableWall.pop()!);
+      this.walls.dead.push(this.walls.drawable.pop()!);
     }
     for (let i = 0; i < 4; i++) {
-      this.blindDoras.push(this.deadWall.pop()!);
+      this.walls.blindDora.push(this.walls.dead.pop()!);
     }
     for (let i = 0; i < 4; i++) {
-      this.doraWall.push(this.deadWall.pop()!);
+      this.walls.dora.push(this.walls.dead.pop()!);
     }
     for (let i = 0; i < 4; i++) {
-      this.replacementWall.push(this.deadWall.pop()!);
+      this.walls.replacement.push(this.walls.dead.pop()!);
     }
-  }
-  private shuffle(array: Tile[]) {
-    for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
   }
   export() {
-    return this.raw;
+    return this.backup;
+  }
+  static clone(walls: WallProps) {
+    return {
+      drawable: walls.drawable.map((t) => new Tile(t.k, t.n)),
+      dead: walls.dead.map((t) => new Tile(t.k, t.n)),
+      dora: walls.dora.map((t) => new Tile(t.k, t.n)),
+      blindDora: walls.blindDora.map((t) => new Tile(t.k, t.n)),
+      replacement: walls.replacement.map((t) => new Tile(t.k, t.n)),
+    };
   }
 }

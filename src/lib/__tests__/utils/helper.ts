@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { Block } from "../../parser";
+import { WallProps } from "../../controller";
 import { registerWindow } from "@svgdotjs/svg.js";
 import { createHTMLWindow } from "svgdom";
 // @ts-ignore, https://github.com/DefinitelyTyped/DefinitelyTyped/pull/66501/files
@@ -36,15 +37,15 @@ export const handsToString = (hands: Block[][]) => {
   return hands.map((hand) => hand.map((block) => block.toString()));
 };
 
-export const loadWallData = (): string[] => {
+export const loadWallData = (): WallProps[] => {
   const data = loadTestData("wall.json", "", false, "__fixtures__");
   if (data.toString() == "") return [];
   return JSON.parse(data.toString());
 };
 
-export const storeWallData = (d: string) => {
+export const storeWallData = (d: WallProps) => {
   const data = loadWallData();
   data.push(d);
-  const str = JSON.stringify(data, null, 2);
+  const str = JSON.stringify(data);
   loadTestData("wall.json", str, true, "__fixtures__");
 };

@@ -1,7 +1,9 @@
-import { Controller } from "./../lib/controller";
-import { River } from "../lib/controller/river";
-import { Wall } from "../lib/controller/wall";
-import { loadWallData, storeWallData } from "./../lib/__tests__/utils/helper";
+import { Controller, River, Wall } from "./../lib/controller";
+import {
+  loadTestData,
+  loadWallData,
+  storeWallData,
+} from "./../lib/__tests__/utils/helper";
 
 const type = process.argv[2];
 if (!["test", "single", "game"].includes(type))
@@ -12,7 +14,7 @@ if (type == "test") {
   const walls = loadWallData().map((l) => new Wall(l));
   for (let w of walls) {
     console.log("========");
-    const c = new Controller(w, new River(), { initWind: "2w" });
+    const c = new Controller(w, new River(), { fixedOrder: true });
     c.start();
   }
 }
@@ -20,7 +22,7 @@ if (type == "test") {
 if (type == "game" || type == "single") {
   for (let i = 0; i < count; i++) {
     console.debug(`${type}(${i})===`);
-    const c = new Controller(new Wall(), new River(), { initWind: "2w" });
+    const c = new Controller(new Wall(), new River(), { fixedOrder: true });
     const starter = factory(c, type);
     subscribeError(c);
     try {
@@ -29,6 +31,8 @@ if (type == "game" || type == "single") {
       console.error("Error", e);
       storeWallData(c.wall.export());
     }
+    const games = c.export();
+    loadTestData("game.json", JSON.stringify(games), true, "__fixtures__");
   }
 }
 
