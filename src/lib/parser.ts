@@ -221,7 +221,7 @@ export class BlockIsolated extends Block {
   }
 }
 
-const blockWrapper = (
+export const blockWrapper = (
   tiles: Tile[],
   type: BLOCK
 ):

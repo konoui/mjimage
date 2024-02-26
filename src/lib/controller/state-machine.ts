@@ -15,6 +15,7 @@ type ControllerContext = {
   currentWind: Wind;
   oneShotMap: { [key in Wind]: boolean };
   controller: Controller;
+  genEventID: ReturnType<typeof incrementalIDGenerator>;
 };
 
 import { createMachine } from "xstate";
@@ -28,6 +29,7 @@ export const createControllerMachine = (c: Controller) => {
         currentWind: "1w",
         oneShotMap: createWindMap(false),
         controller: c,
+        genEventID: incrementalIDGenerator(),
       },
       states: {
         distribute: {
@@ -301,10 +303,16 @@ export const createControllerMachine = (c: Controller) => {
           context.currentWind = nextWind(cur);
         },
         notify_hands: ({ context, event }) => {
-          const id = genEventID();
+          const id = context.genEventID();
           console.debug(
+            `round: ${context.controller.placeManager.round}`,
             `scores: ${JSON.stringify(
               context.controller.scoreManager.summary,
+              null,
+              2
+            )}`,
+            `map: ${JSON.stringify(
+              context.controller.placeManager.playerMap,
               null,
               2
             )}`,
@@ -339,7 +347,7 @@ export const createControllerMachine = (c: Controller) => {
         notify_choice_after_drawn: ({ context, event }, params) => {
           const w = context.currentWind;
           const drawn = context.controller.player(w).hand.drawn;
-          const id = genEventID();
+          const id = context.genEventID();
           const e = {
             id: id,
             type: "CHOICE_AFTER_DRAWN" as const,
@@ -362,7 +370,7 @@ export const createControllerMachine = (c: Controller) => {
           context.controller.pollReplies(id, [w]);
         },
         notify_choice_after_discarded: ({ context, event }) => {
-          const id = genEventID();
+          const id = context.genEventID();
           const discarded = context.controller.river.lastTile;
           const ltile = discarded.t.clone().add(OPERATOR.HORIZONTAL);
           for (let w of Object.values(WIND)) {
@@ -388,7 +396,7 @@ export const createControllerMachine = (c: Controller) => {
           context.controller.pollReplies(id, Object.values(WIND));
         },
         notify_choice_after_called: ({ context, event }) => {
-          const id = genEventID();
+          const id = context.genEventID();
           const w = context.currentWind;
           const e = {
             id: id,
@@ -402,7 +410,7 @@ export const createControllerMachine = (c: Controller) => {
           context.controller.pollReplies(id, [w]);
         },
         notify_call: ({ context, event }) => {
-          const id = genEventID();
+          const id = context.genEventID();
           if (
             event.type == "CHI" ||
             event.type == "PON" ||
@@ -436,7 +444,7 @@ export const createControllerMachine = (c: Controller) => {
           }
         },
         notify_discard: ({ context, event }) => {
-          const id = genEventID();
+          const id = context.genEventID();
           if (event.type == "DISCARD") {
             const iam = context.currentWind;
             const t = event.tile;
@@ -460,7 +468,7 @@ export const createControllerMachine = (c: Controller) => {
           }
         },
         notify_draw: ({ context, event }, params) => {
-          const id = genEventID();
+          const id = context.genEventID();
           const action = (params as { action: string } | undefined)?.action; // TODO avoid as
           let drawn: Tile | undefined = undefined;
           if (action == "kan") {
@@ -490,7 +498,7 @@ export const createControllerMachine = (c: Controller) => {
           }
         },
         notify_ron: ({ context, event }) => {
-          const id = genEventID();
+          const id = context.genEventID();
           if (event.type == "RON") {
             const iam = event.iam;
             console.debug(
@@ -527,7 +535,7 @@ export const createControllerMachine = (c: Controller) => {
           }
         },
         notify_tsumo: ({ context, event }) => {
-          const id = genEventID();
+          const id = context.genEventID();
           const iam = context.currentWind;
           if (event.type == "TSUMO") {
             console.debug(
@@ -550,7 +558,7 @@ export const createControllerMachine = (c: Controller) => {
           }
         },
         notify_reach: ({ context, event }) => {
-          const id = genEventID();
+          const id = context.genEventID();
           if (event.type == "REACH") {
             const iam = event.iam;
             const t = event.tile.clone().add(OPERATOR.HORIZONTAL);
@@ -580,7 +588,7 @@ export const createControllerMachine = (c: Controller) => {
         },
         notify_choice_for_chankan: ({ context, event }) => {
           if (event.type == "SHO_KAN" || event.type == "AN_KAN") {
-            const id = genEventID();
+            const id = context.genEventID();
             const t = event.block.tiles[0].clone().remove(OPERATOR.HORIZONTAL);
             for (let w of Object.values(WIND)) {
               const ron = context.controller.doWin(
@@ -607,7 +615,7 @@ export const createControllerMachine = (c: Controller) => {
           }
         },
         notify_new_dora_if_needed: ({ context, event }) => {
-          const id = genEventID();
+          const id = context.genEventID();
           if (event.type == "AN_KAN") {
             const tile = context.controller.wall.openDora();
             for (let w of Object.values(WIND)) {
@@ -631,7 +639,7 @@ export const createControllerMachine = (c: Controller) => {
           context.oneShotMap[context.currentWind] = false;
         },
         notify_end: ({ context, event }) => {
-          const id = genEventID();
+          const id = context.genEventID();
           const hands = createWindMap("");
           if (event.type == "RON" || event.type == "TSUMO") {
             const pm = context.controller.placeManager.playerMap;
@@ -793,5 +801,3 @@ function incrementalIDGenerator(start = 0) {
     return (idx++).toString();
   };
 }
-
-const genEventID = incrementalIDGenerator();

@@ -5,7 +5,7 @@ import {
   ShantenCalculator,
   TileCalculator,
 } from "../calculator";
-import { KIND, OPERATOR, Wind, Round } from "../constants";
+import { KIND, OPERATOR, Wind, Round, WIND } from "../constants";
 import {
   BlockAnKan,
   BlockChi,
@@ -13,6 +13,7 @@ import {
   BlockPon,
   BlockShoKan,
   Tile,
+  blockWrapper,
 } from "../parser";
 import { DoubleCalculator, WinResult } from "../calculator";
 import { createControllerMachine } from "./state-machine";
@@ -29,6 +30,15 @@ import { Wall, WallProps } from "./wall";
 import { River } from "./river";
 import { PlaceManager, ScoreManager, nextWind, shuffle } from "./managers";
 
+export interface History {
+  round: Round;
+  scores: { [key in string]: number };
+  players: { [key in string]: Wind };
+  sticks: { reach: number; dead: number };
+  wall: WallProps;
+  choiceEvents: { [id: string]: PlayerEvent[] };
+}
+
 export class Controller {
   wall: Wall;
   river: River;
@@ -38,14 +48,7 @@ export class Controller {
   scoreManager: ScoreManager;
   actor = createActor(createControllerMachine(this));
   mailBox: { [id: string]: PlayerEvent[] };
-  histories: {
-    round: Round;
-    scores: { [key in string]: number };
-    players: { [key in string]: Wind };
-    sticks: { reach: number; dead: number };
-    wall: WallProps;
-    choiceEvents: { [id: string]: PlayerEvent[] };
-  }[] = [];
+  histories: History[] = [];
   constructor(wall: Wall, river: River, params?: { fixedOrder: boolean }) {
     this.wall = wall;
     this.river = river;
@@ -108,7 +111,7 @@ export class Controller {
     }
     if (events.length != wind.length) {
       throw new Error(
-        `num of event: got: ${wind.length}, want: ${events.length}`
+        `${eventID}: num of event: got: ${wind.length}, want: ${events.length}`
       );
     }
     if (wind.length == 0) {
@@ -232,14 +235,18 @@ export class Controller {
   export() {
     return this.histories.concat();
   }
-  load(v: string) {
-    const h = JSON.parse(v) as (typeof this.histories)[0];
+  load(h: History) {
+    const events = h.choiceEvents;
+    replaceTile(events);
+    this.mailBox = events;
     this.placeManager = new PlaceManager(h.players);
     this.placeManager.round = h.round;
     this.placeManager.sticks = h.sticks;
     this.scoreManager = new ScoreManager(h.scores);
-    this.mailBox = h.choiceEvents;
     this.wall = new Wall(h.wall);
+    for (let w of Object.values(WIND))
+      this.player(w).client = new EmptyReplyClient();
+    this.initHands();
   }
   start() {
     this.actor.subscribe((snapshot) => {
@@ -535,6 +542,11 @@ interface ReplyClient {
   reply(eventID: string, e: PlayerEvent): void;
 }
 
+class EmptyReplyClient implements ReplyClient {
+  constructor() {}
+  reply(eventID: string, e: any) {}
+}
+
 class SyncReplyClient implements ReplyClient {
   fn: (eventID: string, e: any) => void;
   constructor(fn: (eventID: string, e: any) => void) {
@@ -628,5 +640,61 @@ export class Player {
       shanten: r,
       candidates: candidates,
     };
+  }
+}
+
+export function replaceTile(obj: any): void {
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      const propValue = obj[key];
+      if (
+        typeof propValue === "object" &&
+        propValue !== null &&
+        "k" in propValue &&
+        "n" in propValue &&
+        "ops" in propValue
+      ) {
+        obj[key] = new Tile(propValue.k, propValue.n, propValue.ops);
+      } else if (
+        typeof propValue === "object" &&
+        propValue != null &&
+        "tiles" in propValue &&
+        "type" in propValue
+      ) {
+        obj[key] = blockWrapper(
+          propValue.tiles.map((t: Tile) => new Tile(t.k, t.n, t.ops)),
+          propValue.type
+        );
+      }
+      // もしプロパティが配列の場合、配列内の各要素に対して再帰的に処理を行う
+      else if (Array.isArray(propValue)) {
+        for (let i = 0; i < propValue.length; i++) {
+          const v = propValue[i];
+          if (
+            typeof v === "object" &&
+            v !== null &&
+            "k" in v &&
+            "n" in v &&
+            "ops" in v
+          )
+            propValue[i] = new Tile(v.k, v.n, v.ops);
+          else if (
+            typeof v === "object" &&
+            v != null &&
+            "tiles" in v &&
+            "type" in v
+          )
+            propValue[i] = blockWrapper(
+              v.tiles.map((t: Tile) => new Tile(t.k, t.n, t.ops)),
+              v.type
+            );
+          else replaceTile(propValue[i]);
+        }
+      }
+      // その他のオブジェクトの場合、そのプロパティに対して再帰的に処理を行う
+      else if (typeof propValue === "object") {
+        replaceTile(propValue);
+      }
+    }
   }
 }

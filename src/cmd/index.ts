@@ -1,21 +1,20 @@
-import { Controller, River, Wall } from "./../lib/controller";
-import {
-  loadTestData,
-  loadWallData,
-  storeWallData,
-} from "./../lib/__tests__/utils/helper";
+import { Controller } from "./../lib/controller";
+import { River } from "../lib/controller/river";
+import { Replayer } from "../lib/controller/replay";
+import { Wall, WallProps } from "../lib/controller/wall";
+import { loadArrayData, storeArrayData } from "./../lib/__tests__/utils/helper";
 
 const type = process.argv[2];
 if (!["test", "single", "game"].includes(type))
   throw new Error("unexpected type");
 const count = Number(process.argv[3]) ?? 1;
+const filename = "games.json";
 
 if (type == "test") {
-  const walls = loadWallData().map((l) => new Wall(l));
-  for (let w of walls) {
-    console.log("========");
-    const c = new Controller(w, new River(), { fixedOrder: true });
-    c.start();
+  const games = loadArrayData(filename);
+  for (let game of games) {
+    const r = new Replayer(game);
+    r.auto();
   }
 }
 
@@ -29,10 +28,8 @@ if (type == "game" || type == "single") {
       starter();
     } catch (e) {
       console.error("Error", e);
-      storeWallData(c.wall.export());
+      storeArrayData(filename, c.export());
     }
-    const games = c.export();
-    loadTestData("game.json", JSON.stringify(games), true, "__fixtures__");
   }
 }
 
@@ -45,7 +42,7 @@ function subscribeError(c: Controller) {
   c.actor.subscribe({
     error: (err) => {
       console.error("Error", err);
-      storeWallData(c.wall.export());
+      storeArrayData(filename, c.export());
       process.exit(1);
     },
   });

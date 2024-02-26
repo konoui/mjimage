@@ -37,15 +37,22 @@ export const handsToString = (hands: Block[][]) => {
   return hands.map((hand) => hand.map((block) => block.toString()));
 };
 
-export const loadWallData = (): WallProps[] => {
-  const data = loadTestData("wall.json", "", false, "__fixtures__");
-  if (data.toString() == "") return [];
-  return JSON.parse(data.toString());
+export const loadArrayData = (filename: string) => {
+  const a = loadInputData(filename);
+  if (a == "") return [];
+  const objs = JSON.parse(a) as any[];
+  const ret: string[] = [];
+  for (let o of objs) {
+    ret.push(JSON.stringify(o, null, 1));
+  }
+  return ret;
 };
 
-export const storeWallData = (d: WallProps) => {
-  const data = loadWallData();
-  data.push(d);
-  const str = JSON.stringify(data);
-  loadTestData("wall.json", str, true, "__fixtures__");
+export const storeArrayData = (filename: string, v: any) => {
+  const a = loadInputData(filename);
+  let objs = [];
+  if (a != "") objs = JSON.parse(a) as any[];
+  objs.push(v);
+  const updated = JSON.stringify(objs, null, 2);
+  loadTestData(filename, updated, true, "__fixtures__");
 };
