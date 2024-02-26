@@ -8,9 +8,7 @@ export class ScoreManager {
     this.m = initial;
   }
   get summary() {
-    const c: { [key: string]: number } = {};
-    for (let k in this.m) c[k] = this.m[k];
-    return c;
+    return structuredClone(this.m);
   }
   reach(id: string) {
     this.m[id] -= this.reachValue;
@@ -84,11 +82,11 @@ export class PlaceManager {
     return this.wToP[w];
   }
   get playerMap() {
-    return this.pToW;
+    return structuredClone(this.pToW);
   }
 }
 
-const nextRound = (r: Round) => {
+export const nextRound = (r: Round) => {
   let w = r.substring(0, 2) as Wind;
   let n = Number(r.substring(2, 3));
   if (n == 4) {
@@ -96,6 +94,10 @@ const nextRound = (r: Round) => {
     w = nextWind(w);
   } else n++;
   return `${w}${n}` as Round;
+};
+
+export const prevRound = (r: Round) => {
+  return nextRound(nextRound(nextRound(r)));
 };
 
 export const nextWind = (w: Wind): Wind => {

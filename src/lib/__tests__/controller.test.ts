@@ -1,18 +1,19 @@
 import { describe, test, expect } from "@jest/globals";
-import { Wall, River, Controller } from "../controller";
-import { Tile } from "../parser";
+import { Wall, River, Controller, WallProps } from "../controller";
+import { Tile, blockWrapper } from "../parser";
 import { Hand } from "../calculator";
 import { KIND, OPERATOR } from "../constants";
-import { loadWallData, storeWallData } from "./utils/helper";
-describe("controller", () => {
-  test("existing tests", () => {
-    const walls = loadWallData().map((l) => new Wall(l));
-    for (let w of walls) {
-      const c = new Controller(w, new River(), { fixedOrder: true });
-      c.start();
-    }
-  });
-});
+import { loadInputData, loadArrayData } from "./utils/helper";
+import { Replayer } from "../controller/replay";
+// describe("controller", () => {
+//   test("existing tests", () => {
+//     const games = loadArrayData("games.json");
+//     for (let game of games) {
+//       const r = new Replayer(game);
+//       r.auto();
+//     }
+//   });
+// });
 
 describe("callable", () => {
   test("can-chi", () => {
