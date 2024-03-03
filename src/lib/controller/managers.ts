@@ -54,7 +54,7 @@ export class PlaceManager {
       this.wToP[next] = playerID;
     }
   }
-  continueRound() {
+  incrementDeadStick() {
     this.sticks.dead++;
   }
   incrementReachStick() {
@@ -69,8 +69,11 @@ export class PlaceManager {
     this.sticks.reach--;
     assert(this.sticks.reach >= 0);
   }
-  resetSticks() {
-    this.sticks = { reach: 0, dead: 0 };
+  resetDeadStick() {
+    this.sticks.dead = 0;
+  }
+  resetReachStick() {
+    this.sticks.reach = 0;
   }
   is(r: Round) {
     return this.round == r;

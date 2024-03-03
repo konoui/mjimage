@@ -305,6 +305,7 @@ export const createControllerMachine = (c: Controller) => {
         notify_hands: ({ context, event }) => {
           const id = context.genEventID();
           console.debug(
+            `DISTRIBUTE:`,
             `round: ${context.controller.placeManager.round}`,
             `scores: ${JSON.stringify(
               context.controller.scoreManager.summary,
@@ -341,7 +342,7 @@ export const createControllerMachine = (c: Controller) => {
               places: context.controller.placeManager.playerMap,
               scores: context.controller.scoreManager.summary,
             };
-            context.controller.player(w).enqueue(e);
+            context.controller.emit(e);
           }
         },
         notify_choice_after_drawn: ({ context, event }, params) => {
@@ -366,7 +367,7 @@ export const createControllerMachine = (c: Controller) => {
               DISCARD: context.controller.doDiscard(w),
             },
           };
-          context.controller.player(w).enqueue(e);
+          context.controller.emit(e);
           context.controller.pollReplies(id, [w]);
         },
         notify_choice_after_discarded: ({ context, event }) => {
@@ -390,7 +391,7 @@ export const createControllerMachine = (c: Controller) => {
               },
             };
             // TODO if no choice, skip enqueue
-            context.controller.player(w).enqueue(e);
+            context.controller.emit(e);
           }
           // TODO skip not euqueued winds
           context.controller.pollReplies(id, Object.values(WIND));
@@ -406,7 +407,7 @@ export const createControllerMachine = (c: Controller) => {
               DISCARD: context.controller.doDiscard(w), // 食い変え
             },
           };
-          context.controller.player(w).enqueue(e);
+          context.controller.emit(e);
           context.controller.pollReplies(id, [w]);
         },
         notify_call: ({ context, event }) => {
@@ -439,7 +440,7 @@ export const createControllerMachine = (c: Controller) => {
                 wind: w,
                 block: event.block,
               };
-              context.controller.player(w).enqueue(e);
+              context.controller.emit(e);
             }
           }
         },
@@ -463,7 +464,7 @@ export const createControllerMachine = (c: Controller) => {
                 wind: w,
                 tile: t,
               };
-              context.controller.player(w).enqueue(e);
+              context.controller.emit(e);
             }
           }
         },
@@ -490,11 +491,12 @@ export const createControllerMachine = (c: Controller) => {
             const e = {
               id: id,
               type: "DRAW" as const,
+              subType: action,
               iam: iam,
               wind: w,
               tile: t,
             };
-            context.controller.player(w).enqueue(e);
+            context.controller.emit(e);
           }
         },
         notify_ron: ({ context, event }) => {
@@ -516,7 +518,7 @@ export const createControllerMachine = (c: Controller) => {
                 tileInfo: event.tileInfo,
                 ret: event.ret,
               };
-              context.controller.player(w).enqueue(e);
+              context.controller.emit(e);
             }
           }
         },
@@ -553,7 +555,7 @@ export const createControllerMachine = (c: Controller) => {
                 lastTile: context.controller.player(iam).hand.drawn!,
                 ret: event.ret,
               };
-              context.controller.player(w).enqueue(e);
+              context.controller.emit(e);
             }
           }
         },
@@ -582,7 +584,7 @@ export const createControllerMachine = (c: Controller) => {
                 wind: w,
                 tile: t,
               };
-              context.controller.player(w).enqueue(e);
+              context.controller.emit(e);
             }
           }
         },
@@ -609,7 +611,7 @@ export const createControllerMachine = (c: Controller) => {
                   RON: event.type == "SHO_KAN" ? ron : 0,
                 },
               };
-              context.controller.player(w).enqueue(e);
+              context.controller.emit(e);
             }
             context.controller.pollReplies(id, Object.values(WIND));
           }
@@ -625,7 +627,7 @@ export const createControllerMachine = (c: Controller) => {
                 wind: w,
                 tile: tile,
               };
-              context.controller.player(w).enqueue(e);
+              context.controller.emit(e);
             }
           }
           if (event.type == "SHO_KAN") {
@@ -643,6 +645,7 @@ export const createControllerMachine = (c: Controller) => {
           const hands = createWindMap("");
           if (event.type == "RON" || event.type == "TSUMO") {
             const pm = context.controller.placeManager.playerMap;
+            const shouldContinue = event.iam == "1w";
             context.controller.scoreManager.update(event.ret.result, pm);
             for (let w of Object.values(WIND)) {
               hands[event.iam] = context.controller
@@ -653,18 +656,21 @@ export const createControllerMachine = (c: Controller) => {
                 type: "END_GAME" as const,
                 subType: "WIN_GAME" as const,
                 wind: w,
+                shouldContinue: shouldContinue,
                 sticks: { reach: 0, dead: 0 },
                 scores: context.controller.scoreManager.summary,
                 results: event.ret.result,
                 hands: hands,
               };
-              context.controller.player(w).enqueue(e);
+              context.controller.emit(e);
             }
-            context.controller.placeManager.resetSticks();
-            if (event.iam == "1w")
-              context.controller.placeManager.continueRound();
-            else context.controller.placeManager.nextRound();
-            return;
+            context.controller.placeManager.resetReachStick();
+            if (shouldContinue)
+              context.controller.placeManager.incrementDeadStick();
+            else {
+              context.controller.placeManager.nextRound();
+              context.controller.placeManager.resetDeadStick();
+            }
           } else if (
             !context.controller.wall.canKan ||
             context.controller.river.cannotContinue()
@@ -678,15 +684,15 @@ export const createControllerMachine = (c: Controller) => {
                 type: "END_GAME" as const,
                 subType: subType,
                 wind: w,
+                shouldContinue: true,
                 sticks: context.controller.placeManager.sticks,
                 scores: context.controller.scoreManager.summary,
                 results: createWindMap(0),
                 hands: createWindMap(""),
               };
-              context.controller.player(w).enqueue(e);
+              context.controller.emit(e);
             }
-            context.controller.placeManager.continueRound();
-            return;
+            context.controller.placeManager.incrementDeadStick();
           } else if (!context.controller.wall.canDraw) {
             const wind: Wind[] = [];
             for (let w of Object.values(WIND)) {
@@ -698,13 +704,17 @@ export const createControllerMachine = (c: Controller) => {
               }
             }
 
-            let base = 3000 / wind.length;
-            if (wind.length == 0 || wind.length == 4) base = 0;
+            const base =
+              wind.length == 0 || wind.length == 4 ? 0 : 3000 / wind.length;
             const ret = createWindMap(0);
             for (let w of Object.values(WIND)) {
               if (wind.includes(w)) ret[w] += base;
-              else ret[w] -= base;
+              else ret[w] -= base * (4 - wind.length);
             }
+
+            console.log(`DRAWN_GAME: wind ${wind}`);
+
+            const shouldContinue = wind.length == 4 || ret["1w"] > 0;
 
             const pm = context.controller.placeManager.playerMap;
             context.controller.scoreManager.update(ret, pm);
@@ -714,16 +724,16 @@ export const createControllerMachine = (c: Controller) => {
                 type: "END_GAME" as const,
                 subType: "DRAWN_GAME" as const,
                 wind: w,
+                shouldContinue: shouldContinue,
                 sticks: context.controller.placeManager.sticks,
                 scores: context.controller.scoreManager.summary,
                 results: ret,
                 hands: hands,
               };
-              context.controller.player(w).enqueue(e);
+              context.controller.emit(e);
             }
-            if (ret["1w"] > 0) context.controller.placeManager.continueRound();
-            else context.controller.placeManager.nextRound();
-            return;
+            context.controller.placeManager.incrementDeadStick();
+            if (!shouldContinue) context.controller.placeManager.nextRound();
           }
           for (let w of Object.values(WIND)) {
             console.debug(
@@ -732,6 +742,7 @@ export const createControllerMachine = (c: Controller) => {
             );
           }
           console.debug(
+            "END_GAME:",
             "scores",
             JSON.stringify(context.controller.scoreManager.summary, null, 2),
             `sticks: ${JSON.stringify(

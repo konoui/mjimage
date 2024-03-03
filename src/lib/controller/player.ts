@@ -1,9 +1,12 @@
 import assert from "assert";
+import { createActor } from "xstate";
 import {
   BoardParams,
   Hand,
   ShantenCalculator,
   TileCalculator,
+  DoubleCalculator,
+  WinResult,
 } from "../calculator";
 import { KIND, OPERATOR, Wind, Round, WIND } from "../constants";
 import {
@@ -15,9 +18,7 @@ import {
   Tile,
   blockWrapper,
 } from "../parser";
-import { DoubleCalculator, WinResult } from "../calculator";
 import { createControllerMachine } from "./state-machine";
-import { createActor } from "xstate";
 import {
   ChoiceAfterDiscardedEvent,
   PlayerEvent,
@@ -25,10 +26,19 @@ import {
   prioritizeDiscardedEvents,
   prioritizeDrawnEvents,
   ChoiceForChanKan,
+  EventHandler,
+  EventHandlerFunc,
 } from "./events";
-import { Wall, WallProps } from "./wall";
-import { River } from "./river";
-import { PlaceManager, ScoreManager, nextWind, shuffle } from "./managers";
+import {
+  Wall,
+  WallProps,
+  River,
+  PlaceManager,
+  ScoreManager,
+  nextWind,
+  shuffle,
+  createWindMap,
+} from "./";
 
 export interface History {
   round: Round;
@@ -39,27 +49,37 @@ export interface History {
   choiceEvents: { [id: string]: PlayerEvent[] };
 }
 
+export interface PlayerProps {
+  id: string;
+  handler: EventHandler;
+}
+
 export class Controller {
-  wall: Wall;
-  river: River;
+  wall: Wall = new Wall();
+  river: River = new River();
   private players: { [key: string]: Player } = {};
   playerIDs: string[];
   placeManager: PlaceManager;
   scoreManager: ScoreManager;
   actor = createActor(createControllerMachine(this));
-  mailBox: { [id: string]: PlayerEvent[] };
+  mailBox: { [id: string]: PlayerEvent[] } = {};
   histories: History[] = [];
-  constructor(wall: Wall, river: River, params?: { fixedOrder: boolean }) {
-    this.wall = wall;
-    this.river = river;
-    this.mailBox = {};
+  handlers: { [id: string]: EventHandler } = {};
 
-    this.playerIDs = ["player-1", "player-2", "player-3", "player-4"];
+  constructor(players: PlayerProps[]) {
+    this.handlers = players.reduce((m, obj) => {
+      m[obj.id] = obj.handler;
+      return m;
+    }, {} as typeof this.handlers);
 
-    const shuffled = params?.fixedOrder
-      ? this.playerIDs.concat()
-      : shuffle(this.playerIDs.concat());
+    this.playerIDs = players.map((v) => v.id);
 
+    // listening player choice responses
+    players.forEach(
+      (p) => p.handler.on((e: PlayerEvent) => this.enqueue(e)) // bind
+    );
+
+    const shuffled = shuffle(this.playerIDs.concat());
     this.placeManager = new PlaceManager({
       [shuffled[0]]: "1w",
       [shuffled[1]]: "2w",
@@ -69,12 +89,9 @@ export class Controller {
 
     const initial = Object.fromEntries(this.playerIDs.map((i) => [i, 25000]));
     this.scoreManager = new ScoreManager(initial);
-    const client = new SyncReplyClient(
-      (evenId: string, event: PlayerEvent) => this.enqueue(evenId, event) // bind this
-    );
 
     // init players and hands
-    for (let id of this.playerIDs) this.players[id] = new Player(id, client);
+    for (let id of this.playerIDs) this.players[id] = new Player(id);
     this.initHands();
   }
   player(w: Wind) {
@@ -96,10 +113,13 @@ export class Controller {
         : 2,
     };
   }
-  // this method will called by player client to sync
-  enqueue(eventID: string, event: PlayerEvent): void {
-    if (this.mailBox[eventID] == null) this.mailBox[eventID] = [];
-    this.mailBox[eventID].push(event);
+  emit(e: PlayerEvent) {
+    const id = this.placeManager.playerID(e.wind);
+    this.handlers[id].emit(e);
+  }
+  enqueue(event: PlayerEvent): void {
+    if (this.mailBox[event.id] == null) this.mailBox[event.id] = [];
+    this.mailBox[event.id].push(event);
   }
   // TODO event instead of eventID to validate choice here
   pollReplies(eventID: string, wind: Wind[]) {
@@ -235,18 +255,27 @@ export class Controller {
   export() {
     return this.histories.concat();
   }
-  load(h: History) {
+  static load(h: History) {
     const events = h.choiceEvents;
     replaceTileBlock(events);
-    this.mailBox = events;
-    this.placeManager = new PlaceManager(h.players);
-    this.placeManager.round = h.round;
-    this.placeManager.sticks = h.sticks;
-    this.scoreManager = new ScoreManager(h.scores);
-    this.wall = new Wall(h.wall);
-    for (let w of Object.values(WIND))
-      this.player(w).client = new EmptyReplyClient();
-    this.initHands();
+    const playerIDs = Object.keys(h.players);
+    const empty: EventHandler = {
+      emit: (_: PlayerEvent) => {},
+      on: (_: EventHandlerFunc) => {},
+    };
+    const props = playerIDs.map((id) => {
+      return { id: id, handler: empty };
+    });
+    const c = new Controller(props);
+    c.playerIDs = playerIDs;
+    c.mailBox = events;
+    c.placeManager = new PlaceManager(h.players);
+    c.placeManager.round = h.round;
+    c.placeManager.sticks = h.sticks;
+    c.scoreManager = new ScoreManager(h.scores);
+    c.wall = new Wall(h.wall);
+    c.initHands();
+    return c;
   }
   start() {
     this.actor.subscribe((snapshot) => {
@@ -436,7 +465,7 @@ export class Controller {
     const s = new ShantenCalculator(p.hand).calc();
     if (s > 0) return 0;
     // FIXME all candidates
-    const r = p.choiceForDiscard(p.hand.hands);
+    const r = choiceForDiscard(p.hand, p.hand.hands);
     return [r.tile];
   }
   doDiscard(w: Wind): Tile[] | 0 {
@@ -537,110 +566,174 @@ export class Controller {
   }
 }
 
-// Player reply event to controller by the method
-interface ReplyClient {
-  reply(eventID: string, e: PlayerEvent): void;
-}
-
-class EmptyReplyClient implements ReplyClient {
-  constructor() {}
-  reply(eventID: string, e: any) {}
-}
-
-class SyncReplyClient implements ReplyClient {
-  fn: (eventID: string, e: any) => void;
-  constructor(fn: (eventID: string, e: any) => void) {
-    this.fn = fn;
-  }
-  reply(eventID: string, e: any) {
-    this.fn(eventID, e);
-  }
-}
-
 export class Player {
   id: string;
   hand: Hand = new Hand(""); // empty hand for init
-  client: ReplyClient;
-  constructor(playerID: string, client: ReplyClient) {
-    this.client = client;
+  river = new River();
+  doras: Tile[] = [];
+  placeManager = new PlaceManager({}); // empty for init
+  scoreManager = new ScoreManager({}); // empty for init
+  hands = createWindMap(new Hand("")); // empty for init
+  eventHandler?: EventHandler;
+  constructor(playerID: string, eventHandler?: EventHandler) {
+    this.eventHandler = eventHandler;
+    if (this.eventHandler != null)
+      this.eventHandler.on((e: PlayerEvent) => {
+        return this.handleEvent(e);
+      }); // bind
     this.id = playerID;
   }
   newHand(input: string) {
     this.hand = new Hand(input);
   }
-  enqueue(e: PlayerEvent) {
+  get myWind() {
+    return this.placeManager.wind(this.id);
+  }
+  handleEvent(e: PlayerEvent) {
     switch (e.type) {
       case "CHOICE_AFTER_CALLED":
-        this.client.reply(e.id, e);
+        this.eventHandler!.emit(e);
         break;
       case "CHOICE_AFTER_DISCARDED":
-        this.client.reply(e.id, e);
+        this.eventHandler!.emit(e);
         break;
       case "CHOICE_AFTER_DRAWN":
         if (e.choices.DISCARD != 0) {
-          const ret = this.choiceForDiscard(e.choices.DISCARD);
+          const ret = choiceForDiscard(
+            this.hands[this.myWind],
+            e.choices.DISCARD
+          );
           e.choices.DISCARD = [ret.tile];
         }
-        this.client.reply(e.id, e);
+        this.eventHandler!.emit(e);
         break;
       case "CHOICE_FOR_CHAN_KAN":
-        this.client.reply(e.id, e);
+        this.eventHandler!.emit(e);
+        break;
+      // to display
+      case "DISTRIBUTE":
+        for (let w of Object.values(WIND)) this.hands[w] = new Hand(e.hands[w]);
+        this.placeManager = new PlaceManager(structuredClone(e.places));
+        this.placeManager.round = structuredClone(e.round);
+        this.placeManager.sticks = structuredClone(e.sticks);
+        this.scoreManager = new ScoreManager(structuredClone(e.scores));
+        this.doras = [e.dora];
+        break;
+      case "DRAW":
+        this.hands[e.iam].draw(e.tile);
+        break;
+      case "DISCARD":
+        this.river.discard(e.tile, e.iam);
+        this.hands[e.iam].discard(e.tile);
+        break;
+      case "PON":
+      case "CHI":
+      case "DAI_KAN":
+        this.hands[e.iam].call(e.block);
+        this.river.markCalled();
+        break;
+      case "SHO_KAN":
+      case "AN_KAN":
+        this.hands[e.iam].kan(e.block);
+        break;
+      case "REACH":
+        const pid = this.placeManager.playerID(e.iam);
+        this.hands[e.iam].reach();
+        this.scoreManager.reach(pid);
+        this.placeManager.incrementReachStick();
+
+        this.hands[e.iam].discard(e.tile);
+        this.river.discard(e.tile, e.iam);
+        break;
+      case "NEW_DORA":
+        this.doras.push(e.tile);
+        break;
+      case "TSUMO":
+      case "RON":
+        break;
+      case "END_GAME":
+        switch (e.subType) {
+          case "FOUR_KAN":
+          case "FOUR_WIND":
+            this.placeManager.incrementDeadStick();
+            break;
+          case "DRAWN_GAME": {
+            const pm = this.placeManager.playerMap;
+            this.scoreManager.update(e.results, pm);
+            this.placeManager.incrementDeadStick();
+            if (!e.shouldContinue) this.placeManager.nextRound();
+            break;
+          }
+          case "WIN_GAME": {
+            const pm = this.placeManager.playerMap;
+            this.scoreManager.update(e.results, pm);
+            if (e.shouldContinue) this.placeManager.incrementDeadStick();
+            else {
+              this.placeManager.nextRound();
+              this.placeManager.resetDeadStick();
+            }
+            this.placeManager.resetReachStick();
+            break;
+          }
+        }
         break;
       default:
-      // this.client.reply(e.id, e);
+        throw new Error(`unexpected event ${JSON.stringify(e, null, 2)}`);
     }
   }
-  choiceForDiscard(choices: Tile[]) {
-    assert(choices.length > 0, "choices to discard is zero");
-    let ret: { shanten: number; nCandidates: number; tile: Tile } = {
-      shanten: Number.POSITIVE_INFINITY,
-      nCandidates: 0,
-      tile: choices[0],
-    };
-    for (let t of choices) {
-      const tiles = this.hand.dec([t]);
-      const c = this.candidateTiles();
-      this.hand.inc(tiles);
-      if (c.shanten < ret.shanten) {
-        ret = {
-          shanten: c.shanten,
-          nCandidates: c.candidates.length,
-          tile: t,
-        };
-      } else if (
-        c.shanten == ret.shanten &&
-        ret.nCandidates < c.candidates.length
-      ) {
-        ret.nCandidates = c.candidates.length;
-        ret.tile = t;
-      }
-    }
-    return ret;
-  }
-  private candidateTiles() {
-    let r = Number.POSITIVE_INFINITY;
-    let candidates: Tile[] = [];
+}
 
-    for (let k of Object.values(KIND)) {
-      if (k == KIND.BACK) continue;
-      for (let n = 1; n < this.hand.getArrayLen(k); n++) {
-        if (this.hand.get(k, n) >= 4) continue;
-        const t = new Tile(k, n);
-        const tiles = this.hand.inc([t]);
-        const s = new ShantenCalculator(this.hand).calc();
-        this.hand.dec(tiles);
-
-        if (s < r) {
-          r = s;
-          candidates = [t];
-        } else if (s == r) candidates.push(t);
-      }
+function choiceForDiscard(hand: Hand, choices: Tile[]) {
+  assert(choices.length > 0, "choices to discard is zero");
+  let ret: { shanten: number; nCandidates: number; tile: Tile } = {
+    shanten: Number.POSITIVE_INFINITY,
+    nCandidates: 0,
+    tile: choices[0],
+  };
+  for (let t of choices) {
+    const tiles = hand.dec([t]);
+    const c = candidateTiles(hand);
+    hand.inc(tiles);
+    if (c.shanten < ret.shanten) {
+      ret = {
+        shanten: c.shanten,
+        nCandidates: c.candidates.length,
+        tile: t,
+      };
+    } else if (
+      c.shanten == ret.shanten &&
+      ret.nCandidates < c.candidates.length
+    ) {
+      ret.nCandidates = c.candidates.length;
+      ret.tile = t;
     }
-    return {
-      shanten: r,
-      candidates: candidates,
-    };
   }
+  return ret;
+}
+
+function candidateTiles(hand: Hand) {
+  let r = Number.POSITIVE_INFINITY;
+  let candidates: Tile[] = [];
+
+  for (let k of Object.values(KIND)) {
+    if (k == KIND.BACK) continue;
+    for (let n = 1; n < hand.getArrayLen(k); n++) {
+      if (hand.get(k, n) >= 4) continue;
+      const t = new Tile(k, n);
+      const tiles = hand.inc([t]);
+      const s = new ShantenCalculator(hand).calc();
+      hand.dec(tiles);
+
+      if (s < r) {
+        r = s;
+        candidates = [t];
+      } else if (s == r) candidates.push(t);
+    }
+  }
+  return {
+    shanten: r,
+    candidates: candidates,
+  };
 }
 
 export function replaceTileBlock(obj: any): void {

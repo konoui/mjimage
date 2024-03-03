@@ -1,6 +1,5 @@
 import assert from "assert";
-import { Controller, River, Wall, History, nextRound, prevRound } from "./";
-import { KIND, OPERATOR, Wind, Round, WIND } from "../constants";
+import { Controller, History } from "./";
 
 export class Replayer {
   index = 0;
@@ -17,8 +16,7 @@ export class Replayer {
     assert(this.index < 0);
   }
   start() {
-    const c = new Controller(new Wall(), new River());
-    c.load(this.histories[this.index]);
+    const c = Controller.load(this.histories[this.index]);
     c.start();
   }
   auto() {

@@ -69,6 +69,9 @@ export class Hand {
       } else if (b.is(BLOCK.HAND)) {
         this.inc(b.tiles);
         continue;
+      } else if (input.split("").every((v) => v === KIND.BACK)) {
+        this.inc(b.tiles);
+        continue;
       }
       throw new Error(`unexpected block ${b.type} ${b.toString()}`);
     }
@@ -152,6 +155,13 @@ export class Hand {
     return backup;
   }
   dec(tiles: Tile[]): Tile[] {
+    // for blind hands
+    if (this.hands.every((t) => t.k == KIND.BACK)) {
+      const toRemove = tiles.map((v) => new Tile(KIND.BACK, 0));
+      this.data[KIND.BACK][0] -= tiles.length;
+      return toRemove;
+    }
+
     const backup: Tile[] = [];
     for (let t of tiles) {
       if (this.get(t.k, t.n) < 1) {

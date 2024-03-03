@@ -1,3 +1,4 @@
+import { eventmit, EventmitHandler } from "eventmit";
 import { Wind, Round } from "../constants";
 import {
   BlockAnKan,
@@ -37,8 +38,11 @@ export interface DistributeEvent {
   hands: { [key in Wind]: string };
   wind: Wind;
   dora: Tile;
+  players: string[];
+  places: { [key: string]: Wind };
   sticks: { reach: number; dead: number };
   round: Round;
+  scores: { [key: string]: number };
 }
 
 export interface EndEvent {
@@ -50,6 +54,7 @@ export interface EndEvent {
   sticks: { reach: number; dead: number };
   results: { [key in Wind]: number };
   hands: { [key in Wind]: string };
+  shouldContinue: boolean;
 }
 
 export interface CallEvent {
@@ -90,6 +95,7 @@ export interface DiscardEvent {
 export interface DrawEvent {
   id: string;
   type: Extract<Event, "DRAW">;
+  subtype?: "kan";
   iam: Wind;
   wind: Wind;
   tile: Tile;
@@ -98,6 +104,7 @@ export interface DrawEvent {
 export interface ReachEvent {
   id: string;
   type: Extract<ChoiceEvent, "REACH">;
+  tile: Tile;
   iam: Wind;
   wind: Wind;
 }
@@ -106,6 +113,7 @@ export interface NewDoraEvent {
   id: string;
   type: Extract<Event, "NEW_DORA">;
   tile: Tile;
+  wind: Wind;
 }
 
 export interface ChoiceAfterDrawnEvent {
@@ -246,3 +254,24 @@ function priorityIndex<T extends ChoiceType>(order: ChoiceOrder<T>, choice: T) {
   }
   return 0;
 }
+
+export interface EventHandler {
+  emit(e: PlayerEvent): void;
+  on(handler: EventHandlerFunc): void;
+}
+
+export type EventHandlerFunc = (e: PlayerEvent) => void;
+
+export const createEventPipe = (): [EventHandler, EventHandler] => {
+  const e1 = eventmit<PlayerEvent>();
+  const e2 = eventmit<PlayerEvent>();
+  const p1 = {
+    emit: e1.emit,
+    on: (h: EventHandlerFunc) => e2.on(h),
+  };
+  const p2 = {
+    emit: e2.emit,
+    on: (h: EventHandlerFunc) => e1.on(h),
+  };
+  return [p1, p2];
+};

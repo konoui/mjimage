@@ -4,3 +4,5 @@ export * from "./river";
 export * from "./state-machine";
 export * from "./wall";
 export * from "./player";
+export * from "./replay";
+export * from "./game";

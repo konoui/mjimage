@@ -1,7 +1,5 @@
-import { Controller } from "./../lib/controller";
-import { River } from "../lib/controller/river";
+import { Controller, createLocalGame } from "./../lib/controller";
 import { Replayer } from "../lib/controller/replay";
-import { Wall, WallProps } from "../lib/controller/wall";
 import { loadArrayData, storeArrayData } from "./../lib/__tests__/utils/helper";
 
 const type = process.argv[2];
@@ -21,7 +19,7 @@ if (type == "test") {
 if (type == "game" || type == "single") {
   for (let i = 0; i < count; i++) {
     console.debug(`${type}(${i})===`);
-    const c = new Controller(new Wall(), new River(), { fixedOrder: true });
+    const c = createLocalGame();
     const starter = factory(c, type);
     subscribeError(c);
     try {
