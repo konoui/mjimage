@@ -17,37 +17,37 @@ import { loadInputData, loadArrayData } from "./utils/helper";
 describe("callable", () => {
   test("can-chi", () => {
     const c = createLocalGame();
-    c.player("1w").hand = new Hand("406m1345p333z111z");
+    c.observer.hands["1w"] = new Hand("406m1345p333z111z");
     const got = c.doChi("1w", "4w", new Tile(KIND.M, 7));
     expect(got.toString()).toBe("-706m");
   });
   test("can-ron", () => {
     const c = createLocalGame();
-    c.player("1w").hand = new Hand("406m123456p1123s");
+    c.observer.hands["1w"] = new Hand("406m123456p1123s");
     const got = c.doWin("1w", new Tile(KIND.S, 4), { whoDiscarded: "2w" });
     expect(got != 0).toBe(true);
   });
   test("can-pon", () => {
     const c = createLocalGame();
-    c.player("1w").hand = new Hand("50m333444z");
+    c.observer.hands["1w"] = new Hand("50m333444z");
     const got = c.doPon("1w", "2w", new Tile(KIND.M, 5));
     expect(got.toString()).toBe("50-5m");
   });
   test("can-pon", () => {
     const c = createLocalGame();
-    c.player("1w").hand = new Hand("505m333444z");
+    c.observer.hands["1w"] = new Hand("505m333444z");
     const got = c.doPon("1w", "2w", new Tile(KIND.M, 5));
     expect(got.toString()).toBe("50-5m,55-5m");
   });
   test("can-dai-kan", () => {
     const c = createLocalGame();
-    c.player("1w").hand = new Hand("505m");
+    c.observer.hands["1w"] = new Hand("505m");
     const got = c.doDaiKan("1w", "4w", new Tile(KIND.M, 5));
     expect(got.toString()).toBe("-5055m");
   });
   test("can-dai-kan", () => {
     const c = createLocalGame();
-    c.player("1w").hand = new Hand("555m");
+    c.observer.hands["1w"] = new Hand("555m");
     const got = c.doDaiKan("1w", "2w", new Tile(KIND.M, 0));
     expect(got.toString()).toBe("555-0m");
   });

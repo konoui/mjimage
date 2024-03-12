@@ -58,16 +58,12 @@ export interface PlayerProps {
 
 export class Controller {
   wall: Wall = new Wall();
-  river: River = new River();
-  private players: { [key: string]: Player } = {};
-  observer: Observer;
   playerIDs: string[];
-  placeManager: PlaceManager;
-  scoreManager: ScoreManager;
   actor = createActor(createControllerMachine(this));
+  observer: Observer;
+  handlers: { [id: string]: EventHandler } = {};
   mailBox: { [id: string]: PlayerEvent[] } = {};
   histories: History[] = [];
-  handlers: { [id: string]: EventHandler } = {};
 
   constructor(players: PlayerProps[]) {
     this.handlers = players.reduce((m, obj) => {
@@ -82,59 +78,63 @@ export class Controller {
       (p) => p.handler.on((e: PlayerEvent) => this.enqueue(e)) // bind
     );
 
+    const handler: EventHandler = createEventEmitter();
+    this.observer = new Observer(handler);
+    this.observer.eventHandler.on(
+      (e: PlayerEvent) => this.observer.handleEvent(e) // bind
+    );
+
+    const initial = Object.fromEntries(this.playerIDs.map((i) => [i, 25000]));
+    this.observer.scoreManager = new ScoreManager(initial);
+
     const shuffled = shuffle(this.playerIDs.concat());
-    this.placeManager = new PlaceManager({
+    this.observer.placeManager = new PlaceManager({
       [shuffled[0]]: "1w",
       [shuffled[1]]: "2w",
       [shuffled[2]]: "3w",
       [shuffled[3]]: "4w",
     });
-
-    const initial = Object.fromEntries(this.playerIDs.map((i) => [i, 25000]));
-    this.scoreManager = new ScoreManager(initial);
-
-    const handler: EventHandler = createEventEmitter();
-    this.observer = new Observer(handler);
-    this.observer.eventHandler.on((e: PlayerEvent) =>
-      this.observer.handleEvent(e)
-    );
-
-    // FIXME
-    const empty: EventHandler = {
-      emit: (_: PlayerEvent) => {},
-      on: (h: EventHandlerFunc) => {},
-    };
-
-    // init players and hands
-    for (let id of this.playerIDs) this.players[id] = new Player(id, empty);
-    this.initHands();
-  }
-  player(w: Wind) {
-    const id = this.placeManager.playerID(w);
-    return this.players[id];
   }
   boardParams(w: Wind): BoardParams {
-    const p = this.player(w);
+    const hand = this.player(w);
     return {
       dora: this.wall.doras,
       round: this.placeManager.round,
       myWind: w,
-      sticks: this.placeManager.sticks,
-      blindDora: p.hand.reached ? this.wall.blindDoras : undefined, // FIXME blind doras are clear when game ended
-      reached: !p.hand.reached
+      sticks: this.observer.placeManager.sticks,
+      blindDora: hand.reached ? this.wall.blindDoras : undefined, // FIXME blind doras are clear when game ended
+      reached: !hand.reached
         ? undefined
         : this.river.discards(w).length != 0
         ? 1
         : 2,
     };
   }
+  player(w: Wind) {
+    return this.observer.hands[w];
+  }
+  get placeManager() {
+    return this.observer.placeManager;
+  }
+  get scoreManager() {
+    return this.observer.scoreManager;
+  }
+  get river() {
+    return this.observer.river;
+  }
   emit(e: PlayerEvent) {
-    const id = this.placeManager.playerID(e.wind);
+    const id = this.observer.placeManager.playerID(e.wind);
     this.handlers[id].emit(e);
     // emit to observer to apply all user information
     // remove duplicated user events
     const iam = (e as any).iam;
-    if (iam == null || e.wind == iam) this.observer.eventHandler.emit(e);
+    if (e.wind == iam) this.observer.eventHandler.emit(e);
+    else if (iam == null) {
+      if (!this.observer.applied[e.id] || e.type == "DISTRIBUTE") {
+        this.observer.eventHandler.emit(e);
+        this.observer.applied[e.id] = true;
+      }
+    }
   }
   enqueue(event: PlayerEvent): void {
     if (this.mailBox[event.id] == null) this.mailBox[event.id] = [];
@@ -244,11 +244,11 @@ export class Controller {
           sample,
           null,
           2
-        )} ${this.player(sample.wind).hand.toString()}`
+        )} ${this.player(sample.wind).toString()}`
       );
       const w = sample.wind;
       const t = sample.choices.DISCARD[0];
-      assert(t != null, `undefined tile ${this.player(w).hand.toString()}`);
+      assert(t != null, `undefined tile ${this.player(w).toString()}`);
       this.actor.send({ type: "DISCARD", tile: t, iam: w });
     } else if (sample.type == "CHOICE_FOR_CHAN_KAN") {
       const selected = events.filter((e) => {
@@ -288,12 +288,12 @@ export class Controller {
     const c = new Controller(props);
     c.playerIDs = playerIDs;
     c.mailBox = events;
-    c.placeManager = new PlaceManager(h.players);
-    c.placeManager.round = h.round;
-    c.placeManager.sticks = h.sticks;
-    c.scoreManager = new ScoreManager(h.scores);
+    c.observer.placeManager = new PlaceManager(h.players, {
+      round: structuredClone(h.round),
+      sticks: structuredClone(h.sticks),
+    });
+    c.observer.scoreManager = new ScoreManager(h.scores);
     c.wall = new Wall(h.wall);
-    c.initHands();
     return c;
   }
   start() {
@@ -324,8 +324,7 @@ export class Controller {
 
       // TODO arrange as function
       this.wall = new Wall();
-      this.river = new River();
-      this.initHands();
+      this.observer.applied = {};
       this.mailBox = {};
       this.actor = createActor(createControllerMachine(this));
 
@@ -343,7 +342,7 @@ export class Controller {
     }
   ): WinResult | 0 {
     if (t == null) return 0;
-    let hand = this.player(w).hand;
+    let hand = this.player(w);
     const env = this.boardParams(w);
     if (hand.drawn == null) {
       if (params == null) throw new Error("should ron but params == null");
@@ -370,13 +369,13 @@ export class Controller {
   doPon(w: Wind, whoDiscarded: Wind, t?: Tile): BlockPon[] | 0 {
     if (t == null) return 0;
     if (w == whoDiscarded) return 0;
-    const p = this.player(w);
-    if (p.hand.reached) return 0;
-    if (p.hand.hands.length < 3) return 0;
+    const hand = this.player(w);
+    if (hand.reached) return 0;
+    if (hand.hands.length < 3) return 0;
 
     const fake = t.clone().remove(OPERATOR.HORIZONTAL);
     if (t.isNum() && t.n == 0) fake.n = 5;
-    if (p.hand.get(t.k, fake.n) < 2) return 0;
+    if (hand.get(t.k, fake.n) < 2) return 0;
 
     const blocks: BlockPon[] = [];
     let idx = Math.abs(Number(w[0]) - Number(whoDiscarded[0]));
@@ -386,11 +385,11 @@ export class Controller {
 
     const b = new BlockPon([fake.clone(), fake.clone(), fake.clone()]);
     b.tiles[idx] = t.clone().add(OPERATOR.HORIZONTAL);
-    if (t.isNum() && fake.n == 5 && p.hand.get(t.k, 0) > 0)
+    if (t.isNum() && fake.n == 5 && hand.get(t.k, 0) > 0)
       b.tiles[(idx % 2) + 1].n = 0;
     blocks.push(b);
 
-    if (t.isNum() && t.n == 5 && p.hand.get(t.k, fake.n) == 3) {
+    if (t.isNum() && t.n == 5 && hand.get(t.k, fake.n) == 3) {
       const red = b.clone();
       red.tiles[(idx % 2) + 1].n = 5;
       blocks.push(red);
@@ -406,14 +405,14 @@ export class Controller {
     const fake = t.clone();
     if (fake.n == 0) fake.n = 5;
 
-    const p = this.player(w);
-    if (p.hand.reached) return 0;
-    if (p.hand.hands.length < 3) return 0;
+    const hand = this.player(w);
+    if (hand.reached) return 0;
+    if (hand.hands.length < 3) return 0;
     const blocks: BlockChi[] = [];
     const lower =
       fake.n - 2 >= 1 &&
-      p.hand.get(t.k, fake.n - 2) > 0 &&
-      p.hand.get(t.k, fake.n - 1) > 0;
+      hand.get(t.k, fake.n - 2) > 0 &&
+      hand.get(t.k, fake.n - 1) > 0;
     if (lower)
       blocks.push(
         new BlockChi([
@@ -424,8 +423,8 @@ export class Controller {
       );
     const upper =
       fake.n + 2 <= 9 &&
-      p.hand.get(t.k, fake.n + 1) > 0 &&
-      p.hand.get(t.k, fake.n + 2) > 0;
+      hand.get(t.k, fake.n + 1) > 0 &&
+      hand.get(t.k, fake.n + 2) > 0;
     if (upper)
       blocks.push(
         new BlockChi([
@@ -437,8 +436,8 @@ export class Controller {
     const kan =
       fake.n - 1 >= 1 &&
       fake.n + 1 <= 9 &&
-      p.hand.get(t.k, fake.n - 1) > 0 &&
-      p.hand.get(t.k, fake.n + 1) > 0;
+      hand.get(t.k, fake.n - 1) > 0 &&
+      hand.get(t.k, fake.n + 1) > 0;
     if (kan)
       blocks.push(
         new BlockChi([
@@ -452,9 +451,9 @@ export class Controller {
     // 2. get red patterns if having red
     // 3. if not having normal 5, return only red pattern, else if concat red and normal patterns
     if (blocks.length == 0) return 0;
-    const hasRed = p.hand.get(t.k, 0) > 0;
+    const hasRed = hand.get(t.k, 0) > 0;
     const reds = this.redPattern(blocks, hasRed);
-    if (reds.length > 0 && p.hand.get(t.k, 5) == 1) return reds;
+    if (reds.length > 0 && hand.get(t.k, 5) == 1) return reds;
     return blocks.concat(reds);
   }
   redPattern(blocks: BlockChi[], hasRed: boolean): BlockChi[] {
@@ -478,26 +477,26 @@ export class Controller {
       .filter((b) => b != null) as BlockChi[];
   }
   doReach(w: Wind): Tile[] | 0 {
-    const p = this.player(w);
-    if (p.hand.reached) return 0;
-    if (!p.hand.canReach) return 0;
-    const s = new ShantenCalculator(p.hand).calc();
+    const hand = this.player(w);
+    if (hand.reached) return 0;
+    if (!hand.canReach) return 0;
+    const s = new ShantenCalculator(hand).calc();
     if (s > 0) return 0;
     // FIXME all candidates
-    const r = choiceForDiscard(p.hand, p.hand.hands);
+    const r = choiceForDiscard(hand, hand.hands);
     return [r.tile];
   }
   doDiscard(w: Wind): Tile[] | 0 {
-    if (this.player(w).hand.reached) return [this.player(w).hand.drawn!];
-    return this.player(w).hand.hands;
+    if (this.player(w).reached) return [this.player(w).drawn!];
+    return this.player(w).hands;
   }
   doAnKan(w: Wind): BlockAnKan[] | 0 {
-    const p = this.player(w);
+    const hand = this.player(w);
     const blocks: BlockAnKan[] = [];
-    if (p.hand.reached) return 0; // FIXME 待ち変更がなければできる
+    if (hand.reached) return 0; // FIXME 待ち変更がなければできる
     for (let k of Object.values(KIND)) {
-      for (let n = 1; n < p.hand.getArrayLen(k); n++) {
-        if (p.hand.get(k, n) == 4) {
+      for (let n = 1; n < hand.getArrayLen(k); n++) {
+        if (hand.get(k, n) == 4) {
           const tiles = [
             new Tile(k, n),
             new Tile(k, n),
@@ -518,17 +517,17 @@ export class Controller {
     return blocks;
   }
   doShoKan(w: Wind): BlockShoKan[] | 0 {
-    const p = this.player(w);
-    if (p.hand.reached) return 0;
-    const called = p.hand.called.filter((b) => b instanceof BlockPon);
+    const hand = this.player(w);
+    if (hand.reached) return 0;
+    const called = hand.called.filter((b) => b instanceof BlockPon);
     if (called.length == 0) return 0;
     const blocks: BlockShoKan[] = [];
     for (let c of called) {
       const pick = c.tiles[0];
-      if (p.hand.get(pick.k, pick.n) == 1) {
+      if (hand.get(pick.k, pick.n) == 1) {
         const cb = c.clone();
         cb.tiles.push(new Tile(pick.k, pick.n, [OPERATOR.HORIZONTAL])); // FIXME position of horizontal
-        if (pick.n == 5 && p.hand.get(pick.k, 0) == 1) cb.tiles[3].n == 0;
+        if (pick.n == 5 && hand.get(pick.k, 0) == 1) cb.tiles[3].n == 0;
         blocks.push(new BlockShoKan(cb.tiles));
       }
     }
@@ -542,12 +541,12 @@ export class Controller {
     return blocks;
   }
   doDaiKan(w: Wind, whoDiscarded: Wind, t: Tile): BlockDaiKan | 0 {
-    const p = this.player(w);
-    if (p.hand.reached) return 0;
+    const hand = this.player(w);
+    if (hand.reached) return 0;
     if (w == whoDiscarded) return 0;
     const fake = t.clone().remove(OPERATOR.HORIZONTAL);
     if (fake.isNum() && fake.n == 0) fake.n = 5;
-    if (p.hand.get(fake.k, fake.n) != 3) return 0;
+    if (hand.get(fake.k, fake.n) != 3) return 0;
     const b = new BlockDaiKan([
       fake.clone(),
       fake.clone(),
@@ -566,22 +565,17 @@ export class Controller {
     );
     return b;
   }
-  private initHands() {
-    const m: [Tile[], Tile[], Tile[], Tile[]] = [[], [], [], []];
+  initialHands() {
+    const m = createWindMap("");
     for (let i = 0; i < 3; i++) {
-      for (let playerID = 0; playerID < 4; playerID++) {
+      for (let w of Object.values(WIND)) {
         for (let j = 0; j < 4; j++) {
-          m[playerID].push(this.wall.draw());
+          m[w] += this.wall.draw().toString();
         }
       }
     }
-    for (let i = 0; i < 4; i++) m[i].push(this.wall.draw());
-
-    let idx = 0;
-    for (let id in this.players) {
-      this.players[id].newHand(m[idx].toString());
-      idx++;
-    }
+    for (let w of Object.values(WIND)) m[w] += this.wall.draw().toString();
+    return m;
   }
 }
 
@@ -608,9 +602,10 @@ abstract class BaseActor {
         break;
       case "DISTRIBUTE":
         this.setHands(e);
-        this.placeManager = new PlaceManager(structuredClone(e.places));
-        this.placeManager.round = structuredClone(e.round);
-        this.placeManager.sticks = structuredClone(e.sticks);
+        this.placeManager = new PlaceManager(structuredClone(e.places), {
+          round: structuredClone(e.round),
+          sticks: structuredClone(e.sticks),
+        });
         this.scoreManager = new ScoreManager(structuredClone(e.scores));
         this.doras = [e.dora];
         break;
@@ -679,6 +674,7 @@ abstract class BaseActor {
 }
 
 export class Observer extends BaseActor {
+  applied: { [id: string]: boolean } = {};
   constructor(eventHandler: EventHandler) {
     super("observer", eventHandler);
   }

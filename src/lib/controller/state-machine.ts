@@ -323,13 +323,10 @@ export const createControllerMachine = (c: Controller) => {
               2
             )}`
           );
+          const initHands = context.controller.initialHands();
           for (let w of Object.values(WIND)) {
-            console.debug(
-              context.controller.player(w).id,
-              `init hand: ${context.controller.player(w).hand.toString()}`
-            );
             const hands = createWindMap("_____________");
-            hands[w] = context.controller.player(w).hand.toString();
+            hands[w] = initHands[w].toString();
             const e = {
               id: id,
               type: "DISTRIBUTE" as const,
@@ -343,11 +340,16 @@ export const createControllerMachine = (c: Controller) => {
               scores: context.controller.scoreManager.summary,
             };
             context.controller.emit(e);
+
+            console.debug(
+              context.controller.placeManager.playerID(w),
+              `init hand: ${context.controller.player(w).toString()}`
+            );
           }
         },
         notify_choice_after_drawn: ({ context, event }, params) => {
           const w = context.currentWind;
-          const drawn = context.controller.player(w).hand.drawn;
+          const drawn = context.controller.player(w).drawn;
           const id = context.genEventID();
           const e = {
             id: id,
@@ -421,17 +423,6 @@ export const createControllerMachine = (c: Controller) => {
           ) {
             const iam = event.iam;
             context.currentWind = iam; // update current wind
-            if (event.type == "AN_KAN" || event.type == "SHO_KAN")
-              context.controller.player(iam).hand.kan(event.block);
-            else {
-              context.controller.player(iam).hand.call(event.block);
-              context.controller.river.markCalled(); // remove tile from the river
-            }
-            console.debug(
-              context.controller.player(iam).id,
-              `call: ${event.block.toString()}`,
-              `hand: ${context.controller.player(iam).hand.toString()}`
-            );
             for (let w of Object.values(WIND)) {
               const e = {
                 id: id,
@@ -442,6 +433,11 @@ export const createControllerMachine = (c: Controller) => {
               };
               context.controller.emit(e);
             }
+            console.debug(
+              context.controller.placeManager.playerID(iam),
+              `call: ${event.block.toString()}`,
+              `hand: ${context.controller.player(iam).toString()}`
+            );
           }
         },
         notify_discard: ({ context, event }) => {
@@ -449,13 +445,7 @@ export const createControllerMachine = (c: Controller) => {
           if (event.type == "DISCARD") {
             const iam = context.currentWind;
             const t = event.tile;
-            context.controller.player(iam).hand.discard(t); // discard
-            context.controller.river.discard(t, iam); // discard
-            console.debug(
-              context.controller.player(iam).id,
-              `discard: ${event.tile.toString()}`,
-              `hand: ${context.controller.player(iam).hand.toString()}`
-            );
+
             for (let w of Object.values(WIND)) {
               const e = {
                 id: id,
@@ -466,25 +456,21 @@ export const createControllerMachine = (c: Controller) => {
               };
               context.controller.emit(e);
             }
+            console.debug(
+              context.controller.placeManager.playerID(iam),
+              `discard: ${event.tile.toString()}`,
+              `hand: ${context.controller.player(iam).toString()}`
+            );
           }
         },
         notify_draw: ({ context, event }, params) => {
           const id = context.genEventID();
           const action = (params as { action: string } | undefined)?.action; // TODO avoid as
           let drawn: Tile | undefined = undefined;
-          if (action == "kan") {
-            drawn = context.controller.wall.kan();
-          } else {
-            drawn = context.controller.wall.draw();
-          }
+          if (action == "kan") drawn = context.controller.wall.kan();
+          else drawn = context.controller.wall.draw();
 
           const iam = context.currentWind;
-          context.controller.player(iam).hand.draw(drawn); // draw
-          console.debug(
-            context.controller.player(iam).id,
-            `draw: ${drawn}`,
-            `hand: ${context.controller.player(iam).hand.toString()}`
-          );
           for (let w of Object.values(WIND)) {
             let t = new Tile(KIND.BACK, 0); // mask tile for other players
             if (w == iam) t = drawn;
@@ -498,17 +484,16 @@ export const createControllerMachine = (c: Controller) => {
             };
             context.controller.emit(e);
           }
+          console.debug(
+            context.controller.placeManager.playerID(iam),
+            `draw: ${drawn}`,
+            `hand: ${context.controller.player(iam).toString()}`
+          );
         },
         notify_ron: ({ context, event }) => {
           const id = context.genEventID();
           if (event.type == "RON") {
             const iam = event.iam;
-            console.debug(
-              context.controller.player(iam).id,
-              `ron: ${JSON.stringify(event.ret, null, 2)}`,
-              `hand: ${context.controller.player(iam).hand.toString()}`
-            );
-
             for (let w of Object.values(WIND)) {
               const e = {
                 id: id,
@@ -520,8 +505,14 @@ export const createControllerMachine = (c: Controller) => {
               };
               context.controller.emit(e);
             }
+            console.debug(
+              context.controller.placeManager.playerID(iam),
+              `ron: ${JSON.stringify(event.ret, null, 2)}`,
+              `hand: ${context.controller.player(iam).toString()}`
+            );
           }
         },
+        // FIXME how to handle
         restore_reach_stick: ({ context, event }) => {
           if (event.type == "RON") {
             const ronWind = event.tileInfo.wind;
@@ -540,23 +531,22 @@ export const createControllerMachine = (c: Controller) => {
           const id = context.genEventID();
           const iam = context.currentWind;
           if (event.type == "TSUMO") {
-            console.debug(
-              context.controller.player(iam).id,
-              `tsumo: ${JSON.stringify(event.ret, null, 2)}`,
-              `hand: ${context.controller.player(iam).hand.toString()}`
-            );
-
             for (let w of Object.values(WIND)) {
               const e = {
                 id: id,
                 type: event.type,
                 iam: iam,
                 wind: w,
-                lastTile: context.controller.player(iam).hand.drawn!,
+                lastTile: context.controller.player(iam).drawn!,
                 ret: event.ret,
               };
               context.controller.emit(e);
             }
+            console.debug(
+              context.controller.placeManager.playerID(iam),
+              `tsumo: ${JSON.stringify(event.ret, null, 2)}`,
+              `hand: ${context.controller.player(iam).toString()}`
+            );
           }
         },
         notify_reach: ({ context, event }) => {
@@ -564,18 +554,7 @@ export const createControllerMachine = (c: Controller) => {
           if (event.type == "REACH") {
             const iam = event.iam;
             const t = event.tile.clone().add(OPERATOR.HORIZONTAL);
-            context.controller.player(iam).hand.reach();
-            const pid = context.controller.placeManager.playerID(iam);
-            context.controller.scoreManager.reach(pid);
-            context.controller.placeManager.incrementReachStick();
             context.oneShotMap[iam] = true; // enable one shot
-            context.controller.player(iam).hand.discard(t);
-            context.controller.river.discard(t, iam);
-            console.debug(
-              context.controller.player(iam).id,
-              `reach: ${context.controller.player(iam).hand.toString()}`,
-              `tile: ${t}`
-            );
             for (let w of Object.values(WIND)) {
               const e = {
                 id: id,
@@ -586,6 +565,11 @@ export const createControllerMachine = (c: Controller) => {
               };
               context.controller.emit(e);
             }
+            console.debug(
+              context.controller.placeManager.playerID(iam),
+              `reach: ${context.controller.player(iam).toString()}`,
+              `tile: ${t}`
+            );
           }
         },
         notify_choice_for_chankan: ({ context, event }) => {
@@ -644,13 +628,11 @@ export const createControllerMachine = (c: Controller) => {
           const id = context.genEventID();
           const hands = createWindMap("");
           if (event.type == "RON" || event.type == "TSUMO") {
-            const pm = context.controller.placeManager.playerMap;
             const shouldContinue = event.iam == "1w";
-            context.controller.scoreManager.update(event.ret.result, pm);
             for (let w of Object.values(WIND)) {
               hands[event.iam] = context.controller
                 .player(event.iam)
-                .hand.toString();
+                .toString();
               const e = {
                 id: id,
                 type: "END_GAME" as const,
@@ -663,13 +645,6 @@ export const createControllerMachine = (c: Controller) => {
                 hands: hands,
               };
               context.controller.emit(e);
-            }
-            context.controller.placeManager.resetReachStick();
-            if (shouldContinue)
-              context.controller.placeManager.incrementDeadStick();
-            else {
-              context.controller.placeManager.nextRound();
-              context.controller.placeManager.resetDeadStick();
             }
           } else if (
             !context.controller.wall.canKan ||
@@ -692,32 +667,27 @@ export const createControllerMachine = (c: Controller) => {
               };
               context.controller.emit(e);
             }
-            context.controller.placeManager.incrementDeadStick();
           } else if (!context.controller.wall.canDraw) {
             const wind: Wind[] = [];
             for (let w of Object.values(WIND)) {
-              const p = context.controller.player(w);
-              const shan = new ShantenCalculator(p.hand).calc();
+              const hand = context.controller.player(w);
+              const shan = new ShantenCalculator(hand).calc();
               if (shan == 0) {
                 wind.push(w);
-                hands[w] = p.hand.toString();
+                hands[w] = hand.toString();
               }
             }
 
-            const base =
-              wind.length == 0 || wind.length == 4 ? 0 : 3000 / wind.length;
+            const nothing = wind.length == 0 || wind.length == 4;
             const ret = createWindMap(0);
             for (let w of Object.values(WIND)) {
-              if (wind.includes(w)) ret[w] += base;
-              else ret[w] -= base * (4 - wind.length);
+              if (wind.includes(w)) ret[w] += nothing ? 0 : 3000 / wind.length;
+              else ret[w] -= nothing ? 0 : 3000 / (4 - wind.length);
             }
 
-            console.log(`DRAWN_GAME: wind ${wind}`);
+            console.debug(`DRAWN_GAME: wind ${wind}`);
 
             const shouldContinue = wind.length == 4 || ret["1w"] > 0;
-
-            const pm = context.controller.placeManager.playerMap;
-            context.controller.scoreManager.update(ret, pm);
             for (let w of Object.values(WIND)) {
               const e = {
                 id: id,
@@ -732,13 +702,11 @@ export const createControllerMachine = (c: Controller) => {
               };
               context.controller.emit(e);
             }
-            context.controller.placeManager.incrementDeadStick();
-            if (!shouldContinue) context.controller.placeManager.nextRound();
           }
           for (let w of Object.values(WIND)) {
             console.debug(
-              context.controller.player(w).id,
-              `end hand: ${context.controller.player(w).hand.toString()}`
+              context.controller.placeManager.playerID(w),
+              `end hand: ${context.controller.player(w).toString()}`
             );
           }
           console.debug(

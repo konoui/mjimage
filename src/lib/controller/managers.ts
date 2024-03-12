@@ -40,9 +40,13 @@ export class PlaceManager {
   private pToW: { [key: string]: Wind } = {};
   private wToP = createWindMap("");
   round: Round;
-  sticks: { reach: number; dead: number } = { reach: 0, dead: 0 };
-  constructor(initial: { [key: string]: Wind }) {
-    this.round = "1w1";
+  sticks: { reach: number; dead: number };
+  constructor(
+    initial: { [key: string]: Wind },
+    params?: { round: Round; sticks: { reach: number; dead: number } }
+  ) {
+    this.round = params?.round ?? "1w1";
+    this.sticks = params?.sticks ?? { reach: 0, dead: 0 };
     this.pToW = initial;
     for (let playerID in this.pToW) this.wToP[this.pToW[playerID]] = playerID;
   }
