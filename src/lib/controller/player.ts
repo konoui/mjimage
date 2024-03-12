@@ -28,6 +28,8 @@ import {
   ChoiceForChanKan,
   EventHandler,
   EventHandlerFunc,
+  createEventEmitter,
+  DistributeEvent,
 } from "./events";
 import {
   Wall,
@@ -58,6 +60,7 @@ export class Controller {
   wall: Wall = new Wall();
   river: River = new River();
   private players: { [key: string]: Player } = {};
+  observer: Observer;
   playerIDs: string[];
   placeManager: PlaceManager;
   scoreManager: ScoreManager;
@@ -90,8 +93,20 @@ export class Controller {
     const initial = Object.fromEntries(this.playerIDs.map((i) => [i, 25000]));
     this.scoreManager = new ScoreManager(initial);
 
+    const handler: EventHandler = createEventEmitter();
+    this.observer = new Observer(handler);
+    this.observer.eventHandler.on((e: PlayerEvent) =>
+      this.observer.handleEvent(e)
+    );
+
+    // FIXME
+    const empty: EventHandler = {
+      emit: (_: PlayerEvent) => {},
+      on: (h: EventHandlerFunc) => {},
+    };
+
     // init players and hands
-    for (let id of this.playerIDs) this.players[id] = new Player(id);
+    for (let id of this.playerIDs) this.players[id] = new Player(id, empty);
     this.initHands();
   }
   player(w: Wind) {
@@ -116,6 +131,10 @@ export class Controller {
   emit(e: PlayerEvent) {
     const id = this.placeManager.playerID(e.wind);
     this.handlers[id].emit(e);
+    // emit to observer to apply all user information
+    // remove duplicated user events
+    const iam = (e as any).iam;
+    if (iam == null || e.wind == iam) this.observer.eventHandler.emit(e);
   }
   enqueue(event: PlayerEvent): void {
     if (this.mailBox[event.id] == null) this.mailBox[event.id] = [];
@@ -566,53 +585,29 @@ export class Controller {
   }
 }
 
-export class Player {
+abstract class BaseActor {
   id: string;
-  hand: Hand = new Hand(""); // empty hand for init
   river = new River();
-  doras: Tile[] = [];
   placeManager = new PlaceManager({}); // empty for init
   scoreManager = new ScoreManager({}); // empty for init
   hands = createWindMap(new Hand("")); // empty for init
-  eventHandler?: EventHandler;
-  constructor(playerID: string, eventHandler?: EventHandler) {
+  doras: Tile[] = []; // empty for init
+  eventHandler: EventHandler;
+  constructor(id: string, eventHandler: EventHandler) {
+    this.id = id;
     this.eventHandler = eventHandler;
-    if (this.eventHandler != null)
-      this.eventHandler.on((e: PlayerEvent) => {
-        return this.handleEvent(e);
-      }); // bind
-    this.id = playerID;
   }
-  newHand(input: string) {
-    this.hand = new Hand(input);
-  }
-  get myWind() {
-    return this.placeManager.wind(this.id);
-  }
+  protected abstract setHands(e: DistributeEvent): void;
+  // handle event expect for choice events
   handleEvent(e: PlayerEvent) {
     switch (e.type) {
       case "CHOICE_AFTER_CALLED":
-        this.eventHandler!.emit(e);
-        break;
       case "CHOICE_AFTER_DISCARDED":
-        this.eventHandler!.emit(e);
-        break;
       case "CHOICE_AFTER_DRAWN":
-        if (e.choices.DISCARD != 0) {
-          const ret = choiceForDiscard(
-            this.hands[this.myWind],
-            e.choices.DISCARD
-          );
-          e.choices.DISCARD = [ret.tile];
-        }
-        this.eventHandler!.emit(e);
-        break;
       case "CHOICE_FOR_CHAN_KAN":
-        this.eventHandler!.emit(e);
         break;
-      // to display
       case "DISTRIBUTE":
-        for (let w of Object.values(WIND)) this.hands[w] = new Hand(e.hands[w]);
+        this.setHands(e);
         this.placeManager = new PlaceManager(structuredClone(e.places));
         this.placeManager.round = structuredClone(e.round);
         this.placeManager.sticks = structuredClone(e.sticks);
@@ -679,6 +674,61 @@ export class Player {
         break;
       default:
         throw new Error(`unexpected event ${JSON.stringify(e, null, 2)}`);
+    }
+  }
+}
+
+export class Observer extends BaseActor {
+  constructor(eventHandler: EventHandler) {
+    super("observer", eventHandler);
+  }
+  setHands(e: DistributeEvent): void {
+    this.hands[e.wind] = new Hand(e.hands[e.wind]);
+  }
+}
+
+export class Player extends BaseActor {
+  hand: Hand = new Hand(""); // empty hand for init
+  river = new River();
+  doras: Tile[] = [];
+  constructor(playerID: string, eventHandler: EventHandler) {
+    super(playerID, eventHandler);
+    this.eventHandler.on((e: PlayerEvent) => {
+      return this.handleEvent(e);
+    }); // bind
+  }
+  newHand(input: string) {
+    this.hand = new Hand(input);
+  }
+  get myWind() {
+    return this.placeManager.wind(this.id);
+  }
+  setHands(e: DistributeEvent): void {
+    for (let w of Object.values(WIND)) this.hands[w] = new Hand(e.hands[w]);
+  }
+  handleEvent(e: PlayerEvent) {
+    switch (e.type) {
+      case "CHOICE_AFTER_CALLED":
+        this.eventHandler.emit(e);
+        break;
+      case "CHOICE_AFTER_DISCARDED":
+        this.eventHandler.emit(e);
+        break;
+      case "CHOICE_AFTER_DRAWN":
+        if (e.choices.DISCARD != 0) {
+          const ret = choiceForDiscard(
+            this.hands[this.myWind],
+            e.choices.DISCARD
+          );
+          e.choices.DISCARD = [ret.tile];
+        }
+        this.eventHandler.emit(e);
+        break;
+      case "CHOICE_FOR_CHAN_KAN":
+        this.eventHandler.emit(e);
+        break;
+      default:
+        super.handleEvent(e);
     }
   }
 }

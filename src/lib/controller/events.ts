@@ -275,3 +275,17 @@ export const createEventPipe = (): [EventHandler, EventHandler] => {
   };
   return [p1, p2];
 };
+
+export const createEventEmitter = () => {
+  const emitter = eventmit<PlayerEvent>();
+  const emit = (e: PlayerEvent) => {
+    emitter.emit(e);
+  };
+  const on = (h: EventHandlerFunc) => {
+    emitter.on(h);
+  };
+  return {
+    emit: emit,
+    on: on,
+  };
+};
