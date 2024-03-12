@@ -36,7 +36,7 @@ export const createControllerMachine = (c: Controller) => {
           always: {
             target: "drawn",
             actions: {
-              type: "notify_hands",
+              type: "notify_distribution",
             },
           },
         },
@@ -134,9 +134,6 @@ export const createControllerMachine = (c: Controller) => {
         },
         roned: {
           exit: [
-            {
-              type: "restore_reach_stick",
-            },
             {
               type: "notify_ron",
             },
@@ -302,7 +299,7 @@ export const createControllerMachine = (c: Controller) => {
           const cur = context.currentWind;
           context.currentWind = nextWind(cur);
         },
-        notify_hands: ({ context, event }) => {
+        notify_distribution: ({ context, event }) => {
           const id = context.genEventID();
           console.debug(
             `DISTRIBUTE:`,
@@ -412,6 +409,34 @@ export const createControllerMachine = (c: Controller) => {
           context.controller.emit(e);
           context.controller.pollReplies(id, [w]);
         },
+        notify_choice_for_chankan: ({ context, event }) => {
+          if (event.type == "SHO_KAN" || event.type == "AN_KAN") {
+            const id = context.genEventID();
+            const t = event.block.tiles[0].clone().remove(OPERATOR.HORIZONTAL);
+            for (let w of Object.values(WIND)) {
+              const ron = context.controller.doWin(
+                w,
+                event.block.tiles[0].clone().remove(OPERATOR.HORIZONTAL),
+                {
+                  whoDiscarded: event.iam,
+                  quadWin: true,
+                  oneShot: context.oneShotMap[w],
+                }
+              ); // TODO which tile is kaned for 0/5
+              const e = {
+                id: id,
+                type: "CHOICE_FOR_CHAN_KAN" as const,
+                wind: w,
+                tileInfo: { wind: event.iam, tile: t },
+                choices: {
+                  RON: event.type == "SHO_KAN" ? ron : 0,
+                },
+              };
+              context.controller.emit(e);
+            }
+            context.controller.pollReplies(id, Object.values(WIND));
+          }
+        },
         notify_call: ({ context, event }) => {
           const id = context.genEventID();
           if (
@@ -493,6 +518,10 @@ export const createControllerMachine = (c: Controller) => {
         notify_ron: ({ context, event }) => {
           const id = context.genEventID();
           if (event.type == "RON") {
+            const ronWind = event.tileInfo.wind;
+            const cur = context.currentWind;
+            const pushBackReachStick =
+              ronWind == cur && context.oneShotMap[cur] == true;
             const iam = event.iam;
             for (let w of Object.values(WIND)) {
               const e = {
@@ -502,6 +531,7 @@ export const createControllerMachine = (c: Controller) => {
                 wind: w,
                 tileInfo: event.tileInfo,
                 ret: event.ret,
+                pushBackReachStick: pushBackReachStick,
               };
               context.controller.emit(e);
             }
@@ -510,21 +540,6 @@ export const createControllerMachine = (c: Controller) => {
               `ron: ${JSON.stringify(event.ret, null, 2)}`,
               `hand: ${context.controller.player(iam).toString()}`
             );
-          }
-        },
-        // FIXME how to handle
-        restore_reach_stick: ({ context, event }) => {
-          if (event.type == "RON") {
-            const ronWind = event.tileInfo.wind;
-            const cur = context.currentWind;
-            if (ronWind == cur && context.oneShotMap[cur] == true) {
-              const id = context.controller.placeManager.playerID(cur);
-              context.controller.scoreManager.restoreReachStick(id);
-              context.controller.placeManager.decrementReachStick();
-              // TODO re calculate for ron to handle blind doras
-              event.ret.point -= 1000;
-              event.ret.result[event.iam] -= 1000;
-            }
           }
         },
         notify_tsumo: ({ context, event }) => {
@@ -570,34 +585,6 @@ export const createControllerMachine = (c: Controller) => {
               `reach: ${context.controller.player(iam).toString()}`,
               `tile: ${t}`
             );
-          }
-        },
-        notify_choice_for_chankan: ({ context, event }) => {
-          if (event.type == "SHO_KAN" || event.type == "AN_KAN") {
-            const id = context.genEventID();
-            const t = event.block.tiles[0].clone().remove(OPERATOR.HORIZONTAL);
-            for (let w of Object.values(WIND)) {
-              const ron = context.controller.doWin(
-                w,
-                event.block.tiles[0].clone().remove(OPERATOR.HORIZONTAL),
-                {
-                  whoDiscarded: event.iam,
-                  quadWin: true,
-                  oneShot: context.oneShotMap[w],
-                }
-              ); // TODO which tile is kaned for 0/5
-              const e = {
-                id: id,
-                type: "CHOICE_FOR_CHAN_KAN" as const,
-                wind: w,
-                tileInfo: { wind: event.iam, tile: t },
-                choices: {
-                  RON: event.type == "SHO_KAN" ? ron : 0,
-                },
-              };
-              context.controller.emit(e);
-            }
-            context.controller.pollReplies(id, Object.values(WIND));
           }
         },
         notify_new_dora_if_needed: ({ context, event }) => {

@@ -72,7 +72,7 @@ export interface RonEvent {
   wind: Wind;
   ret: WinResult;
   tileInfo: { wind: Wind; tile: Tile };
-  quadWin?: boolean;
+  pushBackReachStick: boolean;
 }
 
 export interface TsumoEvent {

@@ -639,7 +639,14 @@ abstract class BaseActor {
         this.doras.push(e.tile);
         break;
       case "TSUMO":
+        break;
       case "RON":
+        if (e.pushBackReachStick) {
+          const w = e.tileInfo.wind;
+          const id = this.placeManager.playerID(w);
+          this.scoreManager.restoreReachStick(id);
+          this.placeManager.decrementReachStick();
+        }
         break;
       case "END_GAME":
         switch (e.subType) {
