@@ -102,7 +102,6 @@ export class Controller {
       round: this.placeManager.round,
       myWind: w,
       sticks: this.observer.placeManager.sticks,
-      blindDora: hand.reached ? this.wall.blindDoras : undefined, // FIXME blind doras are clear when game ended
       reached: !hand.reached
         ? undefined
         : this.river.discards(w).length != 0
@@ -330,6 +329,17 @@ export class Controller {
 
       if (this.placeManager.is("3w1")) break;
     }
+  }
+  finalResult(ret: WinResult, iam: Wind) {
+    const hand = this.player(iam);
+    const blindDoras = hand.reached ? this.wall.blindDoras : undefined;
+    const final = new DoubleCalculator(hand, {
+      ...ret.params,
+      sticks: this.placeManager.sticks,
+      blindDora: blindDoras,
+    }).calc([ret.hand]);
+    assert(final != 0);
+    return final;
   }
   doWin(
     w: Wind,
@@ -715,6 +725,9 @@ export class Player extends BaseActor {
         this.eventHandler.emit(e);
         break;
       case "CHOICE_AFTER_DISCARDED":
+        e.choices.CHI = 0;
+        e.choices.DAI_KAN = 0;
+        e.choices.PON = 0;
         this.eventHandler.emit(e);
         break;
       case "CHOICE_AFTER_DRAWN":

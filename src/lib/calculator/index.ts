@@ -719,6 +719,7 @@ export interface WinResult {
   }[];
   point: number;
   hand: Block[];
+  params: BoardParams;
 }
 
 export class DoubleCalculator {
@@ -737,21 +738,21 @@ export class DoubleCalculator {
     oneShotWin: boolean;
     orig: BoardParams;
   };
-  constructor(hand: Hand, cfg: BoardParams) {
+  constructor(hand: Hand, params: BoardParams) {
     this.hand = hand;
     this.cfg = {
-      doras: [...cfg.dora],
-      blindDoras: cfg.blindDora == null ? [] : [...cfg.blindDora],
-      roundWind: new Parser(cfg.round.substring(0, 2)).parse()[0].tiles[0],
-      myWind: new Parser(cfg.myWind).parse()[0].tiles[0],
-      reached: cfg.reached ?? 0,
-      sticks: cfg.sticks ?? { dead: 0, reach: 0 },
-      replacementWin: cfg.replacementWin ?? false,
-      quadWin: cfg.quadWin ?? false,
-      finalWallWin: cfg.finalWallWin ?? false,
-      finalDiscardWin: cfg.finalDiscardWin ?? false,
-      oneShotWin: cfg.oneShotWin ?? false,
-      orig: cfg,
+      doras: [...params.dora],
+      blindDoras: params.blindDora == null ? [] : [...params.blindDora],
+      roundWind: new Parser(params.round.substring(0, 2)).parse()[0].tiles[0],
+      myWind: new Parser(params.myWind).parse()[0].tiles[0],
+      reached: params.reached ?? 0,
+      sticks: params.sticks ?? { dead: 0, reach: 0 },
+      replacementWin: params.replacementWin ?? false,
+      quadWin: params.quadWin ?? false,
+      finalWallWin: params.finalWallWin ?? false,
+      finalDiscardWin: params.finalDiscardWin ?? false,
+      oneShotWin: params.oneShotWin ?? false,
+      orig: params,
     };
   }
 
@@ -860,7 +861,7 @@ export class DoubleCalculator {
       points: patterns[idx].points,
       point: result[myWind],
       hand: patterns[idx].hand,
-      params: this.cfg,
+      params: this.cfg.orig,
     };
     return v;
   }
@@ -1008,11 +1009,11 @@ export class DoubleCalculator {
   dX1(h: Block[]) {
     let dcount = 0;
     let rcount = 0;
+    let bcount = 0;
     for (let b of h) {
       for (let t of b.tiles) {
-        for (let d of this.cfg.doras) {
-          if (d.equals(t, true)) dcount++;
-        }
+        for (let d of this.cfg.doras) if (d.equals(t, true)) dcount++;
+        for (let d of this.cfg.blindDoras) if (d.equals(t, true)) bcount++;
         if (t.n == 0) rcount++;
       }
     }
@@ -1020,6 +1021,8 @@ export class DoubleCalculator {
     const ret: { name: string; double: number }[] = [];
     if (dcount > 0) ret.push({ name: "ドラ", double: dcount });
     if (rcount > 0) ret.push({ name: "赤ドラ", double: rcount });
+    if (this.hand.reached && bcount > 0)
+      ret.push({ name: "裏ドラ", double: bcount });
     return ret;
   }
 

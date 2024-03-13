@@ -616,6 +616,10 @@ export const createControllerMachine = (c: Controller) => {
           const hands = createWindMap("");
           if (event.type == "RON" || event.type == "TSUMO") {
             const shouldContinue = event.iam == "1w";
+            const finalResults = context.controller.finalResult(
+              event.ret,
+              event.iam
+            );
             for (let w of Object.values(WIND)) {
               hands[event.iam] = context.controller
                 .player(event.iam)
@@ -628,7 +632,7 @@ export const createControllerMachine = (c: Controller) => {
                 shouldContinue: shouldContinue,
                 sticks: { reach: 0, dead: 0 },
                 scores: context.controller.scoreManager.summary,
-                results: event.ret.result,
+                results: finalResults.result,
                 hands: hands,
               };
               context.controller.emit(e);
