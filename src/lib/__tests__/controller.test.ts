@@ -25,7 +25,7 @@ describe("callable", () => {
     const c = createLocalGame();
     c.observer.hands["1w"] = new Hand("406m123456p1123s");
     const got = c.doWin("1w", new Tile(KIND.S, 4), { whoDiscarded: "2w" });
-    expect(got != 0).toBe(true);
+    expect(!!got).toBe(true);
   });
   test("can-pon", () => {
     const c = createLocalGame();

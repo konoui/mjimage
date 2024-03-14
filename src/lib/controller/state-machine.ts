@@ -405,7 +405,7 @@ export const createControllerMachine = (c: Controller) => {
                 wind: w,
                 tileInfo: { wind: event.iam, tile: t },
                 choices: {
-                  RON: event.type == "SHO_KAN" ? ron : 0,
+                  RON: event.type == "SHO_KAN" ? ron : false,
                 },
               };
               context.controller.emit(e);
@@ -644,24 +644,20 @@ export const createControllerMachine = (c: Controller) => {
       guards: {
         canChi: ({ context, event }, params) => {
           if (event.type == "CHI")
-            return (
-              context.controller.doChi(
-                event.iam,
-                context.controller.river.lastTile.w,
-                context.controller.river.lastTile.t
-              ) != 0
+            return !!context.controller.doChi(
+              event.iam,
+              context.controller.river.lastTile.w,
+              context.controller.river.lastTile.t
             );
           console.error(`guards.canChi receive ${event.type}`);
           return false;
         },
         canPon: ({ context, event }, params) => {
           if (event.type == "PON")
-            return (
-              context.controller.doPon(
-                event.iam,
-                context.controller.river.lastTile.w,
-                context.controller.river.lastTile.t
-              ) != 0
+            return !!context.controller.doPon(
+              event.iam,
+              context.controller.river.lastTile.w,
+              context.controller.river.lastTile.t
             );
           console.error(`guards.canPon receive ${event.type}`);
           return false;
@@ -675,7 +671,7 @@ export const createControllerMachine = (c: Controller) => {
         },
         canReach: ({ context, event }, params) => {
           if (event.type == "REACH") {
-            return context.controller.doReach(event.iam) != 0;
+            return !!context.controller.doReach(event.iam);
           }
           console.error(`guards.canReach receive ${event.type}`);
           return false;

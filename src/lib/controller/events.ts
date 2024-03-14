@@ -163,18 +163,18 @@ export type PlayerEvent =
   | ChoiceForChanKan;
 
 interface DiscardedChoice {
-  RON: 0 | WinResult;
-  PON: 0 | BlockPon[];
-  CHI: 0 | BlockChi[];
-  DAI_KAN: 0 | BlockDaiKan;
+  RON: false | WinResult;
+  PON: false | BlockPon[];
+  CHI: false | BlockChi[];
+  DAI_KAN: false | BlockDaiKan;
 }
 
 interface DrawnChoice {
-  TSUMO: 0 | WinResult;
-  REACH: 0 | Tile[];
-  AN_KAN: 0 | BlockAnKan[];
-  SHO_KAN: 0 | BlockShoKan[];
-  DISCARD: 0 | Tile[];
+  TSUMO: false | WinResult;
+  REACH: false | Tile[];
+  AN_KAN: false | BlockAnKan[];
+  SHO_KAN: false | BlockShoKan[];
+  DISCARD: false | Tile[];
 }
 
 type ChoiceType = DiscardedChoice | DrawnChoice;
@@ -233,7 +233,7 @@ function hasChoices<T extends ChoiceType>(
   choice: T,
   order: ChoiceOrder<T>
 ): boolean {
-  return order.some((v) => choice[v] !== 0);
+  return order.some((v) => !!choice[v]);
 }
 
 function calculatePriority<T extends ChoiceType>(
@@ -242,17 +242,17 @@ function calculatePriority<T extends ChoiceType>(
 ): number {
   for (let i = 0; i < order.length; i++) {
     const key = order[i];
-    if (choice[key] !== 0) return i; // Higher priority
+    if (!!choice[key]) return i; // Higher priority
   }
   return Number.POSITIVE_INFINITY; // Same priority
 }
 
 function priorityIndex<T extends ChoiceType>(order: ChoiceOrder<T>, choice: T) {
-  if (choice == null) return 0;
+  if (choice == null) return false;
   for (const key of order) {
-    if (choice[key] !== 0) return key;
+    if (!!choice[key]) return key;
   }
-  return 0;
+  return false;
 }
 
 export interface EventHandler {

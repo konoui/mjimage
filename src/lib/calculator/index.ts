@@ -756,9 +756,9 @@ export class DoubleCalculator {
     };
   }
 
-  calc(hands: Block[][]): WinResult | 0 {
+  calc(hands: Block[][]): WinResult | false {
     const patterns = this.calcPatterns(hands);
-    if (patterns.length == 0) return 0;
+    if (patterns.length == 0) return false;
     let max = [0, 0];
     let idx = 0;
     for (let i = 0; i < patterns.length; i++) {

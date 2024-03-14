@@ -168,7 +168,7 @@ export class Controller {
       const e = selected.events[0];
       switch (selected.type) {
         case "RON":
-          assert(e.choices.RON != 0, "ron choice is none");
+          assert(e.choices.RON, "ron choice is none");
           this.actor.send({
             type: selected.type,
             iam: e.wind,
@@ -177,7 +177,7 @@ export class Controller {
           });
           break;
         case "DAI_KAN":
-          assert(e.choices.DAI_KAN != 0, "daikan choice is none");
+          assert(e.choices.DAI_KAN, "daikan choice is none");
           this.actor.send({
             type: selected.type,
             iam: e.wind,
@@ -187,7 +187,7 @@ export class Controller {
         case "CHI":
         case "PON":
           const c = e.choices[selected.type];
-          assert(c != 0, `${selected.type} choice is none`);
+          assert(c, `${selected.type} choice is none`);
           assert(
             selected.events.length == 1,
             `found more than one selected: ${JSON.stringify(selected, null, 2)}`
@@ -208,7 +208,7 @@ export class Controller {
       const w = e.wind;
       switch (selected.type) {
         case "TSUMO":
-          assert(e.choices.TSUMO != 0, "tsumo choice is none");
+          assert(e.choices.TSUMO, "tsumo choice is none");
           this.actor.send({
             type: selected.type,
             ret: e.choices.TSUMO,
@@ -219,7 +219,7 @@ export class Controller {
         case "REACH":
         case "DISCARD":
           const c = e.choices[selected.type];
-          assert(c != 0, `${selected.type} choice is none`);
+          assert(c, `${selected.type} choice is none`);
           this.actor.send({
             type: selected.type,
             tile: c[0].remove(OPERATOR.TSUMO),
@@ -229,7 +229,7 @@ export class Controller {
         case "AN_KAN":
         case "SHO_KAN":
           const choices = e.choices[selected.type];
-          assert(choices != 0, `${selected.type} choice is none`);
+          assert(choices, `${selected.type} choice is none`);
           this.actor.send({
             type: selected.type,
             block: choices[0],
@@ -238,7 +238,7 @@ export class Controller {
       }
     } else if (sample.type == "CHOICE_AFTER_CALLED") {
       assert(
-        sample.choices.DISCARD != 0,
+        sample.choices.DISCARD,
         `discard candidate tile is none: ${JSON.stringify(
           sample,
           null,
@@ -252,7 +252,7 @@ export class Controller {
     } else if (sample.type == "CHOICE_FOR_CHAN_KAN") {
       const selected = events.filter((e) => {
         const ce = e as ChoiceForChanKan;
-        return ce.choices.RON != 0;
+        return ce.choices.RON;
       }) as ChoiceForChanKan[];
 
       if (selected.length == 0) {
@@ -260,7 +260,7 @@ export class Controller {
         return;
       }
       const e = selected[0];
-      assert(e.choices.RON != 0, "ron choice is none");
+      assert(e.choices.RON, "ron choice is none");
       this.actor.send({
         type: "RON",
         iam: e.wind,
@@ -338,7 +338,7 @@ export class Controller {
       sticks: this.placeManager.sticks,
       blindDora: blindDoras,
     }).calc([ret.hand]);
-    assert(final != 0);
+    assert(final);
     return final;
   }
   doWin(
@@ -350,13 +350,13 @@ export class Controller {
       oneShot?: boolean;
       whoDiscarded?: Wind;
     }
-  ): WinResult | 0 {
-    if (t == null) return 0;
+  ): WinResult | false {
+    if (t == null) return false;
     let hand = this.player(w);
     const env = this.boardParams(w);
     if (hand.drawn == null) {
       if (params == null) throw new Error("should ron but params == null");
-      if (params.whoDiscarded == w) return 0;
+      if (params.whoDiscarded == w) return false;
       hand = hand.clone();
       env.ronWind = params.whoDiscarded;
       env.finalDiscardWin = !this.wall.canDraw;
@@ -372,20 +372,20 @@ export class Controller {
     const dc = new DoubleCalculator(hand, env);
     const hands = tc.calc(t);
     const ret = dc.calc(hands);
-    if (ret == 0) return 0;
-    if (ret.points.length == 0) return 0;
+    if (!ret) return false;
+    if (ret.points.length == 0) return false;
     return ret;
   }
-  doPon(w: Wind, whoDiscarded: Wind, t?: Tile): BlockPon[] | 0 {
-    if (t == null) return 0;
-    if (w == whoDiscarded) return 0;
+  doPon(w: Wind, whoDiscarded: Wind, t?: Tile): BlockPon[] | false {
+    if (t == null) return false;
+    if (w == whoDiscarded) return false;
     const hand = this.player(w);
-    if (hand.reached) return 0;
-    if (hand.hands.length < 3) return 0;
+    if (hand.reached) return false;
+    if (hand.hands.length < 3) return false;
 
     const fake = t.clone().remove(OPERATOR.HORIZONTAL);
     if (t.isNum() && t.n == 0) fake.n = 5;
-    if (hand.get(t.k, fake.n) < 2) return 0;
+    if (hand.get(t.k, fake.n) < 2) return false;
 
     const blocks: BlockPon[] = [];
     let idx = Math.abs(Number(w[0]) - Number(whoDiscarded[0]));
@@ -407,17 +407,17 @@ export class Controller {
 
     return blocks;
   }
-  doChi(w: Wind, whoDiscarded: Wind, t?: Tile): BlockChi[] | 0 {
-    if (t == null) return 0;
-    if (!t.isNum()) return 0;
-    if (nextWind(whoDiscarded) != w) return 0;
+  doChi(w: Wind, whoDiscarded: Wind, t?: Tile): BlockChi[] | false {
+    if (t == null) return false;
+    if (!t.isNum()) return false;
+    if (nextWind(whoDiscarded) != w) return false;
 
     const fake = t.clone();
     if (fake.n == 0) fake.n = 5;
 
     const hand = this.player(w);
-    if (hand.reached) return 0;
-    if (hand.hands.length < 3) return 0;
+    if (hand.reached) return false;
+    if (hand.hands.length < 3) return false;
     const blocks: BlockChi[] = [];
     const lower =
       fake.n - 2 >= 1 &&
@@ -460,7 +460,7 @@ export class Controller {
     // 1. check whether can-chi or not with ignoredRed pattern
     // 2. get red patterns if having red
     // 3. if not having normal 5, return only red pattern, else if concat red and normal patterns
-    if (blocks.length == 0) return 0;
+    if (blocks.length == 0) return false;
     const hasRed = hand.get(t.k, 0) > 0;
     const reds = this.redPattern(blocks, hasRed);
     if (reds.length > 0 && hand.get(t.k, 5) == 1) return reds;
@@ -486,24 +486,24 @@ export class Controller {
       })
       .filter((b) => b != null) as BlockChi[];
   }
-  doReach(w: Wind): Tile[] | 0 {
+  doReach(w: Wind): Tile[] | false {
     const hand = this.player(w);
-    if (hand.reached) return 0;
-    if (!hand.canReach) return 0;
+    if (hand.reached) return false;
+    if (!hand.canReach) return false;
     const s = new ShantenCalculator(hand).calc();
-    if (s > 0) return 0;
+    if (s > 0) return false;
     // FIXME all candidates
     const r = choiceForDiscard(hand, hand.hands);
     return [r.tile];
   }
-  doDiscard(w: Wind): Tile[] | 0 {
+  doDiscard(w: Wind): Tile[] {
     if (this.player(w).reached) return [this.player(w).drawn!];
     return this.player(w).hands;
   }
-  doAnKan(w: Wind): BlockAnKan[] | 0 {
+  doAnKan(w: Wind): BlockAnKan[] | false {
     const hand = this.player(w);
     const blocks: BlockAnKan[] = [];
-    if (hand.reached) return 0; // FIXME 待ち変更がなければできる
+    if (hand.reached) return false; // FIXME 待ち変更がなければできる
     for (let k of Object.values(KIND)) {
       for (let n = 1; n < hand.getArrayLen(k); n++) {
         if (hand.get(k, n) == 4) {
@@ -518,7 +518,7 @@ export class Controller {
         }
       }
     }
-    if (blocks.length == 0) return 0;
+    if (blocks.length == 0) return false;
     for (let b of blocks)
       assert(
         b.tiles.filter((t) => t.has(OPERATOR.HORIZONTAL)).length == 0,
@@ -526,11 +526,11 @@ export class Controller {
       );
     return blocks;
   }
-  doShoKan(w: Wind): BlockShoKan[] | 0 {
+  doShoKan(w: Wind): BlockShoKan[] | false {
     const hand = this.player(w);
-    if (hand.reached) return 0;
+    if (hand.reached) return false;
     const called = hand.called.filter((b) => b instanceof BlockPon);
-    if (called.length == 0) return 0;
+    if (called.length == 0) return false;
     const blocks: BlockShoKan[] = [];
     for (let c of called) {
       const pick = c.tiles[0];
@@ -541,7 +541,7 @@ export class Controller {
         blocks.push(new BlockShoKan(cb.tiles));
       }
     }
-    if (blocks.length == 0) return 0;
+    if (blocks.length == 0) return false;
     for (let b of blocks)
       assert(
         b.tiles.filter((t) => t.has(OPERATOR.HORIZONTAL)).length == 2,
@@ -550,13 +550,13 @@ export class Controller {
 
     return blocks;
   }
-  doDaiKan(w: Wind, whoDiscarded: Wind, t: Tile): BlockDaiKan | 0 {
+  doDaiKan(w: Wind, whoDiscarded: Wind, t: Tile): BlockDaiKan | false {
     const hand = this.player(w);
-    if (hand.reached) return 0;
-    if (w == whoDiscarded) return 0;
+    if (hand.reached) return false;
+    if (w == whoDiscarded) return false;
     const fake = t.clone().remove(OPERATOR.HORIZONTAL);
     if (fake.isNum() && fake.n == 0) fake.n = 5;
-    if (hand.get(fake.k, fake.n) != 3) return 0;
+    if (hand.get(fake.k, fake.n) != 3) return false;
     const b = new BlockDaiKan([
       fake.clone(),
       fake.clone(),
@@ -802,13 +802,13 @@ export class Player extends BaseActor {
         this.eventHandler.emit(e);
         break;
       case "CHOICE_AFTER_DISCARDED":
-        e.choices.CHI = 0;
-        e.choices.DAI_KAN = 0;
-        e.choices.PON = 0;
+        e.choices.CHI = false;
+        e.choices.DAI_KAN = false;
+        e.choices.PON = false;
         this.eventHandler.emit(e);
         break;
       case "CHOICE_AFTER_DRAWN":
-        if (e.choices.DISCARD != 0) {
+        if (e.choices.DISCARD) {
           const ret = choiceForDiscard(
             this.hands[this.myWind],
             e.choices.DISCARD
