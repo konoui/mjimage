@@ -301,25 +301,6 @@ export const createControllerMachine = (c: Controller) => {
         },
         notify_distribution: ({ context, event }) => {
           const id = context.genEventID();
-          console.debug(
-            `DISTRIBUTE:`,
-            `round: ${context.controller.placeManager.round}`,
-            `scores: ${JSON.stringify(
-              context.controller.scoreManager.summary,
-              null,
-              2
-            )}`,
-            `map: ${JSON.stringify(
-              context.controller.placeManager.playerMap,
-              null,
-              2
-            )}`,
-            `sticks: ${JSON.stringify(
-              context.controller.placeManager.sticks,
-              null,
-              2
-            )}`
-          );
           const initHands = context.controller.initialHands();
           for (let w of Object.values(WIND)) {
             const hands = createWindMap("_____________");
@@ -337,11 +318,6 @@ export const createControllerMachine = (c: Controller) => {
               scores: context.controller.scoreManager.summary,
             };
             context.controller.emit(e);
-
-            console.debug(
-              context.controller.placeManager.playerID(w),
-              `init hand: ${context.controller.player(w).toString()}`
-            );
           }
         },
         notify_choice_after_drawn: ({ context, event }, params) => {
@@ -458,11 +434,6 @@ export const createControllerMachine = (c: Controller) => {
               };
               context.controller.emit(e);
             }
-            console.debug(
-              context.controller.placeManager.playerID(iam),
-              `call: ${event.block.toString()}`,
-              `hand: ${context.controller.player(iam).toString()}`
-            );
           }
         },
         notify_discard: ({ context, event }) => {
@@ -481,11 +452,6 @@ export const createControllerMachine = (c: Controller) => {
               };
               context.controller.emit(e);
             }
-            console.debug(
-              context.controller.placeManager.playerID(iam),
-              `discard: ${event.tile.toString()}`,
-              `hand: ${context.controller.player(iam).toString()}`
-            );
           }
         },
         notify_draw: ({ context, event }, params) => {
@@ -509,11 +475,6 @@ export const createControllerMachine = (c: Controller) => {
             };
             context.controller.emit(e);
           }
-          console.debug(
-            context.controller.placeManager.playerID(iam),
-            `draw: ${drawn}`,
-            `hand: ${context.controller.player(iam).toString()}`
-          );
         },
         notify_ron: ({ context, event }) => {
           const id = context.genEventID();
@@ -535,11 +496,6 @@ export const createControllerMachine = (c: Controller) => {
               };
               context.controller.emit(e);
             }
-            console.debug(
-              context.controller.placeManager.playerID(iam),
-              `ron: ${JSON.stringify(event.ret, null, 2)}`,
-              `hand: ${context.controller.player(iam).toString()}`
-            );
           }
         },
         notify_tsumo: ({ context, event }) => {
@@ -557,11 +513,6 @@ export const createControllerMachine = (c: Controller) => {
               };
               context.controller.emit(e);
             }
-            console.debug(
-              context.controller.placeManager.playerID(iam),
-              `tsumo: ${JSON.stringify(event.ret, null, 2)}`,
-              `hand: ${context.controller.player(iam).toString()}`
-            );
           }
         },
         notify_reach: ({ context, event }) => {
@@ -580,11 +531,6 @@ export const createControllerMachine = (c: Controller) => {
               };
               context.controller.emit(e);
             }
-            console.debug(
-              context.controller.placeManager.playerID(iam),
-              `reach: ${context.controller.player(iam).toString()}`,
-              `tile: ${t}`
-            );
           }
         },
         notify_new_dora_if_needed: ({ context, event }) => {
@@ -676,8 +622,6 @@ export const createControllerMachine = (c: Controller) => {
               else ret[w] -= nothing ? 0 : 3000 / (4 - wind.length);
             }
 
-            console.debug(`DRAWN_GAME: wind ${wind}`);
-
             const shouldContinue = wind.length == 4 || ret["1w"] > 0;
             for (let w of Object.values(WIND)) {
               const e = {
@@ -694,22 +638,6 @@ export const createControllerMachine = (c: Controller) => {
               context.controller.emit(e);
             }
           }
-          for (let w of Object.values(WIND)) {
-            console.debug(
-              context.controller.placeManager.playerID(w),
-              `end hand: ${context.controller.player(w).toString()}`
-            );
-          }
-          console.debug(
-            "END_GAME:",
-            "scores",
-            JSON.stringify(context.controller.scoreManager.summary, null, 2),
-            `sticks: ${JSON.stringify(
-              context.controller.placeManager.sticks,
-              null,
-              2
-            )}`
-          );
         },
       },
       actors: {},

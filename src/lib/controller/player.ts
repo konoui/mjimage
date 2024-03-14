@@ -601,6 +601,9 @@ abstract class BaseActor {
     this.id = id;
     this.eventHandler = eventHandler;
   }
+  hand(w: Wind) {
+    return this.hands[w];
+  }
   protected abstract setHands(e: DistributeEvent): void;
   // handle event expect for choice events
   handleEvent(e: PlayerEvent) {
@@ -694,14 +697,91 @@ export class Observer extends BaseActor {
   applied: { [id: string]: boolean } = {};
   constructor(eventHandler: EventHandler) {
     super("observer", eventHandler);
+    this.hands = createWindMap(new Hand("_____________"));
   }
   setHands(e: DistributeEvent): void {
     this.hands[e.wind] = new Hand(e.hands[e.wind]);
   }
+  handleEvent(e: PlayerEvent): void {
+    super.handleEvent(e);
+
+    switch (e.type) {
+      case "DISTRIBUTE":
+        let ready = true;
+        for (let w of Object.values(WIND))
+          ready &&= this.hand(w).get(KIND.BACK, 0) == 0;
+        if (!ready) break;
+        console.debug(
+          `DISTRIBUTE:`,
+          `round: ${this.placeManager.round}`,
+          `scores: ${JSON.stringify(this.scoreManager.summary, null, 2)}`,
+          `map: ${JSON.stringify(this.placeManager.playerMap, null, 2)}`,
+          `sticks: ${JSON.stringify(this.placeManager.sticks, null, 2)}`
+        );
+        for (let w of Object.values(WIND))
+          console.debug(
+            this.placeManager.playerID(w),
+            `init hand: ${this.hand(w).toString()}`
+          );
+        break;
+      case "DRAW":
+        console.debug(
+          this.placeManager.playerID(e.iam),
+          `draw: ${this.hand(e.iam).drawn}`,
+          `hand: ${this.hand(e.iam).toString()}`
+        );
+        break;
+      case "DISCARD":
+        console.debug(
+          this.placeManager.playerID(e.iam),
+          `discard: ${e.tile.toString()}`,
+          `hand: ${this.hand(e.iam).toString()}`
+        );
+        break;
+      case "CHI":
+      case "PON":
+      case "DAI_KAN":
+      case "AN_KAN":
+      case "SHO_KAN":
+        console.debug(
+          this.placeManager.playerID(e.iam),
+          `call: ${e.block.toString()}`,
+          `hand: ${this.hand(e.iam).toString()}`
+        );
+        break;
+      case "REACH":
+        console.debug(
+          this.placeManager.playerID(e.iam),
+          `reach: ${this.hand(e.iam).toString()}`,
+          `tile: ${e.tile}`
+        );
+        break;
+      case "TSUMO":
+      case "RON":
+        console.debug(
+          this.placeManager.playerID(e.iam),
+          `ron/tsumo: ${JSON.stringify(e.ret, null, 2)}`,
+          `hand: ${this.hand(e.iam).toString()}`
+        );
+        break;
+      case "END_GAME":
+        for (let w of Object.values(WIND)) {
+          console.debug(
+            this.placeManager.playerID(w),
+            `end hand: ${this.hand(w).toString()}`
+          );
+        }
+        console.debug(
+          "END_GAME:",
+          "scores",
+          JSON.stringify(this.scoreManager.summary, null, 2),
+          `sticks: ${JSON.stringify(this.placeManager.sticks, null, 2)}`
+        );
+    }
+  }
 }
 
 export class Player extends BaseActor {
-  hand: Hand = new Hand(""); // empty hand for init
   river = new River();
   doras: Tile[] = [];
   constructor(playerID: string, eventHandler: EventHandler) {
@@ -709,9 +789,6 @@ export class Player extends BaseActor {
     this.eventHandler.on((e: PlayerEvent) => {
       return this.handleEvent(e);
     }); // bind
-  }
-  newHand(input: string) {
-    this.hand = new Hand(input);
   }
   get myWind() {
     return this.placeManager.wind(this.id);
