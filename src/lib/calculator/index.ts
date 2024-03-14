@@ -1007,13 +1007,17 @@ export class DoubleCalculator {
     return this.cfg.finalDiscardWin ? [{ name: "河底撈魚", double: 1 }] : [];
   }
   dX1(h: Block[]) {
+    const match = (dora: Tile, t: Tile) => {
+      const n = new Tile(dora.k, (dora.n % 9) + 1); // next tile number
+      return t.equals(n, true);
+    };
     let dcount = 0;
     let rcount = 0;
     let bcount = 0;
     for (let b of h) {
       for (let t of b.tiles) {
-        for (let d of this.cfg.doras) if (d.equals(t, true)) dcount++;
-        for (let d of this.cfg.blindDoras) if (d.equals(t, true)) bcount++;
+        for (let d of this.cfg.doras) if (match(d, t)) dcount++;
+        for (let d of this.cfg.blindDoras) if (match(d, t)) bcount++;
         if (t.n == 0) rcount++;
       }
     }
