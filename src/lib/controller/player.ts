@@ -492,9 +492,8 @@ export class Controller {
     if (!hand.canReach) return false;
     const s = new ShantenCalculator(hand).calc();
     if (s > 0) return false;
-    // FIXME all candidates
     const r = choiceForDiscard(hand, hand.hands);
-    return [r.tile];
+    return r.map((v) => v.tile);
   }
   doDiscard(w: Wind): Tile[] {
     if (this.player(w).reached) return [this.player(w).drawn!];
@@ -813,7 +812,9 @@ export class Player extends BaseActor {
             this.hands[this.myWind],
             e.choices.DISCARD
           );
-          e.choices.DISCARD = [ret.tile];
+          e.choices.DISCARD = [
+            ret.sort((a, b) => b.nCandidate - a.nCandidate)[0].tile,
+          ];
         }
         this.eventHandler.emit(e);
         break;
@@ -828,27 +829,25 @@ export class Player extends BaseActor {
 
 function choiceForDiscard(hand: Hand, choices: Tile[]) {
   assert(choices.length > 0, "choices to discard is zero");
-  let ret: { shanten: number; nCandidates: number; tile: Tile } = {
-    shanten: Number.POSITIVE_INFINITY,
-    nCandidates: 0,
-    tile: choices[0],
-  };
+  let ret: { shanten: number; nCandidate: number; tile: Tile }[] = [];
   for (let t of choices) {
     const tiles = hand.dec([t]);
     const c = candidateTiles(hand);
     hand.inc(tiles);
-    if (c.shanten < ret.shanten) {
-      ret = {
+    if (ret.length == 0 || c.shanten < ret[0].shanten) {
+      ret = [
+        {
+          shanten: c.shanten,
+          nCandidate: c.candidates.length,
+          tile: t,
+        },
+      ];
+    } else if (c.shanten == ret[0].shanten) {
+      ret.push({
+        nCandidate: c.candidates.length,
         shanten: c.shanten,
-        nCandidates: c.candidates.length,
         tile: t,
-      };
-    } else if (
-      c.shanten == ret.shanten &&
-      ret.nCandidates < c.candidates.length
-    ) {
-      ret.nCandidates = c.candidates.length;
-      ret.tile = t;
+      });
     }
   }
   return ret;
