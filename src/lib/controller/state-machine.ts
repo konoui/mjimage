@@ -33,24 +33,28 @@ export const createControllerMachine = (c: Controller) => {
       },
       states: {
         distribute: {
-          always: {
-            target: "drawn",
-            actions: {
-              type: "notify_distribution",
+          on: {
+            NEXT: {
+              target: "drawn",
             },
+          },
+          entry: {
+            type: "notify_distribution",
           },
         },
         drawn: {
-          exit: {
+          entry: {
             type: "notify_draw",
           },
-          always: {
-            target: "waiting_user_event_after_drawn",
-            actions: {
-              type: "notify_choice_after_drawn",
+          on: {
+            NEXT: {
+              target: "waiting_user_event_after_drawn",
+              actions: {
+                type: "notify_choice_after_drawn",
+              },
+              description:
+                "可能なアクションとその詳細を通知\\\nDISCARD の場合は捨てられる牌の一覧",
             },
-            description:
-              "可能なアクションとその詳細を通知\\\nDISCARD の場合は捨てられる牌の一覧",
           },
         },
         waiting_user_event_after_drawn: {
@@ -87,14 +91,17 @@ export const createControllerMachine = (c: Controller) => {
         discarded: {
           entry: {
             type: "notify_discard",
+            // FIXME add notify_new_dora_if_needed
           },
-          always: {
-            target: "waiting_user_event_after_discarded",
-            actions: {
-              type: "notify_choice_after_discarded",
+          on: {
+            NEXT: {
+              target: "waiting_user_event_after_discarded",
+              actions: {
+                type: "notify_choice_after_discarded",
+              },
+              description:
+                "可能なアクションとその詳細を通知\\\nCHI/PON の場合は鳴ける組み合わせの一覧",
             },
-            description:
-              "可能なアクションとその詳細を通知\\\nCHI/PON の場合は鳴ける組み合わせの一覧",
           },
         },
         tsumo: {
@@ -144,23 +151,33 @@ export const createControllerMachine = (c: Controller) => {
           type: "final",
         },
         poned: {
-          exit: [
+          on: {
+            NEXT: {
+              target: "waiting_discard_event",
+              actions: {
+                type: "notify_choice_after_called",
+              },
+            },
+          },
+          entry: [
             {
               type: "notify_call",
             },
             {
-              type: "disable_one_shot",
+              type: "disable_none_shot",
             },
           ],
-          always: {
-            target: "waiting_discard_event",
-            actions: {
-              type: "notify_choice_after_called",
-            },
-          },
         },
         chied: {
-          exit: [
+          on: {
+            NEXT: {
+              target: "waiting_discard_event",
+              actions: {
+                type: "notify_choice_after_called",
+              },
+            },
+          },
+          entry: [
             {
               type: "notify_call",
             },
@@ -168,12 +185,6 @@ export const createControllerMachine = (c: Controller) => {
               type: "disable_one_shot",
             },
           ],
-          always: {
-            target: "waiting_discard_event",
-            actions: {
-              type: "notify_choice_after_called",
-            },
-          },
         },
         wildcard_after_discarded: {
           exit: [],
@@ -201,7 +212,22 @@ export const createControllerMachine = (c: Controller) => {
           },
         },
         dai_kaned: {
-          exit: [
+          on: {
+            NEXT: {
+              target: "waiting_user_event_after_drawn",
+              actions: [
+                {
+                  type: "notify_draw",
+                  params: { action: "kan" },
+                },
+                {
+                  type: "notify_choice_after_drawn",
+                  params: { replacementWin: true },
+                },
+              ],
+            },
+          },
+          entry: [
             {
               type: "notify_call",
             },
@@ -209,38 +235,27 @@ export const createControllerMachine = (c: Controller) => {
               type: "disable_one_shot",
             },
           ],
-          always: {
-            target: "waiting_user_event_after_drawn",
-            actions: [
-              {
-                type: "notify_draw",
-                params: { action: "kan" },
-              },
-              {
-                type: "notify_choice_after_drawn",
-                params: { replacementWin: true },
-              },
-            ],
-          },
         },
         an_sho_kaned: {
-          exit: [
+          on: {
+            NEXT: {
+              target: "waiting_chankan_event",
+            },
+          },
+          entry: [
             {
               type: "notify_call",
+            },
+            {
+              type: "disable_one_shot",
             },
             {
               type: "notify_new_dora_if_needed",
             },
             {
-              type: "disable_one_shot",
-            },
-          ],
-          always: {
-            target: "waiting_chankan_event",
-            actions: {
               type: "notify_choice_for_chankan",
             },
-          },
+          ],
         },
         waiting_chankan_event: {
           description: "チャンカンを待つ",
@@ -275,6 +290,7 @@ export const createControllerMachine = (c: Controller) => {
       types: {
         events: {} as
           | { type: "" }
+          | { type: "NEXT" }
           | { type: "CHI"; block: BlockChi; iam: Wind }
           | { type: "PON"; block: BlockPon; iam: Wind }
           | {
@@ -319,6 +335,7 @@ export const createControllerMachine = (c: Controller) => {
             };
             context.controller.emit(e);
           }
+          context.controller.next();
         },
         notify_choice_after_drawn: ({ context, event }, params) => {
           const w = context.currentWind;
@@ -379,80 +396,86 @@ export const createControllerMachine = (c: Controller) => {
             type: "CHOICE_AFTER_CALLED" as const,
             wind: w,
             choices: {
-              DISCARD: context.controller.doDiscard(w), // 食い変え
+              DISCARD: context.controller.doDiscard(w), // FIXME 食い変え
             },
           };
           context.controller.emit(e);
           context.controller.pollReplies(id, [w]);
         },
         notify_choice_for_chankan: ({ context, event }) => {
-          if (event.type == "SHO_KAN" || event.type == "AN_KAN") {
-            const id = context.genEventID();
-            const t = event.block.tiles[0].clone().remove(OPERATOR.HORIZONTAL);
-            for (let w of Object.values(WIND)) {
-              const ron = context.controller.doWin(
-                w,
-                event.block.tiles[0].clone().remove(OPERATOR.HORIZONTAL),
-                {
-                  whoDiscarded: event.iam,
-                  quadWin: true,
-                  oneShot: context.oneShotMap[w],
-                }
-              ); // TODO which tile is kaned for 0/5
-              const e = {
-                id: id,
-                type: "CHOICE_FOR_CHAN_KAN" as const,
-                wind: w,
-                tileInfo: { wind: event.iam, tile: t },
-                choices: {
-                  RON: event.type == "SHO_KAN" ? ron : false,
-                },
-              };
-              context.controller.emit(e);
-            }
-            context.controller.pollReplies(id, Object.values(WIND));
+          if (event.type != "SHO_KAN" && event.type != "AN_KAN")
+            throw new Error(`unexpected event ${event.type}`);
+          const id = context.genEventID();
+
+          const t = event.block.tiles[0].clone().remove(OPERATOR.HORIZONTAL);
+          for (let w of Object.values(WIND)) {
+            const ron = context.controller.doWin(
+              w,
+              event.block.tiles[0].clone().remove(OPERATOR.HORIZONTAL),
+              {
+                whoDiscarded: event.iam,
+                quadWin: true,
+                oneShot: context.oneShotMap[w],
+              }
+            ); // TODO which tile is sho kaned for 0/5
+            const e = {
+              id: id,
+              type: "CHOICE_FOR_CHAN_KAN" as const,
+              wind: w,
+              tileInfo: { wind: event.iam, tile: t },
+              choices: {
+                RON: event.type == "SHO_KAN" ? ron : false,
+              },
+            };
+            context.controller.emit(e);
           }
+          context.controller.pollReplies(id, Object.values(WIND));
         },
         notify_call: ({ context, event }) => {
-          const id = context.genEventID();
           if (
-            event.type == "CHI" ||
-            event.type == "PON" ||
-            event.type == "DAI_KAN" ||
-            event.type == "AN_KAN" ||
-            event.type == "SHO_KAN"
-          ) {
-            const iam = event.iam;
-            context.currentWind = iam; // update current wind
-            for (let w of Object.values(WIND)) {
-              const e = {
-                id: id,
-                type: event.type,
-                iam: iam,
-                wind: w,
-                block: event.block,
-              };
-              context.controller.emit(e);
-            }
+            !(
+              event.type == "CHI" ||
+              event.type == "PON" ||
+              event.type == "DAI_KAN" ||
+              event.type == "AN_KAN" ||
+              event.type == "SHO_KAN"
+            )
+          )
+            throw new Error(`unexpected event ${event.type}`);
+          const id = context.genEventID();
+
+          const iam = event.iam;
+          context.currentWind = iam; // update current wind
+          for (let w of Object.values(WIND)) {
+            const e = {
+              id: id,
+              type: event.type,
+              iam: iam,
+              wind: w,
+              block: event.block,
+            };
+            context.controller.emit(e);
           }
+          context.controller.next();
         },
         notify_discard: ({ context, event }) => {
+          if (event.type != "DISCARD" && event.type != "REACH")
+            throw new Error(`unexpected event ${event.type}`);
           const id = context.genEventID();
-          if (event.type == "DISCARD") {
-            const iam = context.currentWind;
-            const t = event.tile;
-
-            for (let w of Object.values(WIND)) {
-              const e = {
-                id: id,
-                type: event.type,
-                iam: iam,
-                wind: w,
-                tile: t,
-              };
-              context.controller.emit(e);
-            }
+          const iam = context.currentWind;
+          const t = event.tile;
+          for (let w of Object.values(WIND)) {
+            const e = {
+              id: id,
+              type: "DISCARD" as const,
+              iam: iam,
+              wind: w,
+              tile: t,
+            };
+            context.controller.emit(e);
           }
+
+          context.controller.next();
         },
         notify_draw: ({ context, event }, params) => {
           const id = context.genEventID();
@@ -475,6 +498,7 @@ export const createControllerMachine = (c: Controller) => {
             };
             context.controller.emit(e);
           }
+          context.controller.next();
         },
         notify_ron: ({ context, event }) => {
           const id = context.genEventID();
@@ -499,38 +523,39 @@ export const createControllerMachine = (c: Controller) => {
           }
         },
         notify_tsumo: ({ context, event }) => {
+          if (event.type != "TSUMO")
+            throw new Error(`unexpected event ${event.type}`);
           const id = context.genEventID();
           const iam = context.currentWind;
-          if (event.type == "TSUMO") {
-            for (let w of Object.values(WIND)) {
-              const e = {
-                id: id,
-                type: event.type,
-                iam: iam,
-                wind: w,
-                lastTile: context.controller.player(iam).drawn!,
-                ret: event.ret,
-              };
-              context.controller.emit(e);
-            }
+
+          for (let w of Object.values(WIND)) {
+            const e = {
+              id: id,
+              type: event.type,
+              iam: iam,
+              wind: w,
+              lastTile: context.controller.player(iam).drawn!,
+              ret: event.ret,
+            };
+            context.controller.emit(e);
           }
         },
         notify_reach: ({ context, event }) => {
+          if (event.type != "REACH")
+            throw new Error(`unexpected event ${event.type}`);
           const id = context.genEventID();
-          if (event.type == "REACH") {
-            const iam = event.iam;
-            const t = event.tile.clone().add(OPERATOR.HORIZONTAL);
-            context.oneShotMap[iam] = true; // enable one shot
-            for (let w of Object.values(WIND)) {
-              const e = {
-                id: id,
-                type: event.type,
-                iam: iam,
-                wind: w,
-                tile: t,
-              };
-              context.controller.emit(e);
-            }
+          const iam = event.iam;
+          const t = event.tile.clone().add(OPERATOR.HORIZONTAL);
+          context.oneShotMap[iam] = true; // enable one shot
+          for (let w of Object.values(WIND)) {
+            const e = {
+              id: id,
+              type: event.type,
+              iam: iam,
+              wind: w,
+              tile: t,
+            };
+            context.controller.emit(e);
           }
         },
         notify_new_dora_if_needed: ({ context, event }) => {
@@ -637,7 +662,7 @@ export const createControllerMachine = (c: Controller) => {
               };
               context.controller.emit(e);
             }
-          }
+          } else throw new Error(`unexpected event ${event.type}`);
         },
       },
       actors: {},

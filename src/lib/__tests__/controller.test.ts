@@ -1,18 +1,16 @@
 import { describe, test, expect } from "@jest/globals";
-import { Controller, Replayer, createLocalGame } from "../controller";
+import { createLocalGame } from "../controller";
 import { Tile } from "../parser";
 import { Hand } from "../calculator";
 import { KIND, OPERATOR } from "../constants";
-import { loadInputData, loadArrayData } from "./utils/helper";
-// describe("controller", () => {
-//   test("existing tests", () => {
-//     const games = loadArrayData("games.json");
-//     for (let game of games) {
-//       const r = new Replayer(game);
-//       r.auto();
-//     }
-//   });
-// });
+describe("controller", () => {
+  test("push-back-reach-stick", () => {
+    const c = createLocalGame({ debug: true });
+    c.actor.start();
+    console.log(c.actor.getSnapshot().status);
+    c.next(true);
+  });
+});
 
 describe("callable", () => {
   test("can-chi", () => {

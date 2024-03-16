@@ -1,6 +1,9 @@
 import { Controller, createEventPipe, Player } from "../controller";
 
-export const createLocalGame = (params?: { playerIDs?: string[] }) => {
+export const createLocalGame = (params?: {
+  playerIDs?: string[];
+  debug?: boolean;
+}) => {
   const [ce1, pe1] = createEventPipe();
   const [ce2, pe2] = createEventPipe();
   const [ce3, pe3] = createEventPipe();
@@ -23,5 +26,5 @@ export const createLocalGame = (params?: { playerIDs?: string[] }) => {
     { handler: ce4, id: playerIDs[3] },
   ];
 
-  return new Controller(players);
+  return new Controller(players, { debug: params?.debug });
 };

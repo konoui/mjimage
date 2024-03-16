@@ -59,13 +59,16 @@ export interface PlayerProps {
 export class Controller {
   wall: Wall = new Wall();
   playerIDs: string[];
-  actor = createActor(createControllerMachine(this));
+  actor = createActor(createControllerMachine(this), {});
   observer: Observer;
   handlers: { [id: string]: EventHandler } = {};
   mailBox: { [id: string]: PlayerEvent[] } = {};
   histories: History[] = [];
+  debugMode: boolean;
+  snapshot?: string;
 
-  constructor(players: PlayerProps[]) {
+  constructor(players: PlayerProps[], params?: { debug?: boolean }) {
+    this.debugMode = params?.debug ?? false;
     this.handlers = players.reduce((m, obj) => {
       m[obj.id] = obj.handler;
       return m;
@@ -120,6 +123,9 @@ export class Controller {
   }
   get river() {
     return this.observer.river;
+  }
+  next(force?: boolean) {
+    if (!this.debugMode || force) this.actor.send({ type: "NEXT" });
   }
   emit(e: PlayerEvent) {
     const id = this.observer.placeManager.playerID(e.wind);
@@ -644,8 +650,9 @@ abstract class BaseActor {
         this.scoreManager.reach(pid);
         this.placeManager.incrementReachStick();
 
-        this.hands[e.iam].discard(e.tile);
-        this.river.discard(e.tile, e.iam);
+        // Note: discarded tile is handled by discard event
+        // this.hands[e.iam].discard(e.tile);
+        // this.river.discard(e.tile, e.iam);
         break;
       case "NEW_DORA":
         this.doras.push(e.tile);
