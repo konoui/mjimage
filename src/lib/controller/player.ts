@@ -40,6 +40,7 @@ import {
   nextWind,
   shuffle,
   createWindMap,
+  Counter,
 } from "./";
 
 export interface History {
@@ -622,6 +623,7 @@ abstract class BaseActor {
   placeManager = new PlaceManager({}); // empty for init
   scoreManager = new ScoreManager({}); // empty for init
   hands = createWindMap(new Hand("")); // empty for init
+  counter = new Counter();
   doras: Tile[] = []; // empty for init
   eventHandler: EventHandler;
   constructor(id: string, eventHandler: EventHandler) {
@@ -641,6 +643,9 @@ abstract class BaseActor {
       case "CHOICE_FOR_CHAN_KAN":
         break;
       case "DISTRIBUTE":
+        // reset
+        this.counter.reset();
+
         this.setHands(e);
         this.placeManager = new PlaceManager(structuredClone(e.places), {
           round: structuredClone(e.round),
@@ -648,23 +653,39 @@ abstract class BaseActor {
         });
         this.scoreManager = new ScoreManager(structuredClone(e.scores));
         this.doras = [e.dora];
+
+        this.counter.dec(e.dora);
+        for (let w of Object.values(WIND)) {
+          if (w != e.wind) continue;
+          this.counter.dec(...this.hand(w).hands);
+        }
         break;
       case "DRAW":
         this.hands[e.iam].draw(e.tile);
+        this.counter.dec(e.tile);
         break;
       case "DISCARD":
         this.river.discard(e.tile, e.iam);
         this.hands[e.iam].discard(e.tile);
+        if (e.iam != e.wind) this.counter.dec(e.tile); // own tile is recorded by DRAW event
         break;
       case "PON":
       case "CHI":
       case "DAI_KAN":
         this.hands[e.iam].call(e.block);
         this.river.markCalled();
+        if (e.iam != e.wind)
+          this.counter.dec(
+            ...e.block.tiles.filter((t) => !t.has(OPERATOR.HORIZONTAL))
+          );
         break;
       case "SHO_KAN":
       case "AN_KAN":
         this.hands[e.iam].kan(e.block);
+        if (e.iam != e.wind)
+          this.counter.dec(
+            ...e.block.tiles.filter((t) => !t.has(OPERATOR.HORIZONTAL))
+          );
         break;
       case "REACH":
         const pid = this.placeManager.playerID(e.iam);
@@ -678,6 +699,7 @@ abstract class BaseActor {
         break;
       case "NEW_DORA":
         this.doras.push(e.tile);
+        this.counter.dec(e.tile);
         break;
       case "TSUMO":
         break;
@@ -730,6 +752,7 @@ export class Observer extends BaseActor {
   }
   setHands(e: DistributeEvent): void {
     this.hands[e.wind] = new Hand(e.hands[e.wind]);
+    this.counter.disable = true;
   }
   handleEvent(e: PlayerEvent): void {
     super.handleEvent(e);

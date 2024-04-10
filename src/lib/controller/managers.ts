@@ -1,5 +1,6 @@
 import assert from "assert";
-import { Wind, Round } from "../constants";
+import { Wind, Round, KIND } from "../constants";
+import { Kind, Tile } from "../parser";
 
 export class ScoreManager {
   private reachValue = 1000;
@@ -134,4 +135,54 @@ export function shuffle<T>(array: T[]) {
     [array[i], array[j]] = [array[j], array[i]];
   }
   return array;
+}
+
+type FixedNumber = [
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number
+];
+
+export class Counter {
+  private c: {
+    [KIND.M]: FixedNumber;
+    [KIND.S]: FixedNumber;
+    [KIND.P]: FixedNumber;
+    [KIND.Z]: [number, number, number, number, number, number, number, number];
+  } = {
+    [KIND.M]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+    [KIND.S]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+    [KIND.P]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+    [KIND.Z]: [0, 4, 4, 4, 4, 4, 4, 4],
+  };
+  constructor(public disable = false) {}
+  get(t: Tile) {
+    if (t.k == KIND.BACK) return 0;
+    return this.c[t.k][t.n];
+  }
+  dec(...tiles: Tile[]) {
+    if (this.disable) return;
+    for (let t of tiles) {
+      if (t.k == KIND.BACK) continue;
+      if (this.get(t) <= 0)
+        throw new Error(`cannot decrease ${t.toString()} due to zero`);
+      this.c[t.k][t.n] -= 1;
+      if (t.isNum() && t.n == 0) this.c[t.k][5] -= 1;
+    }
+  }
+  reset() {
+    this.c = {
+      [KIND.M]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      [KIND.S]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      [KIND.P]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      [KIND.Z]: [0, 4, 4, 4, 4, 4, 4, 4],
+    };
+  }
 }

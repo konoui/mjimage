@@ -66,7 +66,7 @@ export class Wall {
           k == KIND.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 2, 3, 4, 5, 6, 7, 8, 9];
         for (let i = 0; i < 4; i++) {
           for (let n of values) {
-            if (i == 3 && n == 5) n = 0;
+            if (k != KIND.Z && i == 3 && n == 5) n = 0;
             this.walls.drawable.push(new Tile(k, n));
           }
         }
