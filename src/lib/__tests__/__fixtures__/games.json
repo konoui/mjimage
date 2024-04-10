@@ -152020,5 +152020,3661 @@
         "dead": 0
       }
     }
+  ],
+  [
+    {
+      "scores": {
+        "player-1": 25000,
+        "player-2": 25000,
+        "player-3": 25000,
+        "player-4": 25000
+      },
+      "round": "1w1",
+      "players": {
+        "player-2": "1w",
+        "player-4": "2w",
+        "player-3": "3w",
+        "player-1": "4w"
+      },
+      "wall": {
+        "drawable": [
+          {
+            "k": "s",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 0,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 0,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 0,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 0,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 7,
+            "ops": []
+          }
+        ],
+        "dead": [
+          {
+            "k": "m",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 7,
+            "ops": []
+          }
+        ],
+        "dora": [
+          {
+            "k": "p",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 6,
+            "ops": []
+          }
+        ],
+        "blindDora": [
+          {
+            "k": "p",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 1,
+            "ops": []
+          }
+        ],
+        "replacement": [
+          {
+            "k": "s",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 1,
+            "ops": []
+          }
+        ]
+      },
+      "choiceEvents": {
+        "2": [
+          {
+            "id": "2",
+            "type": "CHOICE_AFTER_DRAWN",
+            "wind": "1w",
+            "tileInfo": {
+              "wind": "1w",
+              "tile": {
+                "k": "z",
+                "n": 5,
+                "ops": [
+                  "t"
+                ]
+              }
+            },
+            "choices": {
+              "TSUMO": false,
+              "REACH": false,
+              "AN_KAN": false,
+              "SHO_KAN": false,
+              "DISCARD": [
+                {
+                  "k": "z",
+                  "n": 4,
+                  "ops": []
+                }
+              ],
+              "DRAWN_GAME_BY_NINE_TILES": true
+            }
+          }
+        ]
+      },
+      "sticks": {
+        "reach": 0,
+        "dead": 0
+      }
+    }
+  ],
+  [
+    {
+      "scores": {
+        "player-1": 25000,
+        "player-2": 25000,
+        "player-3": 25000,
+        "player-4": 25000
+      },
+      "round": "1w1",
+      "players": {
+        "player-4": "1w",
+        "player-1": "2w",
+        "player-3": "3w",
+        "player-2": "4w"
+      },
+      "wall": {
+        "drawable": [
+          {
+            "k": "z",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 0,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 0,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 0,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 0,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 4,
+            "ops": []
+          }
+        ],
+        "dead": [
+          {
+            "k": "p",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 5,
+            "ops": []
+          }
+        ],
+        "dora": [
+          {
+            "k": "p",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 5,
+            "ops": []
+          }
+        ],
+        "blindDora": [
+          {
+            "k": "z",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 2,
+            "ops": []
+          }
+        ],
+        "replacement": [
+          {
+            "k": "m",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 7,
+            "ops": []
+          }
+        ]
+      },
+      "choiceEvents": {
+        "2": [
+          {
+            "id": "2",
+            "type": "CHOICE_AFTER_DRAWN",
+            "wind": "1w",
+            "tileInfo": {
+              "wind": "1w",
+              "tile": {
+                "k": "z",
+                "n": 5,
+                "ops": [
+                  "t"
+                ]
+              }
+            },
+            "choices": {
+              "TSUMO": false,
+              "REACH": false,
+              "AN_KAN": false,
+              "SHO_KAN": false,
+              "DISCARD": [
+                {
+                  "k": "z",
+                  "n": 1,
+                  "ops": []
+                }
+              ],
+              "DRAWN_GAME_BY_NINE_TILES": false
+            }
+          }
+        ],
+        "4": [
+          {
+            "id": "4",
+            "type": "CHOICE_AFTER_DISCARDED",
+            "wind": "1w",
+            "tileInfo": {
+              "wind": "1w",
+              "tile": {
+                "k": "z",
+                "n": 1,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false,
+              "PON": false,
+              "CHI": false,
+              "DAI_KAN": false
+            }
+          },
+          {
+            "id": "4",
+            "type": "CHOICE_AFTER_DISCARDED",
+            "wind": "2w",
+            "tileInfo": {
+              "wind": "1w",
+              "tile": {
+                "k": "z",
+                "n": 1,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false,
+              "PON": false,
+              "CHI": false,
+              "DAI_KAN": false
+            }
+          },
+          {
+            "id": "4",
+            "type": "CHOICE_AFTER_DISCARDED",
+            "wind": "3w",
+            "tileInfo": {
+              "wind": "1w",
+              "tile": {
+                "k": "z",
+                "n": 1,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false,
+              "PON": false,
+              "CHI": false,
+              "DAI_KAN": false
+            }
+          },
+          {
+            "id": "4",
+            "type": "CHOICE_AFTER_DISCARDED",
+            "wind": "4w",
+            "tileInfo": {
+              "wind": "1w",
+              "tile": {
+                "k": "z",
+                "n": 1,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false,
+              "PON": false,
+              "CHI": false,
+              "DAI_KAN": false
+            }
+          }
+        ],
+        "6": [
+          {
+            "id": "6",
+            "type": "CHOICE_AFTER_DRAWN",
+            "wind": "2w",
+            "tileInfo": {
+              "wind": "2w",
+              "tile": {
+                "k": "m",
+                "n": 1,
+                "ops": [
+                  "t"
+                ]
+              }
+            },
+            "choices": {
+              "TSUMO": false,
+              "REACH": false,
+              "AN_KAN": false,
+              "SHO_KAN": false,
+              "DISCARD": [
+                {
+                  "k": "m",
+                  "n": 8,
+                  "ops": []
+                }
+              ],
+              "DRAWN_GAME_BY_NINE_TILES": false
+            }
+          }
+        ],
+        "8": [
+          {
+            "id": "8",
+            "type": "CHOICE_AFTER_DISCARDED",
+            "wind": "1w",
+            "tileInfo": {
+              "wind": "2w",
+              "tile": {
+                "k": "m",
+                "n": 8,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false,
+              "PON": false,
+              "CHI": false,
+              "DAI_KAN": false
+            }
+          },
+          {
+            "id": "8",
+            "type": "CHOICE_AFTER_DISCARDED",
+            "wind": "2w",
+            "tileInfo": {
+              "wind": "2w",
+              "tile": {
+                "k": "m",
+                "n": 8,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false,
+              "PON": false,
+              "CHI": false,
+              "DAI_KAN": false
+            }
+          },
+          {
+            "id": "8",
+            "type": "CHOICE_AFTER_DISCARDED",
+            "wind": "3w",
+            "tileInfo": {
+              "wind": "2w",
+              "tile": {
+                "k": "m",
+                "n": 8,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false,
+              "PON": false,
+              "CHI": false,
+              "DAI_KAN": false
+            }
+          },
+          {
+            "id": "8",
+            "type": "CHOICE_AFTER_DISCARDED",
+            "wind": "4w",
+            "tileInfo": {
+              "wind": "2w",
+              "tile": {
+                "k": "m",
+                "n": 8,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false,
+              "PON": false,
+              "CHI": false,
+              "DAI_KAN": false
+            }
+          }
+        ],
+        "10": [
+          {
+            "id": "10",
+            "type": "CHOICE_AFTER_DRAWN",
+            "wind": "3w",
+            "tileInfo": {
+              "wind": "3w",
+              "tile": {
+                "k": "s",
+                "n": 7,
+                "ops": [
+                  "t"
+                ]
+              }
+            },
+            "choices": {
+              "TSUMO": false,
+              "REACH": false,
+              "AN_KAN": [
+                {
+                  "tiles": [
+                    {
+                      "k": "z",
+                      "n": 2,
+                      "ops": []
+                    },
+                    {
+                      "k": "z",
+                      "n": 2,
+                      "ops": []
+                    },
+                    {
+                      "k": "z",
+                      "n": 2,
+                      "ops": []
+                    },
+                    {
+                      "k": "z",
+                      "n": 2,
+                      "ops": []
+                    }
+                  ],
+                  "type": "ankan"
+                }
+              ],
+              "SHO_KAN": false,
+              "DISCARD": [
+                {
+                  "k": "p",
+                  "n": 9,
+                  "ops": []
+                }
+              ],
+              "DRAWN_GAME_BY_NINE_TILES": false
+            }
+          }
+        ],
+        "13": [
+          {
+            "id": "13",
+            "type": "CHOICE_FOR_CHAN_KAN",
+            "wind": "1w",
+            "tileInfo": {
+              "wind": "3w",
+              "tile": {
+                "k": "z",
+                "n": 2,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false
+            }
+          },
+          {
+            "id": "13",
+            "type": "CHOICE_FOR_CHAN_KAN",
+            "wind": "2w",
+            "tileInfo": {
+              "wind": "3w",
+              "tile": {
+                "k": "z",
+                "n": 2,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false
+            }
+          },
+          {
+            "id": "13",
+            "type": "CHOICE_FOR_CHAN_KAN",
+            "wind": "3w",
+            "tileInfo": {
+              "wind": "3w",
+              "tile": {
+                "k": "z",
+                "n": 2,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false
+            }
+          },
+          {
+            "id": "13",
+            "type": "CHOICE_FOR_CHAN_KAN",
+            "wind": "4w",
+            "tileInfo": {
+              "wind": "3w",
+              "tile": {
+                "k": "z",
+                "n": 2,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false
+            }
+          }
+        ],
+        "15": [
+          {
+            "id": "15",
+            "type": "CHOICE_AFTER_DRAWN",
+            "wind": "3w",
+            "tileInfo": {
+              "wind": "3w",
+              "tile": {
+                "k": "s",
+                "n": 7,
+                "ops": [
+                  "t"
+                ]
+              }
+            },
+            "choices": {
+              "TSUMO": false,
+              "REACH": false,
+              "AN_KAN": false,
+              "SHO_KAN": false,
+              "DISCARD": [
+                {
+                  "k": "p",
+                  "n": 9,
+                  "ops": []
+                }
+              ],
+              "DRAWN_GAME_BY_NINE_TILES": false
+            }
+          }
+        ],
+        "17": [
+          {
+            "id": "17",
+            "type": "CHOICE_AFTER_DISCARDED",
+            "wind": "1w",
+            "tileInfo": {
+              "wind": "3w",
+              "tile": {
+                "k": "p",
+                "n": 9,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false,
+              "PON": false,
+              "CHI": false,
+              "DAI_KAN": false
+            }
+          },
+          {
+            "id": "17",
+            "type": "CHOICE_AFTER_DISCARDED",
+            "wind": "2w",
+            "tileInfo": {
+              "wind": "3w",
+              "tile": {
+                "k": "p",
+                "n": 9,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false,
+              "PON": false,
+              "CHI": false,
+              "DAI_KAN": false
+            }
+          },
+          {
+            "id": "17",
+            "type": "CHOICE_AFTER_DISCARDED",
+            "wind": "3w",
+            "tileInfo": {
+              "wind": "3w",
+              "tile": {
+                "k": "p",
+                "n": 9,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false,
+              "PON": false,
+              "CHI": false,
+              "DAI_KAN": false
+            }
+          },
+          {
+            "id": "17",
+            "type": "CHOICE_AFTER_DISCARDED",
+            "wind": "4w",
+            "tileInfo": {
+              "wind": "3w",
+              "tile": {
+                "k": "p",
+                "n": 9,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false,
+              "PON": false,
+              "CHI": false,
+              "DAI_KAN": false
+            }
+          }
+        ],
+        "19": [
+          {
+            "id": "19",
+            "type": "CHOICE_AFTER_DRAWN",
+            "wind": "4w",
+            "tileInfo": {
+              "wind": "4w",
+              "tile": {
+                "k": "z",
+                "n": 1,
+                "ops": [
+                  "t"
+                ]
+              }
+            },
+            "choices": {
+              "TSUMO": false,
+              "REACH": false,
+              "AN_KAN": false,
+              "SHO_KAN": false,
+              "DISCARD": [
+                {
+                  "k": "m",
+                  "n": 1,
+                  "ops": [
+                    "t"
+                  ]
+                }
+              ],
+              "DRAWN_GAME_BY_NINE_TILES": true
+            }
+          }
+        ]
+      },
+      "sticks": {
+        "reach": 0,
+        "dead": 0
+      }
+    }
+  ],
+  [
+    {
+      "scores": {
+        "player-1": 25000,
+        "player-2": 25000,
+        "player-3": 25000,
+        "player-4": 25000
+      },
+      "round": "1w1",
+      "players": {
+        "player-1": "1w",
+        "player-4": "2w",
+        "player-3": "3w",
+        "player-2": "4w"
+      },
+      "wall": {
+        "drawable": [
+          {
+            "k": "m",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 0,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 0,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 0,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 9,
+            "ops": []
+          }
+        ],
+        "dead": [
+          {
+            "k": "m",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 3,
+            "ops": []
+          }
+        ],
+        "dora": [
+          {
+            "k": "z",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 6,
+            "ops": []
+          }
+        ],
+        "blindDora": [
+          {
+            "k": "z",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 5,
+            "ops": []
+          }
+        ],
+        "replacement": [
+          {
+            "k": "p",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 0,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 7,
+            "ops": []
+          }
+        ]
+      },
+      "choiceEvents": {
+        "2": [
+          {
+            "id": "2",
+            "type": "CHOICE_AFTER_DRAWN",
+            "wind": "1w",
+            "tileInfo": {
+              "wind": "1w",
+              "tile": {
+                "k": "m",
+                "n": 9,
+                "ops": [
+                  "t"
+                ]
+              }
+            },
+            "choices": {
+              "TSUMO": false,
+              "REACH": false,
+              "AN_KAN": false,
+              "SHO_KAN": false,
+              "DISCARD": [
+                {
+                  "k": "m",
+                  "n": 0,
+                  "ops": [
+                    "t"
+                  ]
+                }
+              ],
+              "DRAWN_GAME_BY_NINE_TILES": true
+            }
+          }
+        ]
+      },
+      "sticks": {
+        "reach": 0,
+        "dead": 0
+      }
+    }
+  ],
+  [
+    {
+      "scores": {
+        "player-1": 25000,
+        "player-2": 25000,
+        "player-3": 25000,
+        "player-4": 25000
+      },
+      "round": "1w1",
+      "players": {
+        "player-4": "1w",
+        "player-2": "2w",
+        "player-1": "3w",
+        "player-3": "4w"
+      },
+      "wall": {
+        "drawable": [
+          {
+            "k": "s",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 0,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 0,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 0,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 9,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 8,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 7,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 2,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 0,
+            "ops": []
+          }
+        ],
+        "dead": [
+          {
+            "k": "p",
+            "n": 3,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 3,
+            "ops": []
+          }
+        ],
+        "dora": [
+          {
+            "k": "m",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "m",
+            "n": 1,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 3,
+            "ops": []
+          }
+        ],
+        "blindDora": [
+          {
+            "k": "m",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "p",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 8,
+            "ops": []
+          }
+        ],
+        "replacement": [
+          {
+            "k": "p",
+            "n": 5,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 4,
+            "ops": []
+          },
+          {
+            "k": "s",
+            "n": 6,
+            "ops": []
+          },
+          {
+            "k": "z",
+            "n": 1,
+            "ops": []
+          }
+        ]
+      },
+      "choiceEvents": {
+        "2": [
+          {
+            "id": "2",
+            "type": "CHOICE_AFTER_DRAWN",
+            "wind": "1w",
+            "tileInfo": {
+              "wind": "1w",
+              "tile": {
+                "k": "m",
+                "n": 5,
+                "ops": [
+                  "t"
+                ]
+              }
+            },
+            "choices": {
+              "TSUMO": false,
+              "REACH": false,
+              "AN_KAN": false,
+              "SHO_KAN": false,
+              "DISCARD": [
+                {
+                  "k": "m",
+                  "n": 2,
+                  "ops": []
+                }
+              ],
+              "DRAWN_GAME_BY_NINE_TILES": false
+            }
+          }
+        ],
+        "4": [
+          {
+            "id": "4",
+            "type": "CHOICE_AFTER_DISCARDED",
+            "wind": "1w",
+            "tileInfo": {
+              "wind": "1w",
+              "tile": {
+                "k": "m",
+                "n": 2,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false,
+              "PON": false,
+              "CHI": false,
+              "DAI_KAN": false
+            }
+          },
+          {
+            "id": "4",
+            "type": "CHOICE_AFTER_DISCARDED",
+            "wind": "2w",
+            "tileInfo": {
+              "wind": "1w",
+              "tile": {
+                "k": "m",
+                "n": 2,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false,
+              "PON": false,
+              "CHI": false,
+              "DAI_KAN": false
+            }
+          },
+          {
+            "id": "4",
+            "type": "CHOICE_AFTER_DISCARDED",
+            "wind": "3w",
+            "tileInfo": {
+              "wind": "1w",
+              "tile": {
+                "k": "m",
+                "n": 2,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false,
+              "PON": false,
+              "CHI": false,
+              "DAI_KAN": false
+            }
+          },
+          {
+            "id": "4",
+            "type": "CHOICE_AFTER_DISCARDED",
+            "wind": "4w",
+            "tileInfo": {
+              "wind": "1w",
+              "tile": {
+                "k": "m",
+                "n": 2,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false,
+              "PON": false,
+              "CHI": false,
+              "DAI_KAN": false
+            }
+          }
+        ],
+        "6": [
+          {
+            "id": "6",
+            "type": "CHOICE_AFTER_DRAWN",
+            "wind": "2w",
+            "tileInfo": {
+              "wind": "2w",
+              "tile": {
+                "k": "m",
+                "n": 7,
+                "ops": [
+                  "t"
+                ]
+              }
+            },
+            "choices": {
+              "TSUMO": false,
+              "REACH": false,
+              "AN_KAN": false,
+              "SHO_KAN": false,
+              "DISCARD": [
+                {
+                  "k": "m",
+                  "n": 5,
+                  "ops": []
+                }
+              ],
+              "DRAWN_GAME_BY_NINE_TILES": false
+            }
+          }
+        ],
+        "8": [
+          {
+            "id": "8",
+            "type": "CHOICE_AFTER_DISCARDED",
+            "wind": "1w",
+            "tileInfo": {
+              "wind": "2w",
+              "tile": {
+                "k": "m",
+                "n": 5,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false,
+              "PON": false,
+              "CHI": false,
+              "DAI_KAN": false
+            }
+          },
+          {
+            "id": "8",
+            "type": "CHOICE_AFTER_DISCARDED",
+            "wind": "2w",
+            "tileInfo": {
+              "wind": "2w",
+              "tile": {
+                "k": "m",
+                "n": 5,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false,
+              "PON": false,
+              "CHI": false,
+              "DAI_KAN": false
+            }
+          },
+          {
+            "id": "8",
+            "type": "CHOICE_AFTER_DISCARDED",
+            "wind": "3w",
+            "tileInfo": {
+              "wind": "2w",
+              "tile": {
+                "k": "m",
+                "n": 5,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false,
+              "PON": false,
+              "CHI": false,
+              "DAI_KAN": false
+            }
+          },
+          {
+            "id": "8",
+            "type": "CHOICE_AFTER_DISCARDED",
+            "wind": "4w",
+            "tileInfo": {
+              "wind": "2w",
+              "tile": {
+                "k": "m",
+                "n": 5,
+                "ops": []
+              }
+            },
+            "choices": {
+              "RON": false,
+              "PON": false,
+              "CHI": false,
+              "DAI_KAN": false
+            }
+          }
+        ],
+        "10": [
+          {
+            "id": "10",
+            "type": "CHOICE_AFTER_DRAWN",
+            "wind": "3w",
+            "tileInfo": {
+              "wind": "3w",
+              "tile": {
+                "k": "m",
+                "n": 8,
+                "ops": [
+                  "t"
+                ]
+              }
+            },
+            "choices": {
+              "TSUMO": false,
+              "REACH": false,
+              "AN_KAN": false,
+              "SHO_KAN": false,
+              "DISCARD": [
+                {
+                  "k": "z",
+                  "n": 2,
+                  "ops": []
+                }
+              ],
+              "DRAWN_GAME_BY_NINE_TILES": true
+            }
+          }
+        ]
+      },
+      "sticks": {
+        "reach": 0,
+        "dead": 0
+      }
+    }
   ]
 ]

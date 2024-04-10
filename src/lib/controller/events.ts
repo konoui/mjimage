@@ -30,7 +30,8 @@ type ChoiceEvent =
   | "REACH"
   | "AN_KAN"
   | "SHO_KAN"
-  | "DAI_KAN";
+  | "DAI_KAN"
+  | "DRAWN_GAME_BY_NINE_TILES";
 
 export interface DistributeEvent {
   id: string;
@@ -48,7 +49,7 @@ export interface DistributeEvent {
 export interface EndEvent {
   id: string;
   type: Extract<Event, "END_GAME">;
-  subType: "WIN_GAME" | "DRAWN_GAME" | "FOUR_KAN" | "FOUR_WIND";
+  subType: "WIN_GAME" | "DRAWN_GAME" | "FOUR_KAN" | "FOUR_WIND" | "NINE_TILES";
   wind: Wind;
   scores: { [key: string]: number };
   sticks: { reach: number; dead: number };
@@ -175,6 +176,7 @@ interface DrawnChoice {
   AN_KAN: false | BlockAnKan[];
   SHO_KAN: false | BlockShoKan[];
   DISCARD: false | Tile[];
+  DRAWN_GAME_BY_NINE_TILES: boolean;
 }
 
 type ChoiceType = DiscardedChoice | DrawnChoice;
@@ -197,6 +199,7 @@ export function prioritizeDrawnEvents(events: ChoiceAfterDrawnEvent[]) {
     "REACH",
     "AN_KAN",
     "SHO_KAN",
+    "DRAWN_GAME_BY_NINE_TILES",
     "DISCARD",
   ];
   const choices = events.map((e) => e.choices);

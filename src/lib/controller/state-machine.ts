@@ -86,6 +86,10 @@ export const createControllerMachine = (c: Controller) => {
                 type: "disable_one_shot_for_me",
               },
             },
+            DRAWN_GAME_BY_NINE_TILES: {
+              target: "drawn_game",
+              // TODO guard for drawn game
+            },
           },
         },
         discarded: {
@@ -305,7 +309,8 @@ export const createControllerMachine = (c: Controller) => {
           | { type: "DISCARD"; tile: Tile; iam: Wind }
           | { type: "AN_KAN"; block: BlockAnKan; iam: Wind }
           | { type: "SHO_KAN"; block: BlockShoKan; iam: Wind }
-          | { type: "DAI_KAN"; block: BlockDaiKan; iam: Wind },
+          | { type: "DAI_KAN"; block: BlockDaiKan; iam: Wind }
+          | { type: "DRAWN_GAME_BY_NINE_TILES"; iam: Wind },
         context: {} as ControllerContext,
       },
     },
@@ -339,7 +344,7 @@ export const createControllerMachine = (c: Controller) => {
         },
         notify_choice_after_drawn: ({ context, event }, params) => {
           const w = context.currentWind;
-          const drawn = context.controller.player(w).drawn;
+          const drawn = context.controller.hand(w).drawn;
           const id = context.genEventID();
           const e = {
             id: id,
@@ -357,6 +362,7 @@ export const createControllerMachine = (c: Controller) => {
               AN_KAN: context.controller.doAnKan(w),
               SHO_KAN: context.controller.doShoKan(w),
               DISCARD: context.controller.doDiscard(w),
+              DRAWN_GAME_BY_NINE_TILES: context.controller.canDrawnGame(w),
             },
           };
           context.controller.emit(e);
@@ -534,7 +540,7 @@ export const createControllerMachine = (c: Controller) => {
               type: event.type,
               iam: iam,
               wind: w,
-              lastTile: context.controller.player(iam).drawn!,
+              lastTile: context.controller.hand(iam).drawn!,
               ret: event.ret,
             };
             context.controller.emit(e);
@@ -585,16 +591,30 @@ export const createControllerMachine = (c: Controller) => {
         notify_end: ({ context, event }) => {
           const id = context.genEventID();
           const hands = createWindMap("");
-          if (event.type == "RON" || event.type == "TSUMO") {
+          if (event.type == "DRAWN_GAME_BY_NINE_TILES") {
+            hands[event.iam] = context.controller.hand(event.iam).toString();
+            for (let w of Object.values(WIND)) {
+              const e = {
+                id: id,
+                type: "END_GAME" as const,
+                subType: "NINE_TILES" as const,
+                wind: w,
+                shouldContinue: true,
+                sticks: context.controller.placeManager.sticks,
+                scores: context.controller.scoreManager.summary,
+                results: createWindMap(0),
+                hands: hands,
+              };
+              context.controller.emit(e);
+            }
+          } else if (event.type == "RON" || event.type == "TSUMO") {
             const shouldContinue = event.iam == "1w";
             const finalResults = context.controller.finalResult(
               event.ret,
               event.iam
             );
             for (let w of Object.values(WIND)) {
-              hands[event.iam] = context.controller
-                .player(event.iam)
-                .toString();
+              hands[event.iam] = context.controller.hand(event.iam).toString();
               const e = {
                 id: id,
                 type: "END_GAME" as const,
@@ -631,8 +651,9 @@ export const createControllerMachine = (c: Controller) => {
             }
           } else if (!context.controller.wall.canDraw) {
             const wind: Wind[] = [];
+            // TODO ノーテン宣言ありなら notify_choice_event_for_ready/waiting_ready_eventを追加する必要あり
             for (let w of Object.values(WIND)) {
-              const hand = context.controller.player(w);
+              const hand = context.controller.hand(w);
               const shan = new ShantenCalculator(hand).calc();
               if (shan == 0) {
                 wind.push(w);

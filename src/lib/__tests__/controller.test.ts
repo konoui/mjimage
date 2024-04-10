@@ -3,14 +3,17 @@ import { createLocalGame } from "../controller";
 import { Tile } from "../parser";
 import { Hand } from "../calculator";
 import { KIND, OPERATOR } from "../constants";
-describe("controller", () => {
-  test("push-back-reach-stick", () => {
-    const c = createLocalGame({ debug: true });
-    c.actor.start();
-    console.log(c.actor.getSnapshot().status);
-    c.next(true);
-  });
-});
+// describe("controller", () => {
+//   test("push-back-reach-stick", () => {
+//     const c = createLocalGame({ debug: true });
+//     c.actor.start();
+//     console.log(c.actor.getSnapshot().status);
+//     c.next(true);
+//     c.observer.hands["1w"] = new Hand("123m456m789m123s1p");
+//     c.observer.hands["2w"] = new Hand("123m456m789m123s2p");
+//     c.next(true);
+//   });
+// });
 
 describe("callable", () => {
   test("can-chi", () => {

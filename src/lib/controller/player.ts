@@ -99,7 +99,7 @@ export class Controller {
     });
   }
   boardParams(w: Wind): BoardParams {
-    const hand = this.player(w);
+    const hand = this.hand(w);
     return {
       dora: this.wall.doras,
       round: this.placeManager.round,
@@ -112,8 +112,8 @@ export class Controller {
         : 2,
     };
   }
-  player(w: Wind) {
-    return this.observer.hands[w];
+  hand(w: Wind) {
+    return this.observer.hand(w);
   }
   get placeManager() {
     return this.observer.placeManager;
@@ -241,6 +241,10 @@ export class Controller {
             block: choices[0],
             iam: w,
           });
+          break;
+        case "DRAWN_GAME_BY_NINE_TILES":
+          this.actor.send({ type: "DRAWN_GAME_BY_NINE_TILES", iam: w });
+          break;
       }
     } else if (sample.type == "CHOICE_AFTER_CALLED") {
       assert(
@@ -249,11 +253,11 @@ export class Controller {
           sample,
           null,
           2
-        )} ${this.player(sample.wind).toString()}`
+        )} ${this.hand(sample.wind).toString()}`
       );
       const w = sample.wind;
       const t = sample.choices.DISCARD[0];
-      assert(t != null, `undefined tile ${this.player(w).toString()}`);
+      assert(t != null, `undefined tile ${this.hand(w).toString()}`);
       this.actor.send({ type: "DISCARD", tile: t, iam: w });
     } else if (sample.type == "CHOICE_FOR_CHAN_KAN") {
       const selected = events.filter((e) => {
@@ -337,7 +341,7 @@ export class Controller {
     }
   }
   finalResult(ret: WinResult, iam: Wind) {
-    const hand = this.player(iam);
+    const hand = this.hand(iam);
     const blindDoras = hand.reached ? this.wall.blindDoras : undefined;
     const final = new DoubleCalculator(hand, {
       ...ret.params,
@@ -358,8 +362,13 @@ export class Controller {
     }
   ): WinResult | false {
     if (t == null) return false;
-    let hand = this.player(w);
+    let hand = this.hand(w);
     const env = this.boardParams(w);
+    // FIXME フリテン
+    // ロン
+    // 1.　自身の河
+    // 2. 同順フリテン
+    // 3. チャンカン見逃し
     if (hand.drawn == null) {
       if (params == null) throw new Error("should ron but params == null");
       if (params.whoDiscarded == w) return false;
@@ -385,7 +394,7 @@ export class Controller {
   doPon(w: Wind, whoDiscarded: Wind, t?: Tile): BlockPon[] | false {
     if (t == null) return false;
     if (w == whoDiscarded) return false;
-    const hand = this.player(w);
+    const hand = this.hand(w);
     if (hand.reached) return false;
     if (hand.hands.length < 3) return false;
 
@@ -421,7 +430,7 @@ export class Controller {
     const fake = t.clone();
     if (fake.n == 0) fake.n = 5;
 
-    const hand = this.player(w);
+    const hand = this.hand(w);
     if (hand.reached) return false;
     if (hand.hands.length < 3) return false;
     const blocks: BlockChi[] = [];
@@ -493,7 +502,7 @@ export class Controller {
       .filter((b) => b != null) as BlockChi[];
   }
   doReach(w: Wind): Tile[] | false {
-    const hand = this.player(w);
+    const hand = this.hand(w);
     if (hand.reached) return false;
     if (!hand.canReach) return false;
     const s = new ShantenCalculator(hand).calc();
@@ -502,11 +511,11 @@ export class Controller {
     return r.map((v) => v.tile);
   }
   doDiscard(w: Wind): Tile[] {
-    if (this.player(w).reached) return [this.player(w).drawn!];
-    return this.player(w).hands;
+    if (this.hand(w).reached) return [this.hand(w).drawn!];
+    return this.hand(w).hands;
   }
   doAnKan(w: Wind): BlockAnKan[] | false {
-    const hand = this.player(w);
+    const hand = this.hand(w);
     const blocks: BlockAnKan[] = [];
     if (hand.reached) return false; // FIXME 待ち変更がなければできる
     for (let k of Object.values(KIND)) {
@@ -532,7 +541,7 @@ export class Controller {
     return blocks;
   }
   doShoKan(w: Wind): BlockShoKan[] | false {
-    const hand = this.player(w);
+    const hand = this.hand(w);
     if (hand.reached) return false;
     const called = hand.called.filter((b) => b instanceof BlockPon);
     if (called.length == 0) return false;
@@ -556,7 +565,7 @@ export class Controller {
     return blocks;
   }
   doDaiKan(w: Wind, whoDiscarded: Wind, t: Tile): BlockDaiKan | false {
-    const hand = this.player(w);
+    const hand = this.hand(w);
     if (hand.reached) return false;
     if (w == whoDiscarded) return false;
     const fake = t.clone().remove(OPERATOR.HORIZONTAL);
@@ -579,6 +588,19 @@ export class Controller {
       `h op ${b.toString()}`
     );
     return b;
+  }
+  canDrawnGame(w: Wind) {
+    if (this.river.discards(w).length != 0) return false;
+    const h = this.hand(w);
+    let num =
+      h.get(KIND.M, 1) +
+      h.get(KIND.M, 9) +
+      h.get(KIND.S, 1) +
+      h.get(KIND.S, 9) +
+      h.get(KIND.P, 1) +
+      h.get(KIND.P, 9);
+    for (let i = 0; i < h.getArrayLen(KIND.Z); i++) num += h.get(KIND.Z, i);
+    return num >= 9;
   }
   initialHands() {
     const m = createWindMap("");
@@ -669,6 +691,7 @@ abstract class BaseActor {
         break;
       case "END_GAME":
         switch (e.subType) {
+          case "NINE_TILES":
           case "FOUR_KAN":
           case "FOUR_WIND":
             this.placeManager.incrementDeadStick();
@@ -778,7 +801,8 @@ export class Observer extends BaseActor {
           );
         }
         console.debug(
-          "END_GAME:",
+          "END_GAME",
+          e.subType,
           "scores",
           JSON.stringify(this.scoreManager.summary, null, 2),
           `sticks: ${JSON.stringify(this.placeManager.sticks, null, 2)}`
