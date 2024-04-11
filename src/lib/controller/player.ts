@@ -359,20 +359,20 @@ export class Controller {
       quadWin?: boolean;
       replacementWin?: boolean;
       oneShot?: boolean;
+      missingRon?: boolean;
       whoDiscarded?: Wind;
     }
   ): WinResult | false {
     if (t == null) return false;
     let hand = this.hand(w);
     const env = this.boardParams(w);
-    // FIXME フリテン
-    // ロン
-    // 1.　自身の河
-    // 2. 同順フリテン
-    // 3. チャンカン見逃し
     if (hand.drawn == null) {
       if (params == null) throw new Error("should ron but params == null");
       if (params.whoDiscarded == w) return false;
+      if (params.missingRon) return false;
+      // FIXME フリテン対応
+      // あがり牌の一つでも自分の川にあれば false を返す
+      // そのためには待ち牌を全て浚う必要がある。
       hand = hand.clone();
       env.ronWind = params.whoDiscarded;
       env.finalDiscardWin = !this.wall.canDraw;

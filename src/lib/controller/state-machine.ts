@@ -14,6 +14,7 @@ import { nextWind, createWindMap } from "./managers";
 type ControllerContext = {
   currentWind: Wind;
   oneShotMap: { [key in Wind]: boolean };
+  missingMap: { [key in Wind]: boolean };
   controller: Controller;
   genEventID: ReturnType<typeof incrementalIDGenerator>;
 };
@@ -28,6 +29,7 @@ export const createControllerMachine = (c: Controller) => {
       context: {
         currentWind: "1w",
         oneShotMap: createWindMap(false),
+        missingMap: createWindMap(false),
         controller: c,
         genEventID: incrementalIDGenerator(),
       },
@@ -382,12 +384,14 @@ export const createControllerMachine = (c: Controller) => {
                 RON: context.controller.doWin(w, ltile, {
                   whoDiscarded: discarded.w,
                   oneShot: context.oneShotMap[w],
+                  missingRon: context.missingMap[w],
                 }),
                 PON: context.controller.doPon(w, discarded.w, ltile),
                 CHI: context.controller.doChi(w, discarded.w, ltile),
                 DAI_KAN: context.controller.doDaiKan(w, discarded.w, ltile),
               },
             };
+            if (e.choices.RON) context.missingMap[w] = true; // ロン可能であればフリテンをtrueにする。次のツモ番で解除される想定
             // TODO if no choice, skip enqueue
             context.controller.emit(e);
           }
@@ -422,6 +426,7 @@ export const createControllerMachine = (c: Controller) => {
                 whoDiscarded: event.iam,
                 quadWin: true,
                 oneShot: context.oneShotMap[w],
+                missingRon: context.missingMap[event.iam],
               }
             ); // TODO which tile is sho kaned for 0/5
             const e = {
@@ -433,6 +438,7 @@ export const createControllerMachine = (c: Controller) => {
                 RON: event.type == "SHO_KAN" ? ron : false,
               },
             };
+            if (e.choices.RON) context.missingMap[w] = true; // ロン可能であればフリテンをtrueにする。次のツモ番で解除される想定
             context.controller.emit(e);
           }
           context.controller.pollReplies(id, Object.values(WIND));
@@ -485,12 +491,18 @@ export const createControllerMachine = (c: Controller) => {
         },
         notify_draw: ({ context, event }, params) => {
           const id = context.genEventID();
+
           const action = (params as { action: string } | undefined)?.action; // TODO avoid as
           let drawn: Tile | undefined = undefined;
           if (action == "kan") drawn = context.controller.wall.kan();
           else drawn = context.controller.wall.draw();
 
           const iam = context.currentWind;
+
+          // リーチしてなければフリテンを解除
+          if (!context.controller.hand(iam).reached)
+            context.missingMap[iam] = false;
+
           for (let w of Object.values(WIND)) {
             let t = new Tile(KIND.BACK, 0); // mask tile for other players
             if (w == iam) t = drawn;
