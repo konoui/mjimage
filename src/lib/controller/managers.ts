@@ -165,6 +165,7 @@ export class Counter {
   constructor(public disable = false) {}
   get(t: Tile) {
     if (t.k == KIND.BACK) return 0;
+    if (t.isNum() && t.n == 0) return this.c[t.k][5];
     return this.c[t.k][t.n];
   }
   dec(...tiles: Tile[]) {

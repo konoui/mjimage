@@ -224,12 +224,20 @@ export class Controller {
           });
           break;
         case "REACH":
-        case "DISCARD":
-          const c = e.choices[selected.type];
-          assert(c, `${selected.type} choice is none`);
+          const candidates = e.choices[selected.type];
+          assert(candidates, `${selected.type} candidates is none`);
           this.actor.send({
             type: selected.type,
-            tile: c[0].remove(OPERATOR.TSUMO),
+            tile: candidates[0].tile,
+            iam: w,
+          });
+          break;
+        case "DISCARD":
+          const tiles = e.choices[selected.type];
+          assert(tiles, `${selected.type} choice is none`);
+          this.actor.send({
+            type: selected.type,
+            tile: tiles[0].remove(OPERATOR.TSUMO),
             iam: w,
           });
           break;
@@ -502,14 +510,14 @@ export class Controller {
       })
       .filter((b) => b != null) as BlockChi[];
   }
-  doReach(w: Wind): Tile[] | false {
+  doReach(w: Wind): Candidate[] | false {
     const hand = this.hand(w);
     if (hand.reached) return false;
     if (!hand.canReach) return false;
     const s = new ShantenCalculator(hand).calc();
     if (s > 0) return false;
-    const r = choiceForDiscard(hand, hand.hands);
-    return r.map((v) => v.tile);
+    const r = calcCandidates(hand, hand.hands);
+    return r;
   }
   doDiscard(w: Wind): Tile[] {
     if (this.hand(w).reached) return [this.hand(w).drawn!];
@@ -862,13 +870,9 @@ export class Player extends BaseActor {
         break;
       case "CHOICE_AFTER_DRAWN":
         if (e.choices.DISCARD) {
-          const ret = choiceForDiscard(
-            this.hands[this.myWind],
-            e.choices.DISCARD
-          );
-          e.choices.DISCARD = [
-            ret.sort((a, b) => b.nCandidate - a.nCandidate)[0].tile,
-          ];
+          const c = calcCandidates(this.hand(this.myWind), e.choices.DISCARD);
+          const ret = calcPlayerCandidates(this.counter, c);
+          e.choices.DISCARD = [ret.sort((a, b) => b.sum - a.sum)[0].tile];
         }
         this.eventHandler.emit(e);
         break;
@@ -881,9 +885,52 @@ export class Player extends BaseActor {
   }
 }
 
-function choiceForDiscard(hand: Hand, choices: Tile[]) {
+// Controller tell candidates to players
+export interface Candidate {
+  tile: Tile;
+  candidates: Tile[];
+  shanten: number;
+}
+
+// Player will calculate num of remaining tiles from river and called
+export interface PlayerCandidate {
+  // When the tile is discarded
+  tile: Tile;
+  // Then sum of available candidates
+  sum: number;
+  // pair of candidate tile and number of remaining
+  candidates: {
+    tile: Tile;
+    n: number;
+  }[];
+  shanten: number;
+}
+
+function calcPlayerCandidates(counter: Counter, candidates: Candidate[]) {
+  let playerCandidates: PlayerCandidate[] = [];
+  for (let s of candidates) {
+    let sum = 0;
+    let pairs: { tile: Tile; n: number }[] = [];
+    for (let c of s.candidates) {
+      pairs.push({
+        tile: c.clone(),
+        n: counter.get(c),
+      });
+      sum += counter.get(c);
+    }
+    playerCandidates.push({
+      sum: sum,
+      tile: s.tile,
+      candidates: pairs,
+      shanten: s.shanten,
+    });
+  }
+  return playerCandidates;
+}
+
+function calcCandidates(hand: Hand, choices: Tile[]) {
   assert(choices.length > 0, "choices to discard is zero");
-  let ret: { shanten: number; nCandidate: number; tile: Tile }[] = [];
+  let ret: Candidate[] = [];
   for (let t of choices) {
     const tiles = hand.dec([t]);
     const c = candidateTiles(hand);
@@ -892,13 +939,13 @@ function choiceForDiscard(hand: Hand, choices: Tile[]) {
       ret = [
         {
           shanten: c.shanten,
-          nCandidate: c.candidates.length,
+          candidates: c.candidates,
           tile: t,
         },
       ];
     } else if (c.shanten == ret[0].shanten) {
       ret.push({
-        nCandidate: c.candidates.length,
+        candidates: c.candidates,
         shanten: c.shanten,
         tile: t,
       });

@@ -8,6 +8,7 @@ import {
   BlockShoKan,
   Tile,
 } from "../parser";
+import { Candidate } from "./";
 import { WinResult } from "../calculator";
 
 type Event =
@@ -172,7 +173,7 @@ interface DiscardedChoice {
 
 interface DrawnChoice {
   TSUMO: false | WinResult;
-  REACH: false | Tile[];
+  REACH: false | Candidate[];
   AN_KAN: false | BlockAnKan[];
   SHO_KAN: false | BlockShoKan[];
   DISCARD: false | Tile[];
