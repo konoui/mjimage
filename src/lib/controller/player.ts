@@ -378,9 +378,6 @@ export class Controller {
       if (params == null) throw new Error("should ron but params == null");
       if (params.whoDiscarded == w) return false;
       if (params.missingRon) return false;
-      // FIXME フリテン対応
-      // あがり牌の一つでも自分の川にあれば false を返す
-      // そのためには待ち牌を全て浚う必要がある。
       hand = hand.clone();
       env.ronWind = params.whoDiscarded;
       env.finalDiscardWin = !this.wall.canDraw;
@@ -398,6 +395,13 @@ export class Controller {
     const ret = dc.calc(hands);
     if (!ret) return false;
     if (ret.points.length == 0) return false;
+
+    // case ron フリテン対応
+    if (hand.draw == null) {
+      const c = candidateTiles(this.hand(w)).candidates;
+      const tiles = this.river.discards(w).map((v) => v.t);
+      if (tiles.some((t) => c.some((ct) => ct.equals(t, true)))) return false;
+    }
     return ret;
   }
   doPon(w: Wind, whoDiscarded: Wind, t?: Tile): BlockPon[] | false {
