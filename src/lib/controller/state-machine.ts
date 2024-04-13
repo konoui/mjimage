@@ -180,6 +180,7 @@ export const createControllerMachine = (c: Controller) => {
               target: "waiting_discard_event",
               actions: {
                 type: "notify_choice_after_called",
+                params: { action: "chi" },
               },
             },
           },
@@ -398,15 +399,22 @@ export const createControllerMachine = (c: Controller) => {
           // TODO skip not euqueued winds
           context.controller.pollReplies(id, Object.values(WIND));
         },
-        notify_choice_after_called: ({ context, event }) => {
+        notify_choice_after_called: ({ context, event }, params) => {
           const id = context.genEventID();
           const w = context.currentWind;
+          let discard = context.controller.doDiscard(w);
+
+          const called = context.controller
+            .hand(context.currentWind)
+            .called.at(-1);
+          if (called instanceof BlockChi)
+            discard = context.controller.doDiscard(w, called);
           const e = {
             id: id,
             type: "CHOICE_AFTER_CALLED" as const,
             wind: w,
             choices: {
-              DISCARD: context.controller.doDiscard(w), // FIXME 食い変え
+              DISCARD: discard,
             },
           };
           context.controller.emit(e);
@@ -454,8 +462,8 @@ export const createControllerMachine = (c: Controller) => {
             )
           )
             throw new Error(`unexpected event ${event.type}`);
-          const id = context.genEventID();
 
+          const id = context.genEventID();
           const iam = event.iam;
           context.currentWind = iam; // update current wind
           for (let w of Object.values(WIND)) {

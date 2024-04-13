@@ -38,7 +38,7 @@ export class Tile {
 
   toString(): string {
     if (this.k === KIND.BACK) return this.k;
-    return `${this.ops.join()}${this.n}${this.k}`;
+    return `${this.ops.join("")}${this.n}${this.k}`;
   }
 
   clone() {

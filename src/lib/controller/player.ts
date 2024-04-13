@@ -439,22 +439,23 @@ export class Controller {
     if (t == null) return false;
     if (!t.isNum()) return false;
     if (nextWind(whoDiscarded) != w) return false;
+    const hand = this.hand(w);
+    if (hand.reached) return false;
+    if (hand.hands.length < 3) return false;
 
     const fake = t.clone();
     if (fake.n == 0) fake.n = 5;
 
-    const hand = this.hand(w);
-    if (hand.reached) return false;
-    if (hand.hands.length < 3) return false;
     const blocks: BlockChi[] = [];
     const lower =
       fake.n - 2 >= 1 &&
       hand.get(t.k, fake.n - 2) > 0 &&
       hand.get(t.k, fake.n - 1) > 0;
+    const cloned = t.clone().add(OPERATOR.HORIZONTAL).remove(OPERATOR.TSUMO);
     if (lower)
       blocks.push(
         new BlockChi([
-          t.clone().add(OPERATOR.HORIZONTAL),
+          cloned,
           new Tile(t.k, fake.n - 1),
           new Tile(t.k, fake.n - 2),
         ])
@@ -466,7 +467,7 @@ export class Controller {
     if (upper)
       blocks.push(
         new BlockChi([
-          t.clone().add(OPERATOR.HORIZONTAL),
+          cloned,
           new Tile(t.k, fake.n + 1),
           new Tile(t.k, fake.n + 2),
         ])
@@ -479,16 +480,29 @@ export class Controller {
     if (kan)
       blocks.push(
         new BlockChi([
-          t.clone().add(OPERATOR.HORIZONTAL),
+          cloned,
           new Tile(t.k, fake.n - 1),
           new Tile(t.k, fake.n + 1),
         ])
       );
 
+    if (blocks.length == 0) return false;
+
+    // 手配が4枚でのチーは、鳴いた後の手配が全て食い替え対象だとできない
+    if (hand.hands.length == 4) {
+      const b = blocks[0];
+      const tiles = this.cannotDiscardTile(blocks[0]);
+      const ltiles = hand.dec([b.tiles[1], b.tiles[2]]);
+      const cannotCall =
+        tiles.reduce((acc: number, e: Tile) => acc + hand.get(e.k, e.n), 0) ==
+        2;
+      hand.inc(ltiles);
+      if (cannotCall) return false;
+    }
+
     // 1. check whether can-chi or not with ignoredRed pattern
     // 2. get red patterns if having red
     // 3. if not having normal 5, return only red pattern, else if concat red and normal patterns
-    if (blocks.length == 0) return false;
     const hasRed = hand.get(t.k, 0) > 0;
     const reds = this.redPattern(blocks, hasRed);
     if (reds.length > 0 && hand.get(t.k, 5) == 1) return reds;
@@ -523,9 +537,32 @@ export class Controller {
     const r = calcCandidates(hand, hand.hands);
     return r;
   }
-  doDiscard(w: Wind): Tile[] {
+  doDiscard(w: Wind, called?: BlockChi): Tile[] {
     if (this.hand(w).reached) return [this.hand(w).drawn!];
-    return this.hand(w).hands;
+    const hand = this.hand(w).hands;
+    if (called == null) return hand;
+
+    const tiles = this.cannotDiscardTile(called);
+    const ret = hand.filter((v) => !tiles.some((t) => v.equals(t, true)));
+    assert(
+      ret.length > 0,
+      `no tiles to discard. hand: ${this.hand(
+        w
+      )}, suji: ${tiles}, block-chi: ${called}`
+    );
+    return ret;
+  }
+  cannotDiscardTile(called: BlockChi) {
+    let h = called.tiles[0].n;
+    let h1 = called.tiles[1].n;
+    const k = called.tiles[0].k;
+    if (h == 0) h = 5;
+    if (h1 == 0) h1 = 5;
+    // -423, -645
+    if (h - 2 == h1) return [new Tile(k, h - 3), new Tile(k, h)];
+    // -123, -789
+    if (h + 1 == h1) return [new Tile(k, h + 3), new Tile(k, h)];
+    return [];
   }
   doAnKan(w: Wind): BlockAnKan[] | false {
     const hand = this.hand(w);
@@ -867,7 +904,6 @@ export class Player extends BaseActor {
         this.eventHandler.emit(e);
         break;
       case "CHOICE_AFTER_DISCARDED":
-        e.choices.CHI = false;
         e.choices.DAI_KAN = false;
         e.choices.PON = false;
         this.eventHandler.emit(e);
