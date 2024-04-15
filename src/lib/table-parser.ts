@@ -2,7 +2,7 @@ import { load } from "js-yaml";
 import { z } from "zod";
 
 import { Tile, Parser, Block } from "./parser";
-import { WIND_MAP, ROUND_MAP } from "./constants";
+import { WIND_MAP, ROUND_MAP, WIND } from "./constants";
 
 const windInputSchema = z
   .object({
@@ -17,10 +17,10 @@ const windInputSchema = z
 const windInputsSchema = z
   .object({
     // FIXME merge WIND_MAP
-    "1w": windInputSchema,
-    "2w": windInputSchema,
-    "3w": windInputSchema,
-    "4w": windInputSchema,
+    [WIND.EAST]: windInputSchema,
+    [WIND.SOUTH]: windInputSchema,
+    [WIND.WEST]: windInputSchema,
+    [WIND.NORTH]: windInputSchema,
   })
   .strict();
 

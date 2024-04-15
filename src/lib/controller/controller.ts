@@ -718,7 +718,13 @@ export abstract class BaseActor {
       case "DISCARD":
         this.river.discard(e.tile, e.iam);
         this.hands[e.iam].discard(e.tile);
-        if (e.iam != e.wind) this.counter.dec(e.tile); // own tile is recorded by DRAW event
+        if (e.iam != e.wind) {
+          this.counter.dec(e.tile); // own tile is recorded by DRAW event
+          this.counter.addTileToSafeMap(e.tile, e.iam); // そのユーザの捨て牌を現物に追加
+          // 立直されている場合、捨て牌は立直ユーザの現物になる
+          for (let w of Object.values(WIND))
+            if (this.hand(w).reached) this.counter.addTileToSafeMap(e.tile, w);
+        }
         break;
       case "PON":
       case "CHI":
@@ -799,11 +805,11 @@ export class Observer extends BaseActor {
   applied: { [id: string]: boolean } = {};
   constructor(eventHandler: EventHandler) {
     super("observer", eventHandler);
+    this.counter.disable = true;
     this.hands = createWindMap(new Hand("_____________"));
   }
   setHands(e: DistributeEvent): void {
     this.hands[e.wind] = new Hand(e.hands[e.wind]);
-    this.counter.disable = true;
   }
   handleEvent(e: PlayerEvent): void {
     super.handleEvent(e);

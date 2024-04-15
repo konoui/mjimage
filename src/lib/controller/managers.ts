@@ -1,5 +1,5 @@
 import assert from "assert";
-import { Wind, Round, KIND } from "../constants";
+import { Wind, Round, KIND, WIND } from "../constants";
 import { Kind, Tile } from "../parser";
 
 export class ScoreManager {
@@ -119,13 +119,17 @@ export const prevWind = (w: Wind): Wind => {
   return nextWind(nextWind(nextWind(w)));
 };
 
-export function createWindMap<T>(initial: T) {
+export function createWindMap<T>(initial: T, clone = false) {
   const m: { [key in Wind]: T } = {
     "1w": initial,
     "2w": initial,
     "3w": initial,
     "4w": initial,
   };
+  if (clone) {
+    for (let w of Object.values(WIND)) m[w] = structuredClone(initial);
+  }
+
   return m;
 }
 
@@ -162,7 +166,9 @@ export class Counter {
     [KIND.P]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],
     [KIND.Z]: [0, 4, 4, 4, 4, 4, 4, 4],
   };
+  safeMap = createWindMap({} as { [name: string]: boolean }, true);
   constructor(public disable = false) {}
+  // FIXME get red
   get(t: Tile) {
     if (t.k == KIND.BACK) return 0;
     if (t.isNum() && t.n == 0) return this.c[t.k][5];
@@ -178,6 +184,18 @@ export class Counter {
       if (t.isNum() && t.n == 0) this.c[t.k][5] -= 1;
     }
   }
+  addTileToSafeMap(t: Tile, targetUser: Wind) {
+    if (this.disable) return;
+    this.safeMap[targetUser][this.key(t.k, t.n)] = true;
+  }
+  isSafeTile(k: Kind, n: number, targetUser: Wind) {
+    return this.safeMap[targetUser][this.key(k, n)];
+  }
+  private key(k: Kind, n: number) {
+    if (n == 0) n = 5;
+    return `${k}${n}`;
+  }
+
   reset() {
     this.c = {
       [KIND.M]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],

@@ -1,7 +1,6 @@
 import { WIND } from "../constants";
 import { Tile } from "../parser";
-import { Counter } from "./managers";
-import { Candidate, BaseActor, River, Efficiency, PlayerEfficiency } from "./";
+import { BaseActor, River, Efficiency, PlayerEfficiency } from "./";
 import { Hand } from "../calculator";
 import { PlayerEvent, EventHandler, DistributeEvent } from "./events";
 
@@ -45,7 +44,11 @@ export class Player extends BaseActor {
           );
           const sorted = candidates.sort((a, b) => b.sum - a.sum);
           const filtered = sorted.filter((v) => v.sum == sorted[0].sum);
-          const ct = PlayerEfficiency.selectMinPriority(this.counter, filtered);
+          const ct = PlayerEfficiency.selectMinPriority(
+            this.counter,
+            filtered,
+            this.doras
+          );
           e.choices.DISCARD = [ct.tile];
         }
         this.eventHandler.emit(e);

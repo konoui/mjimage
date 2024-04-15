@@ -107,12 +107,16 @@ export class PlayerEfficiency {
     }
     return playerCandidates;
   }
-  static selectMinPriority(c: Counter, playerCandidates: PlayerCandidate[]) {
+  static selectMinPriority(
+    c: Counter,
+    playerCandidates: PlayerCandidate[],
+    doras: Tile[]
+  ) {
     assert(playerCandidates.length > 0);
     let min = 0;
     let idx = 0;
     for (let i = 0; i < playerCandidates.length; i++) {
-      const p = PlayerEfficiency.calcPriority(c, playerCandidates[i]);
+      const p = PlayerEfficiency.calcPriority(c, playerCandidates[i], doras);
       if (p < min) {
         min = p;
         idx = i;
@@ -120,8 +124,11 @@ export class PlayerEfficiency {
     }
     return playerCandidates[idx];
   }
-  static calcPriority(c: Counter, playerCandidate: PlayerCandidate) {
-    const doras: Tile[] = [];
+  private static calcPriority(
+    c: Counter,
+    playerCandidate: PlayerCandidate,
+    doras: Tile[]
+  ) {
     const tile = playerCandidate.tile;
     let v = 0;
     if (tile.k == KIND.Z) {
@@ -154,5 +161,38 @@ export class PlayerEfficiency {
       if (tile.n == 0) v * 2;
       return v;
     }
+  }
+}
+
+class RiskRank {
+  static rank(c: Counter, targetUser: Wind, t: Tile) {
+    if (t.isNum()) return RiskRank.rankN(c, targetUser, t);
+    return RiskRank.rankN(c, targetUser, t);
+  }
+
+  static rankZ(c: Counter, targetUser: Wind, t: Tile) {
+    if (t.k != KIND.Z) throw new Error(`expected KIND.Z but ${t.toString()}`);
+    if (c.isSafeTile(t.k, t.n, targetUser)) return 0;
+    const remaining = c.get(t);
+    return Math.min(remaining, 3);
+  }
+
+  static rankN(c: Counter, targetUser: Wind, t: Tile) {
+    if (!t.isNum()) throw new Error(`expected KIND.NUMBER but ${t.toString()}`);
+    const n = t.n;
+    const k = t.k;
+    if (c.isSafeTile(k, n, targetUser)) return 0;
+    if (n == 1) return c.isSafeTile(k, 4, targetUser) ? 3 : 6;
+    if (n == 9) return c.isSafeTile(k, 6, targetUser) ? 3 : 6;
+    if (n == 2) return c.isSafeTile(k, 5, targetUser) ? 4 : 8;
+    if (n == 8) return c.isSafeTile(k, 5, targetUser) ? 4 : 8;
+    if (n == 3) return c.isSafeTile(k, 6, targetUser) ? 5 : 8;
+    if (n == 7) return c.isSafeTile(k, 4, targetUser) ? 5 : 8;
+
+    const left = c.isSafeTile(k, n - 3, targetUser);
+    const right = c.isSafeTile(k, n + 3, targetUser);
+    if (left && right) return 4;
+    if (left || right) return 8;
+    return 12;
   }
 }
