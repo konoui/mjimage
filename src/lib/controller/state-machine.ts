@@ -407,7 +407,7 @@ export const createControllerMachine = (c: Controller) => {
           const called = context.controller
             .hand(context.currentWind)
             .called.at(-1);
-          if (called instanceof BlockChi)
+          if (called instanceof BlockChi || called instanceof BlockPon)
             discard = context.controller.doDiscard(w, called);
           const e = {
             id: id,

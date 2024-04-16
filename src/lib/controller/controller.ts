@@ -539,11 +539,14 @@ export class Controller {
     const r = Efficiency.calcCandidates(hand, hand.hands);
     return r;
   }
-  doDiscard(w: Wind, called?: BlockChi): Tile[] {
+  doDiscard(w: Wind, called?: BlockChi | BlockPon): Tile[] {
     if (this.hand(w).reached) return [this.hand(w).drawn!];
     const hand = this.hand(w).hands;
     if (called == null) return hand;
 
+    if (called instanceof BlockPon) {
+      return hand.filter((v) => !v.equals(called.tiles[0], true));
+    }
     const tiles = this.cannotDiscardTile(called);
     const ret = hand.filter((v) => !tiles.some((t) => v.equals(t, true)));
     assert(
