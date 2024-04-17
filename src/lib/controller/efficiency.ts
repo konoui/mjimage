@@ -164,10 +164,28 @@ export class PlayerEfficiency {
   }
 }
 
-class RiskRank {
-  static rank(c: Counter, targetUser: Wind, t: Tile) {
-    if (t.isNum()) return RiskRank.rankN(c, targetUser, t);
-    return RiskRank.rankN(c, targetUser, t);
+export class RiskRank {
+  static selectTile(c: Counter, targetUsers: Wind[], tiles: Tile[]) {
+    assert(targetUsers.length > 0 && tiles.length > 0);
+    let ret = tiles[0];
+    let min = Number.POSITIVE_INFINITY;
+    for (let t of tiles) {
+      const v = RiskRank.rank(c, targetUsers, t);
+      if (v < min) {
+        ret = t;
+        min = v;
+      }
+    }
+    return ret;
+  }
+  static rank(c: Counter, targetUsers: Wind[], t: Tile) {
+    let max = 0;
+    const f = t.isNum() ? RiskRank.rankN : RiskRank.rankZ;
+    for (let targetUser of targetUsers) {
+      const v = f(c, targetUser, t);
+      if (max < v) max = v;
+    }
+    return max;
   }
 
   static rankZ(c: Counter, targetUser: Wind, t: Tile) {
