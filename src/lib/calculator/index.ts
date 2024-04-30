@@ -732,8 +732,8 @@ export class TileCalculator {
 }
 
 export interface BoardParams {
-  dora: Tile[];
-  blindDora?: Tile[];
+  doraMarkers: Tile[];
+  blindDoraMarkers?: Tile[];
   round: Round;
   myWind: Wind;
   ronWind?: Wind;
@@ -778,8 +778,11 @@ export class DoubleCalculator {
   constructor(hand: Hand, params: BoardParams) {
     this.hand = hand;
     this.cfg = {
-      doras: [...params.dora],
-      blindDoras: params.blindDora == null ? [] : [...params.blindDora],
+      doras: params.doraMarkers.map((v) => toDora(v)), // convert to dora
+      blindDoras:
+        params.blindDoraMarkers == null
+          ? []
+          : params.blindDoraMarkers.map((v) => toDora(v)),
       roundWind: new Parser(params.round.substring(0, 2)).parse()[0].tiles[0],
       myWind: new Parser(params.myWind).parse()[0].tiles[0],
       reached: params.reached ?? 0,
@@ -1435,4 +1438,10 @@ const countSameBlocks = (h: Block[]) => {
     if (v >= 2) count++;
   }
   return count;
+};
+
+const toDora = (doraMarker: Tile) => {
+  let n = doraMarker.isNum() && doraMarker.n == 0 ? 5 : doraMarker.n;
+  let k = doraMarker.k;
+  return new Tile(k, (n % 9) + 1);
 };

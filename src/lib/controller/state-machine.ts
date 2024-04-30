@@ -334,7 +334,7 @@ export const createControllerMachine = (c: Controller) => {
               type: "DISTRIBUTE" as const,
               hands: hands,
               wind: w,
-              dora: context.controller.wall.doras[0],
+              doraMarker: context.controller.wall.doraMarkers[0],
               sticks: context.controller.placeManager.sticks,
               round: context.controller.placeManager.round,
               players: context.controller.playerIDs,
@@ -587,13 +587,13 @@ export const createControllerMachine = (c: Controller) => {
         notify_new_dora_if_needed: ({ context, event }) => {
           const id = context.genEventID();
           if (event.type == "AN_KAN") {
-            const tile = context.controller.wall.openDora();
+            const tile = context.controller.wall.openDoraMarker();
             for (let w of Object.values(WIND)) {
               const e = {
                 id: id,
                 type: "NEW_DORA" as const,
                 wind: w,
-                tile: tile,
+                doraMarker: tile,
               };
               context.controller.emit(e);
             }

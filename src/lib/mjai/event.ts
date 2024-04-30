@@ -1,6 +1,8 @@
 // see https://github.com/smly/mjai.app
 // https://mjai.app/docs/mjai-protocol
 
+import { PlaceManager, NewDoraEvent, PlayerEvent } from "./../controller";
+
 type IDs = 0 | 1 | 2 | 3;
 
 type Wind = "E" | "S" | "W" | "N";
@@ -118,3 +120,6 @@ interface EndKyokuEvent {
 interface EndGameEvent {
   type: "end_game";
 }
+
+const toMJAIEvent = (pm: PlaceManager, e: PlayerEvent) => {};
+const toMyEvent = (pm: PlaceManager, e: PlayerEvent) => {};

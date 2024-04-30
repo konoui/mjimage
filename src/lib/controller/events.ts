@@ -1,4 +1,4 @@
-import { eventmit, EventmitHandler } from "eventmit";
+import { eventmit } from "eventmit";
 import { Wind, Round } from "../constants";
 import {
   BlockAnKan,
@@ -39,7 +39,7 @@ export interface DistributeEvent {
   type: Extract<Event, "DISTRIBUTE">;
   hands: { [key in Wind]: string };
   wind: Wind;
-  dora: Tile;
+  doraMarker: Tile;
   players: string[];
   places: { [key: string]: Wind };
   sticks: { reach: number; dead: number };
@@ -114,7 +114,7 @@ export interface ReachEvent {
 export interface NewDoraEvent {
   id: string;
   type: Extract<Event, "NEW_DORA">;
-  tile: Tile;
+  doraMarker: Tile;
   wind: Wind;
 }
 

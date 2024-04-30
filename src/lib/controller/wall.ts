@@ -36,16 +36,16 @@ export class Wall {
     return this.walls.drawable.pop()!;
   }
 
-  openDora() {
+  openDoraMarker() {
     if (this.openedDoraCount >= 4)
       throw new Error("exceeded maximum open dora");
     this.openedDoraCount++;
     return this.walls.dora[this.openedDoraCount - 1].clone();
   }
-  get doras() {
+  get doraMarkers() {
     return this.walls.dora.slice(0, this.openedDoraCount);
   }
-  get blindDoras() {
+  get blindDoraMarkers() {
     return this.walls.blindDora.slice(0, this.openedDoraCount);
   }
   get canKan() {

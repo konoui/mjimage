@@ -104,7 +104,7 @@ export class Controller {
   boardParams(w: Wind): BoardParams {
     const hand = this.hand(w);
     return {
-      dora: this.wall.doras,
+      doraMarkers: this.observer.doraMarkers,
       round: this.placeManager.round,
       myWind: w,
       sticks: this.observer.placeManager.sticks,
@@ -353,11 +353,13 @@ export class Controller {
   }
   finalResult(ret: WinResult, iam: Wind) {
     const hand = this.hand(iam);
-    const blindDoras = hand.reached ? this.wall.blindDoras : undefined;
+    const blindDoraMarkers = hand.reached
+      ? this.wall.blindDoraMarkers
+      : undefined;
     const final = new DoubleCalculator(hand, {
       ...ret.params,
       sticks: this.placeManager.sticks,
-      blindDora: blindDoras,
+      blindDoraMarkers: blindDoraMarkers,
     }).calc([ret.hand]);
     assert(final);
     return final;
@@ -678,7 +680,7 @@ export abstract class BaseActor {
   scoreManager = new ScoreManager({}); // empty for init
   hands = createWindMap(new Hand("")); // empty for init
   counter = new Counter();
-  doras: Tile[] = []; // empty for init
+  doraMarkers: Tile[] = []; // empty for init
   eventHandler: EventHandler;
   constructor(id: string, eventHandler: EventHandler) {
     this.id = id;
@@ -706,9 +708,9 @@ export abstract class BaseActor {
           sticks: structuredClone(e.sticks),
         });
         this.scoreManager = new ScoreManager(structuredClone(e.scores));
-        this.doras = [e.dora];
+        this.doraMarkers = [e.doraMarker];
 
-        this.counter.dec(e.dora);
+        this.counter.dec(e.doraMarker);
         for (let w of Object.values(WIND)) {
           if (w != e.wind) continue;
           this.counter.dec(...this.hand(w).hands);
@@ -758,8 +760,8 @@ export abstract class BaseActor {
         // this.river.discard(e.tile, e.iam);
         break;
       case "NEW_DORA":
-        this.doras.push(e.tile);
-        this.counter.dec(e.tile);
+        this.doraMarkers.push(e.doraMarker);
+        this.counter.dec(e.doraMarker);
         break;
       case "TSUMO":
         break;
