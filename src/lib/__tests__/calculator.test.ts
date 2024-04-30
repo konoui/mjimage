@@ -426,7 +426,7 @@ describe("double Calculator", () => {
       const h = new Hand(tt.input);
       const c = new TileCalculator(h);
       const cfg: BoardParams = {
-        dora: [new Tile(KIND.M, 8)],
+        doraMarkers: [new Tile(KIND.M, 8)],
         myWind: "1w",
         round: "1w1",
       };
@@ -447,7 +447,7 @@ describe("calc", () => {
   const h = new Hand(input);
   const c = new TileCalculator(h);
   const cfg: BoardParams = {
-    dora: [new Tile(KIND.M, 8)],
+    doraMarkers: [new Tile(KIND.M, 8)],
     myWind: "1w",
     round: "1w1",
     ronWind: "2w",
@@ -464,7 +464,7 @@ describe("calc", () => {
   const h = new Hand(input);
   const c = new TileCalculator(h);
   const cfg: BoardParams = {
-    dora: [new Tile(KIND.M, 8)],
+    doraMarkers: [new Tile(KIND.M, 8)],
     myWind: "1w",
     round: "1w1",
     ronWind: "2w",
