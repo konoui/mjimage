@@ -54,7 +54,7 @@ export interface EndEvent {
   wind: Wind;
   scores: { [key: string]: number };
   sticks: { reach: number; dead: number };
-  results: { [key in Wind]: number };
+  deltas: { [key in Wind]: number };
   hands: { [key in Wind]: string };
   shouldContinue: boolean;
 }
@@ -73,7 +73,7 @@ export interface RonEvent {
   iam: Wind;
   wind: Wind;
   ret: WinResult;
-  tileInfo: { wind: Wind; tile: Tile };
+  targetInfo: { wind: Wind; tile: Tile };
   pushBackReachStick: boolean;
 }
 

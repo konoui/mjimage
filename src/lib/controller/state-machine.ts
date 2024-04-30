@@ -304,7 +304,7 @@ export const createControllerMachine = (c: Controller) => {
               type: "RON";
               ret: WinResult;
               iam: Wind;
-              tileInfo: { wind: Wind; tile: Tile };
+              targetInfo: { wind: Wind; tile: Tile };
               quadWin?: boolean;
             }
           | { type: "TSUMO"; ret: WinResult; iam: Wind; lastTile: Tile }
@@ -529,7 +529,7 @@ export const createControllerMachine = (c: Controller) => {
         notify_ron: ({ context, event }) => {
           const id = context.genEventID();
           if (event.type == "RON") {
-            const ronWind = event.tileInfo.wind;
+            const ronWind = event.targetInfo.wind;
             const cur = context.currentWind;
             const pushBackReachStick =
               ronWind == cur && context.oneShotMap[cur] == true;
@@ -540,7 +540,7 @@ export const createControllerMachine = (c: Controller) => {
                 type: event.type,
                 iam: iam,
                 wind: w,
-                tileInfo: event.tileInfo,
+                targetInfo: event.targetInfo,
                 ret: event.ret,
                 pushBackReachStick: pushBackReachStick,
               };
@@ -622,7 +622,7 @@ export const createControllerMachine = (c: Controller) => {
                 shouldContinue: true,
                 sticks: context.controller.placeManager.sticks,
                 scores: context.controller.scoreManager.summary,
-                results: createWindMap(0),
+                deltas: createWindMap(0),
                 hands: hands,
               };
               context.controller.emit(e);
@@ -643,7 +643,7 @@ export const createControllerMachine = (c: Controller) => {
                 shouldContinue: shouldContinue,
                 sticks: { reach: 0, dead: 0 },
                 scores: context.controller.scoreManager.summary,
-                results: finalResults.result,
+                deltas: finalResults.deltas,
                 hands: hands,
               };
               context.controller.emit(e);
@@ -664,7 +664,7 @@ export const createControllerMachine = (c: Controller) => {
                 shouldContinue: true,
                 sticks: context.controller.placeManager.sticks,
                 scores: context.controller.scoreManager.summary,
-                results: createWindMap(0),
+                deltas: createWindMap(0),
                 hands: createWindMap(""),
               };
               context.controller.emit(e);
@@ -682,13 +682,14 @@ export const createControllerMachine = (c: Controller) => {
             }
 
             const nothing = wind.length == 0 || wind.length == 4;
-            const ret = createWindMap(0);
+            const deltas = createWindMap(0);
             for (let w of Object.values(WIND)) {
-              if (wind.includes(w)) ret[w] += nothing ? 0 : 3000 / wind.length;
-              else ret[w] -= nothing ? 0 : 3000 / (4 - wind.length);
+              if (wind.includes(w))
+                deltas[w] += nothing ? 0 : 3000 / wind.length;
+              else deltas[w] -= nothing ? 0 : 3000 / (4 - wind.length);
             }
 
-            const shouldContinue = wind.length == 4 || ret["1w"] > 0;
+            const shouldContinue = wind.length == 4 || deltas["1w"] > 0;
             for (let w of Object.values(WIND)) {
               const e = {
                 id: id,
@@ -698,7 +699,7 @@ export const createControllerMachine = (c: Controller) => {
                 shouldContinue: shouldContinue,
                 sticks: context.controller.placeManager.sticks,
                 scores: context.controller.scoreManager.summary,
-                results: ret,
+                deltas: deltas,
                 hands: hands,
               };
               context.controller.emit(e);

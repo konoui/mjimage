@@ -710,7 +710,7 @@ export interface BoardParams {
 }
 
 export interface WinResult {
-  result: { [w in Wind]: number };
+  deltas: { [w in Wind]: number };
   sum: number;
   fu: number;
   points: {
@@ -819,7 +819,7 @@ export class DoubleCalculator {
     const myWind = this.cfg.orig.myWind;
     const isParent = myWind == "1w";
 
-    const result: { [key in Wind]: number } = {
+    const deltas: { [key in Wind]: number } = {
       "1w": 0,
       "2w": 0,
       "3w": 0,
@@ -831,35 +831,35 @@ export class DoubleCalculator {
         throw new Error("ron wind is not specified in the parameters");
       const coefficient = isParent ? 6 : 4;
       const point = ceil(base * coefficient) + deadPoint;
-      result[myWind] += point;
-      result[this.cfg.orig.ronWind] -= point;
+      deltas[myWind] += point;
+      deltas[this.cfg.orig.ronWind] -= point;
     } else {
       const deadPoint = this.cfg.sticks.dead * 100;
       if (isParent) {
         const point = ceil(base * 2);
-        result["1w"] += point * 3 + deadPoint * 3;
-        result["2w"] -= point + deadPoint;
-        result["3w"] -= point + deadPoint;
-        result["4w"] -= point + deadPoint;
+        deltas["1w"] += point * 3 + deadPoint * 3;
+        deltas["2w"] -= point + deadPoint;
+        deltas["3w"] -= point + deadPoint;
+        deltas["4w"] -= point + deadPoint;
       } else {
         for (let key of Object.values(WIND)) {
           if (key == myWind) continue;
           const coefficient = key == "1w" ? 2 : 1;
           const point = ceil(base * coefficient) + deadPoint;
-          result[key] -= point;
-          result[myWind] += point;
+          deltas[key] -= point;
+          deltas[myWind] += point;
         }
       }
     }
 
-    result[myWind] += 1000 * this.cfg.sticks.reach;
+    deltas[myWind] += 1000 * this.cfg.sticks.reach;
 
     const v = {
-      result: result,
+      deltas: deltas,
       sum: sum,
       fu: fu,
       points: patterns[idx].points,
-      point: result[myWind],
+      point: deltas[myWind],
       hand: patterns[idx].hand,
       params: this.cfg.orig,
     };

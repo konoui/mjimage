@@ -182,7 +182,7 @@ export class Controller {
             type: selected.type,
             iam: e.wind,
             ret: e.choices.RON,
-            tileInfo: e.tileInfo,
+            targetInfo: e.tileInfo,
           });
           break;
         case "DAI_KAN":
@@ -287,7 +287,7 @@ export class Controller {
         iam: e.wind,
         ret: e.choices.RON,
         quadWin: true,
-        tileInfo: e.tileInfo,
+        targetInfo: e.tileInfo,
       });
     }
   }
@@ -765,7 +765,7 @@ export abstract class BaseActor {
         break;
       case "RON":
         if (e.pushBackReachStick) {
-          const w = e.tileInfo.wind;
+          const w = e.targetInfo.wind;
           const id = this.placeManager.playerID(w);
           this.scoreManager.restoreReachStick(id);
           this.placeManager.decrementReachStick();
@@ -780,14 +780,14 @@ export abstract class BaseActor {
             break;
           case "DRAWN_GAME": {
             const pm = this.placeManager.playerMap;
-            this.scoreManager.update(e.results, pm);
+            this.scoreManager.update(e.deltas, pm);
             this.placeManager.incrementDeadStick();
             if (!e.shouldContinue) this.placeManager.nextRound();
             break;
           }
           case "WIN_GAME": {
             const pm = this.placeManager.playerMap;
-            this.scoreManager.update(e.results, pm);
+            this.scoreManager.update(e.deltas, pm);
             if (e.shouldContinue) this.placeManager.incrementDeadStick();
             else {
               this.placeManager.nextRound();
