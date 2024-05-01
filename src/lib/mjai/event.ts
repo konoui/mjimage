@@ -2,8 +2,8 @@
 // https://mjai.app/docs/mjai-protocol
 
 import { DoubleCalculator } from "../calculator";
-import { KIND, Round, Wind } from "../constants";
-import { Tile } from "../parser";
+import { KIND, OPERATOR, Round, Wind } from "../constants";
+import { BlockAnKan, BlockChi, BlockDaiKan, BlockPon, Tile } from "../parser";
 import {
   PlaceManager,
   NewDoraEvent,
@@ -14,7 +14,12 @@ import {
   DiscardEvent,
   ReachEvent as PlayerReachEvent,
   TsumoEvent as PlayerTsumoEvent,
+  CallEvent,
   RonEvent,
+  incrementalIDGenerator,
+  Player,
+  createEventPipe,
+  EventHandler,
 } from "./../controller";
 import { Hand, WinResult } from "../calculator";
 
@@ -36,9 +41,9 @@ export type MJAIEvent =
   | DahaiEvent
   | PonEvent
   | ChiEvent
-  | AnKanEvent
-  | DaiKanEvent
-  | ShoKanEvent
+  | AnkanEvent
+  | DaiminkanEvent
+  | KakanEvent
   | DoraEvent
   | ReachEvent
   | ReachAcceptedEvent
@@ -90,14 +95,14 @@ interface PonEvent {
 }
 
 interface ChiEvent {
-  type: "pon";
+  type: "chi";
   actor: IDs;
   target: IDs;
   pai: string;
   consumed: string[];
 }
 
-interface AnKanEvent {
+interface AnkanEvent {
   type: "ankan";
   actor: IDs;
   target: IDs;
@@ -105,7 +110,7 @@ interface AnKanEvent {
   consumed: string[];
 }
 
-interface DaiKanEvent {
+interface DaiminkanEvent {
   type: "daiminkan";
   actor: IDs;
   target: IDs;
@@ -113,10 +118,9 @@ interface DaiKanEvent {
   consumed: string[];
 }
 
-interface ShoKanEvent {
+interface KakanEvent {
   type: "kakan";
   actor: IDs;
-  target: IDs;
   pai: string;
   consumed: string[];
 }
@@ -163,20 +167,54 @@ interface EndGameEvent {
   type: "end_game";
 }
 
-const toMJAIEvent = (pm: PlaceManager, e: PlayerEvent) => {};
-
-class EventBackwarder {
-  reachUserMap: { [actor: string]: boolean } = {};
-  toMyEvent = (myWind: Wind, pm: PlaceManager, e: MJAIEvent) => {
+export class MJAIPlayer {
+  genID = incrementalIDGenerator();
+  reachEventRecorder: { [actor: string]: boolean } = {};
+  from: EventHandler;
+  to: EventHandler;
+  player: Player;
+  constructor() {
+    const [ce, pe] = createEventPipe();
+    this.from = ce;
+    this.to = pe;
+    this.player = new Player("-1", this.to); // initial id
+    this.from.on((e) => {
+      // TODO convert and response to bot
+    });
+  }
+  react(e: string) {
+    const events = JSON.parse(e) as MJAIEvent[];
+    events.forEach((e) => {
+      this.handle(e);
+    });
+  }
+  handle(e: MJAIEvent) {
+    switch (e.type) {
+      case "start_game": {
+        this.player.id = e.id.toString(); // set valid id
+        break;
+      }
+      case "reach": {
+        this.reachEventRecorder[e.actor] = true;
+        break;
+      }
+      case "end_game":
+        break;
+      default:
+        const pe = this.toPlayerEvent(
+          this.player.myWind,
+          this.player.placeManager,
+          e
+        );
+        this.from.emit(pe);
+    }
+  }
+  toPlayerEvent = (myWind: Wind, pm: PlaceManager, e: MJAIEvent) => {
     const kyoku = toKyoku(pm.round);
     switch (e.type) {
-      case "start_game":
-        {
-        }
-        break;
       case "start_kyoku": {
         const pe: DistributeEvent = {
-          id: "0",
+          id: this.genID(),
           type: "DISTRIBUTE",
           hands: toHands(e.tehais, e.kyoku),
           wind: myWind,
@@ -191,53 +229,134 @@ class EventBackwarder {
       }
       case "tsumo": {
         const pe: DrawEvent = {
-          id: "0", // FIXME
+          id: this.genID(),
           type: "DRAW",
           iam: toPlayerWind(e.actor, kyoku),
           wind: myWind,
           tile: toTile(e.pai),
         };
-        break;
+        return pe;
       }
       case "dahai": {
         // when after reached, two events must be created.
         // one is reach event, another is discard event.
-        if (this.reachUserMap[e.actor]) {
-          this.reachUserMap[e.actor] = false;
+        if (this.reachEventRecorder[e.actor]) {
+          this.reachEventRecorder[e.actor] = false;
           const pe: PlayerReachEvent = {
-            id: "0", // FIXME
+            id: this.genID(),
             type: "REACH",
             wind: myWind,
             iam: toPlayerWind(e.actor, kyoku),
             tile: toTile(e.pai),
           };
+          return pe;
         }
         const pe: DiscardEvent = {
-          id: "0", // FIXME
+          id: this.genID(),
           type: "DISCARD",
           iam: toPlayerWind(e.actor, kyoku),
           wind: myWind,
           tile: toTile(e.pai),
         };
-        break;
-      }
-      case "reach": {
-        this.reachUserMap[e.actor] = true;
-        break;
+        return pe;
       }
       case "dora": {
         const pe: NewDoraEvent = {
-          id: "0", // FIXME
+          id: this.genID(),
           type: "NEW_DORA",
           doraMarker: toTile(e.dora_marker),
           wind: myWind,
         };
-        break;
+        return pe;
+      }
+      case "ankan": {
+        const tiles = [toTile(e.pai), ...toTiles(e.consumed)];
+        const pe: CallEvent = {
+          id: this.genID(),
+          type: "AN_KAN",
+          wind: myWind,
+          iam: toPlayerWind(e.actor, kyoku),
+          block: new BlockAnKan(tiles),
+        };
+        return pe;
+      }
+      case "chi": {
+        const block = new BlockChi([
+          toTile(e.pai).add(OPERATOR.HORIZONTAL),
+          toTile(e.consumed[0]),
+          toTile(e.consumed[1]),
+        ]);
+        const pe: CallEvent = {
+          id: this.genID(),
+          type: "CHI",
+          wind: myWind,
+          iam: toPlayerWind(e.actor, kyoku),
+          block: block,
+        };
+        return pe;
+      }
+      case "pon": {
+        let idx = Math.abs(e.actor - e.target);
+        if (idx == 3) idx = 0;
+        if (idx == 2) idx = 1;
+        if (idx == 1) idx = 2;
+        const block = new BlockPon([
+          toTile(e.pai).add(OPERATOR.HORIZONTAL),
+          toTile(e.consumed[0]),
+          toTile(e.consumed[1]),
+        ]);
+        [block.tiles[0], block.tiles[idx]] = [block.tiles[idx], block.tiles[0]];
+        const pe: CallEvent = {
+          id: this.genID(),
+          type: "CHI",
+          wind: myWind,
+          iam: toPlayerWind(e.actor, kyoku),
+          block: block,
+        };
+        return pe;
+      }
+      case "daiminkan": {
+        let idx = Math.abs(e.actor - e.target);
+        if (idx == 3) idx = 0;
+        if (idx == 2) idx = 1;
+        if (idx == 1) idx = 2;
+        const block = new BlockDaiKan([
+          toTile(e.pai).add(OPERATOR.HORIZONTAL),
+          toTile(e.consumed[0]),
+          toTile(e.consumed[1]),
+          toTile(e.consumed[2]),
+        ]);
+        [block.tiles[0], block.tiles[idx]] = [block.tiles[idx], block.tiles[0]];
+        const pe: CallEvent = {
+          id: this.genID(),
+          type: "CHI",
+          wind: myWind,
+          iam: toPlayerWind(e.actor, kyoku),
+          block: block,
+        };
+        return pe;
+      }
+      case "kakan": {
+        // FIXME
+        const block = new BlockAnKan([
+          toTile(e.pai).add(OPERATOR.HORIZONTAL),
+          toTile(e.consumed[0]).add(OPERATOR.HORIZONTAL),
+          toTile(e.consumed[1]),
+          toTile(e.consumed[2]),
+        ]);
+        const pe: CallEvent = {
+          id: this.genID(),
+          type: "CHI",
+          wind: myWind,
+          iam: toPlayerWind(e.actor, kyoku),
+          block: block,
+        };
+        return pe;
       }
       case "hora": {
         if (e.actor != e.target) {
           const pe: RonEvent = {
-            id: "0", // FIXME
+            id: this.genID(),
             wind: myWind,
             type: "RON",
             iam: toPlayerWind(e.actor, kyoku),
@@ -256,9 +375,10 @@ class EventBackwarder {
               toKyoku(pm.round)
             ),
           };
+          return pe;
         } else {
           const pe: PlayerTsumoEvent = {
-            id: "0", // FIXME
+            id: this.genID(),
             wind: myWind,
             type: "TSUMO",
             iam: toPlayerWind(e.actor, kyoku),
@@ -273,8 +393,11 @@ class EventBackwarder {
               toKyoku(pm.round)
             ),
           };
+          return pe;
         }
       }
+      default:
+        throw new Error(`unexpected MJAI event ${e}`);
     }
   };
 }

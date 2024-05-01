@@ -756,7 +756,7 @@ export const createControllerMachine = (c: Controller) => {
   );
 };
 
-function incrementalIDGenerator(start = 0) {
+export function incrementalIDGenerator(start = 0) {
   let idx = start;
   return () => {
     return (idx++).toString();
