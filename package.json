@@ -19,7 +19,8 @@
         "cmd": "ts-node ./src/cmd/index.ts",
         "svg-sprite": "svg-sprite -C svg-sprite.config.json -shape-transform-svgo svgo.json static/svg/*.svg",
         "tsc": "tsc --declaration --outDir ./dist/mjs",
-        "prepublishOnly": "rm -rf ./dist && npm run tsc && cp -rf ./static/svg ./dist/mjs/svg/"
+        "prepublishOnly": "rm -rf ./dist && npm run tsc && cp -rf ./static/svg ./dist/mjs/svg/",
+        "deploy": "./scripts/sync.sh personal"
     },
     "types": "dist/mjs/index.d.ts",
     "files": [

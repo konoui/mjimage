@@ -6,6 +6,9 @@
 
 ```bash
 $ cat layouts/_default/_markup/render-codeblock-mjimage.html
+```
+
+```html
 <div class="mjimage">{{- .Inner | safeHTML }}</div>
 {{ .Page.Store.Set "hasMjimage" true }}
 ```
@@ -15,14 +18,20 @@ $ cat layouts/_default/_markup/render-codeblock-mjimage.html
 
 ```bash
 $ cat layouts/shortcodes/use-mjimage.html
+```
+
+```html
 <span hidden class="mjimage"></span>
 ```
 
 - ショートコードもしくは `mjimage` のコードブロックが使用されている場合、変換用の javascript を読み込む
-  - インラインコードのための `code` タグと、コードブロックの `mjimage` クラスを変換対象としている。
+  - インラインコードのための `code` タグと、コードブロックの `mjimage` クラスを変換対象とする想定
 
 ```bash
 $ cat layouts/_default/baseof.html
+```
+
+```html
 <!DOCTYPE html>
 <html lang="{{ .Site.LanguageCode | default "en" }}">
     {{ partial "head.html" . }}
