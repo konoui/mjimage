@@ -14,7 +14,7 @@ export const OPERATOR = {
   RON: "r",
   DORA: "d",
   HORIZONTAL: "-",
-  COLOR_GRAYSCALE: "g",
+  COLOR_GRAYSCALE: "^",
 } as const;
 
 export const BLOCK = {

@@ -77,7 +77,7 @@ describe("generate svg", () => {
   });
 
   test("out-tile", () => {
-    const blocks = new Parser("2g2s2w").parse();
+    const blocks = new Parser("2^2s2w").parse();
 
     const draw = SVG();
     drawBlocks(draw, blocks, helperConfig);
@@ -87,7 +87,7 @@ describe("generate svg", () => {
   });
 
   test("multiple operators", () => {
-    const blocks = new Parser("-g23m").parse();
+    const blocks = new Parser("-^23m").parse();
     const draw = SVG();
     drawBlocks(draw, blocks, helperConfig);
     const got = draw.svg();
