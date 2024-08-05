@@ -5,7 +5,7 @@ import { drawTable } from "./table";
 import { TILE_CONTEXT } from "./constants";
 import { SVG } from "@svgdotjs/svg.js";
 // https://parceljs.org/languages/svg/#inlining-as-a-string
-import tilesSvg from "./tiles.svg";
+// import tilesSvg from "./tiles.svg";
 
 interface InitializeConfig extends Omit<ImageHelperConfig, "scale"> {
   querySelector?: string | string[];
@@ -24,9 +24,9 @@ const calculateScale = (scale: number, textHeight: number) => {
 };
 
 export class mjimage {
-  static svgURL = () => {
-    return tilesSvg;
-  };
+  // static svgURL = () => {
+  //   return tilesSvg;
+  // };
 
   static initialize = (props: InitializeConfig = {}) => {
     console.debug("initializing....");

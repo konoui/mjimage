@@ -6,4 +6,5 @@ export * from "./lib/image";
 export * from "./lib/parser";
 export * from "./lib/table";
 export * from "./lib/table-parser";
+export * from "./lib/calculator";
 //export * as svgTile from "./lib/tiles.svg";
