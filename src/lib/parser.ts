@@ -1,48 +1,48 @@
 import { Lexer } from "./lexer";
-import { BLOCK, OPERATOR, KIND, INPUT_SEPARATOR } from "./constants";
+import { BLOCK, OPERATOR, TYPE, INPUT_SEPARATOR } from "./constants";
 
 type Separator = typeof INPUT_SEPARATOR;
 
 export const tileSortFunc = (i: Tile, j: Tile) => {
-  if (i.k == j.k) {
+  if (i.t == j.t) {
     if (i.n == 0) return 5 - j.n;
     if (j.n == 0) return i.n - 5;
     return i.n - j.n;
   }
 
-  const lookup: Record<Kind, number> = {
-    [KIND.M]: 1,
-    [KIND.P]: 2,
-    [KIND.S]: 3,
-    [KIND.Z]: 4,
-    [KIND.BACK]: 5,
+  const lookup: Record<Type, number> = {
+    [TYPE.M]: 1,
+    [TYPE.P]: 2,
+    [TYPE.S]: 3,
+    [TYPE.Z]: 4,
+    [TYPE.BACK]: 5,
   };
-  return lookup[i.k] - lookup[j.k];
+  return lookup[i.t] - lookup[j.t];
 };
 
-export type Kind = (typeof KIND)[keyof typeof KIND];
+export type Type = (typeof TYPE)[keyof typeof TYPE];
 
-export function isKind(v: string): [Kind, boolean] {
-  for (let k of Object.values(KIND)) {
-    if (k == v) {
-      return [v, true];
+export function isType(v: string): [Type, boolean] {
+  for (let t of Object.values(TYPE)) {
+    if (t == v) {
+      return [t, true];
     }
   }
-  return [KIND.BACK, false];
+  return [TYPE.BACK, false];
 }
 
 type Operator = (typeof OPERATOR)[keyof typeof OPERATOR];
 
 export class Tile {
-  constructor(public k: Kind, public n: number, public ops: Operator[] = []) {}
+  constructor(public t: Type, public n: number, public ops: Operator[] = []) {}
 
   toString(): string {
-    if (this.k === KIND.BACK) return this.k;
-    return `${this.ops.join("")}${this.n}${this.k}`;
+    if (this.t === TYPE.BACK) return this.t;
+    return `${this.ops.join("")}${this.n}${this.t}`;
   }
 
   clone() {
-    return new Tile(this.k, this.n, [...this.ops]);
+    return new Tile(this.t, this.n, [...this.ops]);
   }
 
   has(op: Operator) {
@@ -61,14 +61,14 @@ export class Tile {
   }
 
   isNum() {
-    return this.k == KIND.M || this.k == KIND.P || this.k == KIND.S;
+    return this.t == TYPE.M || this.t == TYPE.P || this.t == TYPE.S;
   }
 
   equals(t: Tile, ignoreRed: boolean = false): boolean {
     let ok = this.n == t.n;
     if (ignoreRed)
       ok ||= (this.n == 5 && t.n == 0) || (this.n == 0 && t.n == 5);
-    return this.k == t.k && ok;
+    return this.t == t.t && ok;
   }
 }
 
@@ -95,7 +95,7 @@ export class Block {
   toString(): string {
     const [sameAll, _] = this.tiles.reduce(
       (a: [boolean, Tile], b: Tile): [boolean, Tile] => {
-        return [a[0] && a[1].k == b.k, b];
+        return [a[0] && a[1].t == b.t, b];
       },
       [true, this.tiles[0]]
     );
@@ -103,7 +103,7 @@ export class Block {
 
     if (sameAll) {
       for (let v of this.tiles) ret += v.toString().slice(0, -1);
-      return `${ret}${this.tiles[0].k}`;
+      return `${ret}${this.tiles[0].t}`;
     }
     for (const t of this.tiles) ret += t.toString();
     return ret;
@@ -148,7 +148,7 @@ export class Block {
 
   // clone the block with the operators
   clone() {
-    const tiles = this.tiles.map((t) => new Tile(t.k, t.n, [...t.ops]));
+    const tiles = this.tiles.map((t) => new Tile(t.t, t.n, [...t.ops]));
     return blockWrapper(tiles, this.type);
   }
 }
@@ -171,8 +171,8 @@ export class BlockAnKan extends Block {
   }
   toString() {
     const tiles = this.tiles.map((t) => t.clone());
-    tiles[1] = new Tile(KIND.BACK, 0);
-    tiles[2] = new Tile(KIND.BACK, 0);
+    tiles[1] = new Tile(TYPE.BACK, 0);
+    tiles[2] = new Tile(TYPE.BACK, 0);
     return tiles.reduce((s: string, t: Tile) => {
       return `${s}${t.toString()}`;
     }, "");
@@ -290,15 +290,15 @@ export class Parser {
         continue;
       }
 
-      let [k, isKind] = isKindAlias(char, cluster);
-      if (isKind) {
-        if (k == KIND.BACK) {
-          res.push(new Tile(k, 0));
+      let [type, isType] = isTypeAlias(char, cluster);
+      if (isType) {
+        if (type == TYPE.BACK) {
+          res.push(new Tile(type, 0));
           l.readChar(); // for continue
           continue;
         }
 
-        res.push(...makeTiles(cluster, k));
+        res.push(...makeTiles(cluster, type));
         cluster = []; // clear for zero length slice
         l.readChar(); // for continue
         continue;
@@ -314,8 +314,8 @@ export class Parser {
           throw new Error(
             `encounter unexpected number. n: ${n}, current: ${char}, input: ${l.input}`
           );
-        // dummy kind
-        cluster.push(new Tile(KIND.BACK, n));
+        // dummy type
+        cluster.push(new Tile(TYPE.BACK, n));
       }
       l.readChar();
     }
@@ -363,9 +363,9 @@ export class Parser {
       throw new Error(`exceeded maximum input length(${input.length})`);
     const lastChar = input.charAt(input.length - 1);
     // Note: dummy tile for validation
-    const [_, isKind] = isKindAlias(lastChar, [new Tile(KIND.BACK, 1)]);
+    const [_, isKind] = isTypeAlias(lastChar, [new Tile(TYPE.BACK, 1)]);
     if (!isKind)
-      throw new Error(`last character(${lastChar}) is not kind value`);
+      throw new Error(`last character(${lastChar}) is not type value`);
   }
 }
 
@@ -385,7 +385,7 @@ function detectBlockType(tiles: Tile[]): BLOCK {
   const numOfTsumoDoraTiles = tiles.filter(
     (v) => v.has(OPERATOR.TSUMO) || v.has(OPERATOR.DORA)
   ).length;
-  const numOfBackTiles = tiles.filter((v) => v.k == KIND.BACK).length;
+  const numOfBackTiles = tiles.filter((v) => v.t == TYPE.BACK).length;
 
   if (numOfTsumoDoraTiles > 0) return BLOCK.UNKNOWN;
 
@@ -413,24 +413,24 @@ function areConsecutiveTiles(tiles: Tile[]): boolean {
   for (let i = 0; i < tiles.length - 1; i++) {
     let n = tiles[i].n,
       np = tiles[i + 1].n;
-    const k = tiles[i].k,
-      kp = tiles[i + 1].k;
+    const type = tiles[i].t,
+      kp = tiles[i + 1].t;
     if (n == 0) n = 5;
     if (np == 0) np = 5;
-    if (k !== kp) return false;
+    if (type !== kp) return false;
     if (n + 1 !== np) return false;
   }
   return true;
 }
 
-function makeTiles(cluster: Tile[], k: Kind): Tile[] {
+function makeTiles(cluster: Tile[], k: Type): Tile[] {
   return cluster.map((v) => {
     return new Tile(k, v.n, v.ops);
   });
 }
 
-function isKindAlias(s: string, cluster: Tile[]): [Kind, boolean] {
-  const [k, ok] = isKind(s);
+function isTypeAlias(s: string, cluster: Tile[]): [Type, boolean] {
+  const [k, ok] = isType(s);
   if (ok) return [k, true];
 
   const isAlias = s === "w" || s === "d";
@@ -439,9 +439,9 @@ function isKindAlias(s: string, cluster: Tile[]): [Kind, boolean] {
       // convert alias
       if (s === "d") cluster[i].n += 4;
     }
-    return [KIND.Z, true];
+    return [TYPE.Z, true];
   }
-  return [KIND.BACK, false];
+  return [TYPE.BACK, false];
 }
 
 function isNumber(v: string): [number, boolean] {
@@ -452,7 +452,7 @@ function isNumber(v: string): [number, boolean] {
 // isOperator will consume char if the next is an operator
 function isOperator(l: Lexer): [Tile, boolean] {
   const ops = Object.values(OPERATOR) as string[];
-  if (!ops.includes(l.char)) return [new Tile(KIND.BACK, 0), false];
+  if (!ops.includes(l.char)) return [new Tile(TYPE.BACK, 0), false];
 
   const found: Operator[] = [];
   // 4 is temporary value
@@ -463,8 +463,8 @@ function isOperator(l: Lexer): [Tile, boolean] {
       const [n, ok] = isNumber(c);
       if (!ok) break;
       for (let i = 0; i < found.length; i++) l.readChar();
-      return [new Tile(KIND.BACK, n, found), true];
+      return [new Tile(TYPE.BACK, n, found), true];
     }
   }
-  return [new Tile(KIND.BACK, 0), false];
+  return [new Tile(TYPE.BACK, 0), false];
 }

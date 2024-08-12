@@ -2,7 +2,7 @@
 // https://mjai.app/docs/mjai-protocol
 
 import { DoubleCalculator } from "../calculator";
-import { KIND, OPERATOR, Round, Wind } from "../constants";
+import { TYPE, OPERATOR, Round, Wind } from "../constants";
 import { BlockAnKan, BlockChi, BlockDaiKan, BlockPon, Tile } from "../parser";
 import {
   PlaceManager,
@@ -428,7 +428,7 @@ const toWinResult = (
     point: hora_points,
     hand: [], // TODO empty
     params: {
-      doraMarkers: [new Tile(KIND.BACK, 0)],
+      doraMarkers: [new Tile(TYPE.BACK, 0)],
       round: "1w1",
       myWind: "1w",
     }, // TODO dummy
@@ -489,18 +489,18 @@ const toBakaze = (b: Wind): Bakaze => {
 
 const toTile = (hai: string) => {
   let idx = Z.findIndex((v) => v == hai);
-  if (idx >= 0) return new Tile(KIND.Z, idx);
+  if (idx >= 0) return new Tile(TYPE.Z, idx);
 
   idx = M.findIndex((v) => v == hai);
-  if (idx >= 0) return new Tile(KIND.M, idx);
+  if (idx >= 0) return new Tile(TYPE.M, idx);
 
   idx = S.findIndex((v) => v == hai);
-  if (idx >= 0) return new Tile(KIND.S, idx);
+  if (idx >= 0) return new Tile(TYPE.S, idx);
 
   idx = P.findIndex((v) => v == hai);
-  if (idx >= 0) return new Tile(KIND.P, idx);
+  if (idx >= 0) return new Tile(TYPE.P, idx);
 
-  return new Tile(KIND.BACK, 0);
+  return new Tile(TYPE.BACK, 0);
 };
 
 const toTiles = (hais: string[]) => {
@@ -513,12 +513,12 @@ const toHais = (tiles: Tile[]) => {
   const hais: string[] = [];
   for (let tile of tiles) {
     const n = tile.n;
-    const k = tile.k;
-    if (k == KIND.Z) hais.push(Z[n]);
-    if (k == KIND.M) hais.push(M[n]);
-    if (k == KIND.S) hais.push(S[n]);
-    if (k == KIND.P) hais.push(P[n]);
-    if (k == KIND.BACK) hais.push(UNSCREEN);
+    const type = tile.t;
+    if (type == TYPE.Z) hais.push(Z[n]);
+    if (type == TYPE.M) hais.push(M[n]);
+    if (type == TYPE.S) hais.push(S[n]);
+    if (type == TYPE.P) hais.push(P[n]);
+    if (type == TYPE.BACK) hais.push(UNSCREEN);
   }
   return hais;
 };

@@ -7,7 +7,7 @@ import {
   DoubleCalculator,
   BoardParams,
 } from "../calculator";
-import { KIND, OPERATOR } from "../constants";
+import { TYPE, OPERATOR } from "../constants";
 import { Block, Parser, Tile } from "../parser";
 import { handsToString } from "./utils/helper";
 
@@ -18,25 +18,25 @@ describe("Hand", () => {
   test("init", () => {
     const c = new Hand("12234m123w1d, -123s, t2p");
     const want: HandData = {
-      [KIND.M]: [0, 1, 2, 1, 1, 0, 0, 0, 0, 0],
-      [KIND.S]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [KIND.P]: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-      [KIND.BACK]: [0],
-      [KIND.Z]: [0, 1, 1, 1, 0, 1, 0, 0],
+      [TYPE.M]: [0, 1, 2, 1, 1, 0, 0, 0, 0, 0],
+      [TYPE.S]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [TYPE.P]: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+      [TYPE.BACK]: [0],
+      [TYPE.Z]: [0, 1, 1, 1, 0, 1, 0, 0],
       called: new Parser("-123s").parse(),
       reached: false,
-      tsumo: new Tile(KIND.P, 2, [OPERATOR.TSUMO]),
+      tsumo: new Tile(TYPE.P, 2, [OPERATOR.TSUMO]),
     };
     expect((c as any).data).toStrictEqual(want);
   });
   test("operations", () => {
     const h = new Hand("122234m123w1d");
     const want: HandData = {
-      [KIND.M]: [0, 1, 3, 1, 1, 0, 0, 0, 0, 0],
-      [KIND.S]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [KIND.P]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [KIND.BACK]: [0],
-      [KIND.Z]: [0, 1, 1, 1, 0, 1, 0, 0],
+      [TYPE.M]: [0, 1, 3, 1, 1, 0, 0, 0, 0, 0],
+      [TYPE.S]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [TYPE.P]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [TYPE.BACK]: [0],
+      [TYPE.Z]: [0, 1, 1, 1, 0, 1, 0, 0],
       called: [],
       reached: false,
       tsumo: null,
@@ -44,10 +44,10 @@ describe("Hand", () => {
     // initial check
     expect(getData(h)).toStrictEqual(want);
 
-    const tsumo = new Tile(KIND.M, 2, [OPERATOR.TSUMO]);
+    const tsumo = new Tile(TYPE.M, 2, [OPERATOR.TSUMO]);
     h.draw(tsumo);
     want.tsumo = tsumo;
-    want[tsumo.k][tsumo.n] += 1;
+    want[tsumo.t][tsumo.n] += 1;
     expect(getData(h)).toStrictEqual(want);
 
     const chi = new Parser("-534m").parse()[0];
@@ -71,19 +71,19 @@ describe("Hand", () => {
 
   test("inc/dec", () => {
     const h = new Hand("406m");
-    const dtiles = h.dec([new Tile(KIND.M, 5)]);
+    const dtiles = h.dec([new Tile(TYPE.M, 5)]);
     h.inc(dtiles);
     expect("406m").toStrictEqual(h.toString());
   });
   test("inc/dec", () => {
     const h = new Hand("405556m");
-    const dtiles = h.dec([new Tile(KIND.M, 0)]);
+    const dtiles = h.dec([new Tile(TYPE.M, 0)]);
     h.inc(dtiles);
     expect("405556m").toStrictEqual(h.toString());
   });
   test("inc/dec", () => {
     const h = new Hand("4556m");
-    const itiles = h.inc([new Tile(KIND.M, 0)]);
+    const itiles = h.inc([new Tile(TYPE.M, 0)]);
     h.dec(itiles);
     expect("4556m").toStrictEqual(h.toString());
   });
@@ -277,7 +277,7 @@ describe("Tile Calculator", () => {
 
 test("calc with drawn", () => {
   const h = new Hand("1223m123s111z, -123m");
-  h.draw(new Tile(KIND.M, 2));
+  h.draw(new Tile(TYPE.M, 2));
   const c = new TileCalculator(h);
   const want = [
     ["t22m", "123m", "123s", "111z", "-123m"],
@@ -290,7 +290,7 @@ test("calc with drawn", () => {
 test("commonByKind", () => {
   const h = new Hand("111222333456m");
   const c = new TileCalculator(h);
-  const got = (c as any).commonByKind(KIND.M) as Block[][];
+  const got = (c as any).commonByKind(TYPE.M) as Block[][];
   const want = [
     ["123m", "123m", "123m", "456m"],
     ["111m", "234m"],
@@ -317,7 +317,7 @@ describe("double Calculator", () => {
   const tests = [
     {
       input: "123123s111222m22z",
-      lastTile: new Tile(KIND.S, 1, [OPERATOR.TSUMO]),
+      lastTile: new Tile(TYPE.S, 1, [OPERATOR.TSUMO]),
       want: [
         {
           points: [
@@ -330,7 +330,7 @@ describe("double Calculator", () => {
     },
     {
       input: "123123s123m123p22z",
-      lastTile: new Tile(KIND.S, 1),
+      lastTile: new Tile(TYPE.S, 1),
       want: [
         {
           points: [
@@ -345,7 +345,7 @@ describe("double Calculator", () => {
     },
     {
       input: "111222333s123m99s",
-      lastTile: new Tile(KIND.S, 1, [OPERATOR.TSUMO]),
+      lastTile: new Tile(TYPE.S, 1, [OPERATOR.TSUMO]),
       want: [
         {
           points: [
@@ -367,17 +367,17 @@ describe("double Calculator", () => {
     },
     {
       input: "111333555s123m99s",
-      lastTile: new Tile(KIND.S, 1),
+      lastTile: new Tile(TYPE.S, 1),
       want: [{ points: [], fu: 42 }],
     },
     {
       input: "222333s234m88567s",
-      lastTile: new Tile(KIND.S, 2),
+      lastTile: new Tile(TYPE.S, 2),
       want: [{ points: [{ name: "断么九", double: 1 }], fu: 36 }],
     },
     {
       input: "12344456789m123s",
-      lastTile: new Tile(KIND.S, 3),
+      lastTile: new Tile(TYPE.S, 3),
       want: [
         {
           points: [
@@ -390,7 +390,7 @@ describe("double Calculator", () => {
     },
     {
       input: "112233m223344s22z",
-      lastTile: new Tile(KIND.M, 1),
+      lastTile: new Tile(TYPE.M, 1),
       want: [
         { points: [{ name: "七対子", double: 2 }], fu: 25 },
         {
@@ -404,7 +404,7 @@ describe("double Calculator", () => {
     },
     {
       input: "23456788mm, -234s, 2-34p",
-      lastTile: new Tile(KIND.M, 3, [OPERATOR.TSUMO]),
+      lastTile: new Tile(TYPE.M, 3, [OPERATOR.TSUMO]),
       want: [
         {
           points: [
@@ -417,7 +417,7 @@ describe("double Calculator", () => {
     },
     {
       input: "111333m11p,5-5-55s, -3333s",
-      lastTile: new Tile(KIND.M, 3, [OPERATOR.TSUMO]),
+      lastTile: new Tile(TYPE.M, 3, [OPERATOR.TSUMO]),
       want: [{ points: [{ name: "対々和", double: 2 }], fu: 50 }],
     },
   ];
@@ -426,7 +426,7 @@ describe("double Calculator", () => {
       const h = new Hand(tt.input);
       const c = new TileCalculator(h);
       const cfg: BoardParams = {
-        doraMarkers: [new Tile(KIND.M, 8)],
+        doraMarkers: [new Tile(TYPE.M, 8)],
         myWind: "1w",
         round: "1w1",
       };
@@ -447,24 +447,24 @@ describe("calc", () => {
   const h = new Hand(input);
   const c = new TileCalculator(h);
   const cfg: BoardParams = {
-    doraMarkers: [new Tile(KIND.M, 8)],
+    doraMarkers: [new Tile(TYPE.M, 8)],
     myWind: "1w",
     round: "1w1",
     ronWind: "2w",
   };
   const dc = new DoubleCalculator(h, cfg);
-  const hands = c.calc(new Tile(KIND.M, 3, [OPERATOR.RON]));
+  const hands = c.calc(new Tile(TYPE.M, 3, [OPERATOR.RON]));
   const got = dc.calc(hands);
   // console.log(got);
 });
 
 describe("calc", () => {
   const input = "-123s,-234s,-456m, -567m, 11m";
-  const lastTile = new Tile(KIND.M, 1, [OPERATOR.TSUMO]);
+  const lastTile = new Tile(TYPE.M, 1, [OPERATOR.TSUMO]);
   const h = new Hand(input);
   const c = new TileCalculator(h);
   const cfg: BoardParams = {
-    doraMarkers: [new Tile(KIND.M, 8)],
+    doraMarkers: [new Tile(TYPE.M, 8)],
     myWind: "1w",
     round: "1w1",
     ronWind: "2w",

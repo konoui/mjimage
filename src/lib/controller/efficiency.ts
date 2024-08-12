@@ -1,5 +1,5 @@
 import assert from "assert";
-import { KIND, OPERATOR, Wind, Round, WIND } from "../constants";
+import { TYPE, OPERATOR, Wind, Round, WIND } from "../constants";
 import { Tile } from "../parser";
 import { Hand, ShantenCalculator } from "../calculator";
 import { Counter } from "./managers";
@@ -42,8 +42,8 @@ export class Efficiency {
     let r = Number.POSITIVE_INFINITY;
     let candidates: Tile[] = [];
 
-    for (let k of Object.values(KIND)) {
-      if (k == KIND.BACK) continue;
+    for (let k of Object.values(TYPE)) {
+      if (k == TYPE.BACK) continue;
       for (let n = 1; n < hand.getArrayLen(k); n++) {
         if (hand.get(k, n) >= 4) continue;
         const t = new Tile(k, n);
@@ -131,7 +131,7 @@ export class PlayerEfficiency {
   ) {
     const tile = playerCandidate.tile;
     let v = 0;
-    if (tile.k == KIND.Z) {
+    if (tile.t == TYPE.Z) {
       v = c.get(tile);
       // FIXME 場風
       // 自風
@@ -140,10 +140,10 @@ export class PlayerEfficiency {
     } else {
       const same = c.get(tile);
       v += same * weight(tile, doras);
-      const np1 = c.get(new Tile(tile.k, tile.n + 1)),
-        np2 = c.get(new Tile(tile.k, tile.n + 2));
-      const nm1 = c.get(new Tile(tile.k, tile.n - 1)),
-        nm2 = c.get(new Tile(tile.k, tile.n - 2));
+      const np1 = c.get(new Tile(tile.t, tile.n + 1)),
+        np2 = c.get(new Tile(tile.t, tile.n + 2));
+      const nm1 = c.get(new Tile(tile.t, tile.n - 1)),
+        nm2 = c.get(new Tile(tile.t, tile.n - 2));
       // 5m から 3m を引き 345m を作るには 4m の残り数と 3m の残り枚数の小さい方が有効数となる
       const left = tile.n - 2 > 0 ? Math.min(nm1, nm2) : 0; // n-2
       const right = tile.n + 2 <= 9 ? Math.min(np1, np2) : 0; // n+2
@@ -153,10 +153,10 @@ export class PlayerEfficiency {
       const centerRight = Math.max(cc, right); // n-2;
 
       v += same * weight(tile, doras);
-      v += left * weight(new Tile(tile.k, tile.n - 2), doras);
-      v += right * weight(new Tile(tile.k, tile.n + 2), doras);
-      v += centerLeft * weight(new Tile(tile.k, tile.n - 1), doras);
-      v += centerRight * weight(new Tile(tile.k, tile.n + 1), doras);
+      v += left * weight(new Tile(tile.t, tile.n - 2), doras);
+      v += right * weight(new Tile(tile.t, tile.n + 2), doras);
+      v += centerLeft * weight(new Tile(tile.t, tile.n - 1), doras);
+      v += centerRight * weight(new Tile(tile.t, tile.n + 1), doras);
 
       if (tile.n == 0) v * 2;
       return v;
@@ -189,8 +189,8 @@ export class RiskRank {
   }
 
   static rankZ(c: Counter, targetUser: Wind, t: Tile) {
-    if (t.k != KIND.Z) throw new Error(`expected KIND.Z but ${t.toString()}`);
-    if (c.isSafeTile(t.k, t.n, targetUser)) return 0;
+    if (t.t != TYPE.Z) throw new Error(`expected KIND.Z but ${t.toString()}`);
+    if (c.isSafeTile(t.t, t.n, targetUser)) return 0;
     const remaining = c.get(t);
     return Math.min(remaining, 3);
   }
@@ -198,17 +198,17 @@ export class RiskRank {
   static rankN(c: Counter, targetUser: Wind, t: Tile) {
     if (!t.isNum()) throw new Error(`expected KIND.NUMBER but ${t.toString()}`);
     const n = t.n;
-    const k = t.k;
-    if (c.isSafeTile(k, n, targetUser)) return 0;
-    if (n == 1) return c.isSafeTile(k, 4, targetUser) ? 3 : 6;
-    if (n == 9) return c.isSafeTile(k, 6, targetUser) ? 3 : 6;
-    if (n == 2) return c.isSafeTile(k, 5, targetUser) ? 4 : 8;
-    if (n == 8) return c.isSafeTile(k, 5, targetUser) ? 4 : 8;
-    if (n == 3) return c.isSafeTile(k, 6, targetUser) ? 5 : 8;
-    if (n == 7) return c.isSafeTile(k, 4, targetUser) ? 5 : 8;
+    const type = t.t;
+    if (c.isSafeTile(type, n, targetUser)) return 0;
+    if (n == 1) return c.isSafeTile(type, 4, targetUser) ? 3 : 6;
+    if (n == 9) return c.isSafeTile(type, 6, targetUser) ? 3 : 6;
+    if (n == 2) return c.isSafeTile(type, 5, targetUser) ? 4 : 8;
+    if (n == 8) return c.isSafeTile(type, 5, targetUser) ? 4 : 8;
+    if (n == 3) return c.isSafeTile(type, 6, targetUser) ? 5 : 8;
+    if (n == 7) return c.isSafeTile(type, 4, targetUser) ? 5 : 8;
 
-    const left = c.isSafeTile(k, n - 3, targetUser);
-    const right = c.isSafeTile(k, n + 3, targetUser);
+    const left = c.isSafeTile(type, n - 3, targetUser);
+    const right = c.isSafeTile(type, n + 3, targetUser);
     if (left && right) return 4;
     if (left || right) return 8;
     return 12;

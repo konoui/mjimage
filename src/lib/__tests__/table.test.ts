@@ -5,7 +5,7 @@ import { ImageHelper } from "../image";
 import { drawTable, createTable } from "../table";
 import { FontContext } from "../measure-text";
 import { DiscardsInput, ScoreBoardInput, HandsInput } from "../table-parser";
-import { FONT_FAMILY, KIND } from "../constants";
+import { FONT_FAMILY, TYPE } from "../constants";
 
 import { initSvgDOM, loadTestData, loadInputData } from "./utils/helper";
 
@@ -88,7 +88,7 @@ describe("createTable", () => {
         reach: 1,
         dead: 3,
       },
-      doras: [new Tile(KIND.M, 3)],
+      doras: [new Tile(TYPE.M, 3)],
     };
 
     const helper = new ImageHelper(helperConfig);
@@ -132,7 +132,7 @@ describe("createTable", () => {
         reach: 1,
         dead: 3,
       },
-      doras: [new Tile(KIND.M, 3)],
+      doras: [new Tile(TYPE.M, 3)],
     };
 
     const helper = new ImageHelper(helperConfig);

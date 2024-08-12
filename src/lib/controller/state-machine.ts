@@ -1,4 +1,4 @@
-import { Wind, KIND, WIND, OPERATOR } from "../constants";
+import { Wind, TYPE, WIND, OPERATOR } from "../constants";
 import { Controller } from "./index";
 import {
   BlockAnKan,
@@ -512,7 +512,7 @@ export const createControllerMachine = (c: Controller) => {
             context.missingMap[iam] = false;
 
           for (let w of Object.values(WIND)) {
-            let t = new Tile(KIND.BACK, 0); // mask tile for other players
+            let t = new Tile(TYPE.BACK, 0); // mask tile for other players
             if (w == iam) t = drawn;
             const e = {
               id: id,

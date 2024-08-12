@@ -1,6 +1,6 @@
 import assert from "assert";
 import { createActor } from "xstate";
-import { KIND, OPERATOR, Wind, Round, WIND } from "../constants";
+import { TYPE, OPERATOR, Wind, Round, WIND } from "../constants";
 import {
   BoardParams,
   Hand,
@@ -417,7 +417,7 @@ export class Controller {
 
     const fake = t.clone().remove(OPERATOR.HORIZONTAL);
     if (t.isNum() && t.n == 0) fake.n = 5;
-    if (hand.get(t.k, fake.n) < 2) return false;
+    if (hand.get(t.t, fake.n) < 2) return false;
 
     const blocks: BlockPon[] = [];
     let idx = Math.abs(Number(w[0]) - Number(whoDiscarded[0]));
@@ -427,11 +427,11 @@ export class Controller {
 
     const b = new BlockPon([fake.clone(), fake.clone(), fake.clone()]);
     b.tiles[idx] = t.clone().add(OPERATOR.HORIZONTAL);
-    if (t.isNum() && fake.n == 5 && hand.get(t.k, 0) > 0)
+    if (t.isNum() && fake.n == 5 && hand.get(t.t, 0) > 0)
       b.tiles[(idx % 2) + 1].n = 0;
     blocks.push(b);
 
-    if (t.isNum() && t.n == 5 && hand.get(t.k, fake.n) == 3) {
+    if (t.isNum() && t.n == 5 && hand.get(t.t, fake.n) == 3) {
       const red = b.clone();
       red.tiles[(idx % 2) + 1].n = 5;
       blocks.push(red);
@@ -453,40 +453,40 @@ export class Controller {
     const blocks: BlockChi[] = [];
     const left =
       fake.n - 2 >= 1 &&
-      hand.get(t.k, fake.n - 2) > 0 &&
-      hand.get(t.k, fake.n - 1) > 0;
+      hand.get(t.t, fake.n - 2) > 0 &&
+      hand.get(t.t, fake.n - 1) > 0;
     const cloned = t.clone().add(OPERATOR.HORIZONTAL).remove(OPERATOR.TSUMO);
     if (left)
       blocks.push(
         new BlockChi([
           cloned,
-          new Tile(t.k, fake.n - 1),
-          new Tile(t.k, fake.n - 2),
+          new Tile(t.t, fake.n - 1),
+          new Tile(t.t, fake.n - 2),
         ])
       );
     const right =
       fake.n + 2 <= 9 &&
-      hand.get(t.k, fake.n + 1) > 0 &&
-      hand.get(t.k, fake.n + 2) > 0;
+      hand.get(t.t, fake.n + 1) > 0 &&
+      hand.get(t.t, fake.n + 2) > 0;
     if (right)
       blocks.push(
         new BlockChi([
           cloned,
-          new Tile(t.k, fake.n + 1),
-          new Tile(t.k, fake.n + 2),
+          new Tile(t.t, fake.n + 1),
+          new Tile(t.t, fake.n + 2),
         ])
       );
     const center =
       fake.n - 1 >= 1 &&
       fake.n + 1 <= 9 &&
-      hand.get(t.k, fake.n - 1) > 0 &&
-      hand.get(t.k, fake.n + 1) > 0;
+      hand.get(t.t, fake.n - 1) > 0 &&
+      hand.get(t.t, fake.n + 1) > 0;
     if (center)
       blocks.push(
         new BlockChi([
           cloned,
-          new Tile(t.k, fake.n - 1),
-          new Tile(t.k, fake.n + 1),
+          new Tile(t.t, fake.n - 1),
+          new Tile(t.t, fake.n + 1),
         ])
       );
 
@@ -498,7 +498,7 @@ export class Controller {
       const tiles = this.cannotDiscardTile(blocks[0]);
       const ltiles = hand.dec([b.tiles[1], b.tiles[2]]);
       const cannotCall =
-        tiles.reduce((acc: number, e: Tile) => acc + hand.get(e.k, e.n), 0) ==
+        tiles.reduce((acc: number, e: Tile) => acc + hand.get(e.t, e.n), 0) ==
         2;
       hand.inc(ltiles);
       if (cannotCall) return false;
@@ -507,9 +507,9 @@ export class Controller {
     // 1. check whether can-chi or not with ignoredRed pattern
     // 2. get red patterns if having red
     // 3. if not having normal 5, return only red pattern, else if concat red and normal patterns
-    const hasRed = hand.get(t.k, 0) > 0;
+    const hasRed = hand.get(t.t, 0) > 0;
     const reds = this.redPattern(blocks, hasRed);
-    if (reds.length > 0 && hand.get(t.k, 5) == 1) return reds;
+    if (reds.length > 0 && hand.get(t.t, 5) == 1) return reds;
     return blocks.concat(reds);
   }
   redPattern(blocks: BlockChi[], hasRed: boolean): BlockChi[] {
@@ -562,29 +562,29 @@ export class Controller {
   cannotDiscardTile(called: BlockChi) {
     let h = called.tiles[0].n;
     let h1 = called.tiles[1].n;
-    const k = called.tiles[0].k;
+    const t = called.tiles[0].t;
     if (h == 0) h = 5;
     if (h1 == 0) h1 = 5;
     // -423, -645
-    if (h - 2 == h1) return [new Tile(k, h - 3), new Tile(k, h)];
+    if (h - 2 == h1) return [new Tile(t, h - 3), new Tile(t, h)];
     // -123, -789
-    if (h + 1 == h1) return [new Tile(k, h + 3), new Tile(k, h)];
+    if (h + 1 == h1) return [new Tile(t, h + 3), new Tile(t, h)];
     return [];
   }
   doAnKan(w: Wind): BlockAnKan[] | false {
     const hand = this.hand(w);
     const blocks: BlockAnKan[] = [];
     if (hand.reached) return false; // FIXME 待ち変更がなければできる
-    for (let k of Object.values(KIND)) {
-      for (let n = 1; n < hand.getArrayLen(k); n++) {
-        if (hand.get(k, n) == 4) {
+    for (let t of Object.values(TYPE)) {
+      for (let n = 1; n < hand.getArrayLen(t); n++) {
+        if (hand.get(t, n) == 4) {
           const tiles = [
-            new Tile(k, n),
-            new Tile(k, n),
-            new Tile(k, n),
-            new Tile(k, n),
+            new Tile(t, n),
+            new Tile(t, n),
+            new Tile(t, n),
+            new Tile(t, n),
           ];
-          if (k != KIND.Z && n == 5) tiles[0].n = 0;
+          if (t != TYPE.Z && n == 5) tiles[0].n = 0;
           blocks.push(new BlockAnKan(tiles));
         }
       }
@@ -605,10 +605,10 @@ export class Controller {
     const blocks: BlockShoKan[] = [];
     for (let c of called) {
       const pick = c.tiles[0];
-      if (hand.get(pick.k, pick.n) == 1) {
+      if (hand.get(pick.t, pick.n) == 1) {
         const cb = c.clone();
-        cb.tiles.push(new Tile(pick.k, pick.n, [OPERATOR.HORIZONTAL])); // FIXME position of horizontal
-        if (pick.n == 5 && hand.get(pick.k, 0) == 1) cb.tiles[3].n == 0;
+        cb.tiles.push(new Tile(pick.t, pick.n, [OPERATOR.HORIZONTAL])); // FIXME position of horizontal
+        if (pick.n == 5 && hand.get(pick.t, 0) == 1) cb.tiles[3].n == 0;
         blocks.push(new BlockShoKan(cb.tiles));
       }
     }
@@ -627,7 +627,7 @@ export class Controller {
     if (w == whoDiscarded) return false;
     const fake = t.clone().remove(OPERATOR.HORIZONTAL);
     if (fake.isNum() && fake.n == 0) fake.n = 5;
-    if (hand.get(fake.k, fake.n) != 3) return false;
+    if (hand.get(fake.t, fake.n) != 3) return false;
     const b = new BlockDaiKan([
       fake.clone(),
       fake.clone(),
@@ -650,13 +650,13 @@ export class Controller {
     if (this.river.discards(w).length != 0) return false;
     const h = this.hand(w);
     let num =
-      h.get(KIND.M, 1) +
-      h.get(KIND.M, 9) +
-      h.get(KIND.S, 1) +
-      h.get(KIND.S, 9) +
-      h.get(KIND.P, 1) +
-      h.get(KIND.P, 9);
-    for (let i = 0; i < h.getArrayLen(KIND.Z); i++) num += h.get(KIND.Z, i);
+      h.get(TYPE.M, 1) +
+      h.get(TYPE.M, 9) +
+      h.get(TYPE.S, 1) +
+      h.get(TYPE.S, 9) +
+      h.get(TYPE.P, 1) +
+      h.get(TYPE.P, 9);
+    for (let i = 0; i < h.getArrayLen(TYPE.Z); i++) num += h.get(TYPE.Z, i);
     return num >= 9;
   }
   initialHands() {
@@ -823,7 +823,7 @@ export class Observer extends BaseActor {
       case "DISTRIBUTE":
         let ready = true;
         for (let w of Object.values(WIND))
-          ready &&= this.hand(w).get(KIND.BACK, 0) == 0;
+          ready &&= this.hand(w).get(TYPE.BACK, 0) == 0;
         if (!ready) break;
         console.debug(
           `DISTRIBUTE:`,
@@ -915,7 +915,7 @@ export function replaceTileBlock(obj: any): void {
         "type" in propValue
       ) {
         obj[key] = blockWrapper(
-          propValue.tiles.map((t: Tile) => new Tile(t.k, t.n, t.ops)),
+          propValue.tiles.map((t: Tile) => new Tile(t.t, t.n, t.ops)),
           propValue.type
         );
       } else if (Array.isArray(propValue)) {
@@ -936,7 +936,7 @@ export function replaceTileBlock(obj: any): void {
             "type" in v
           )
             propValue[i] = blockWrapper(
-              v.tiles.map((t: Tile) => new Tile(t.k, t.n, t.ops)),
+              v.tiles.map((t: Tile) => new Tile(t.t, t.n, t.ops)),
               v.type
             );
           else replaceTileBlock(propValue[i]);

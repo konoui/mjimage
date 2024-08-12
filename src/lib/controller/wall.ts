@@ -1,4 +1,4 @@
-import { KIND } from "../constants";
+import { TYPE } from "../constants";
 import { Tile } from "../parser";
 import { shuffle } from "./managers";
 
@@ -60,14 +60,14 @@ export class Wall {
       this.walls = Wall.clone(backup);
       return;
     } else {
-      for (let k of Object.values(KIND)) {
-        if (k == KIND.BACK) continue;
+      for (let t of Object.values(TYPE)) {
+        if (t == TYPE.BACK) continue;
         const values =
-          k == KIND.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 2, 3, 4, 5, 6, 7, 8, 9];
+          t == TYPE.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 2, 3, 4, 5, 6, 7, 8, 9];
         for (let i = 0; i < 4; i++) {
           for (let n of values) {
-            if (k != KIND.Z && i == 3 && n == 5) n = 0;
-            this.walls.drawable.push(new Tile(k, n));
+            if (t != TYPE.Z && i == 3 && n == 5) n = 0;
+            this.walls.drawable.push(new Tile(t, n));
           }
         }
       }
@@ -92,11 +92,11 @@ export class Wall {
   }
   static clone(walls: WallProps) {
     return {
-      drawable: walls.drawable.map((t) => new Tile(t.k, t.n)),
-      dead: walls.dead.map((t) => new Tile(t.k, t.n)),
-      dora: walls.dora.map((t) => new Tile(t.k, t.n)),
-      blindDora: walls.blindDora.map((t) => new Tile(t.k, t.n)),
-      replacement: walls.replacement.map((t) => new Tile(t.k, t.n)),
+      drawable: walls.drawable.map((t) => new Tile(t.t, t.n)),
+      dead: walls.dead.map((t) => new Tile(t.t, t.n)),
+      dora: walls.dora.map((t) => new Tile(t.t, t.n)),
+      blindDora: walls.blindDora.map((t) => new Tile(t.t, t.n)),
+      replacement: walls.replacement.map((t) => new Tile(t.t, t.n)),
     };
   }
 }

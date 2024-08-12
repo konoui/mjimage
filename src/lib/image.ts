@@ -1,7 +1,7 @@
 import assert from "assert";
 import { Tile, Block } from "./parser";
 import { Svg, G, Image, Text, Use, Symbol } from "@svgdotjs/svg.js";
-import { FONT_FAMILY, TILE_CONTEXT, KIND, OPERATOR, BLOCK } from "./constants";
+import { FONT_FAMILY, TILE_CONTEXT, TYPE, OPERATOR, BLOCK } from "./constants";
 
 export interface ImageHelperConfig {
   scale?: number;
@@ -107,8 +107,8 @@ class BaseHelper {
     if (tile == 100 || tile == 1000) {
       return tile == 100 ? "stick100" : "stick1000";
     }
-    const n = tile.k == KIND.BACK ? 0 : tile.n;
-    return `${tile.k}${n}`;
+    const n = tile.t == TYPE.BACK ? 0 : tile.n;
+    return `${tile.t}${n}`;
   }
 
   buildURL(tile: Tile | 100 | 1000) {
@@ -244,14 +244,14 @@ const getBlockCreators = (h: ImageHelper) => {
       const width = h.tileWidth * 4;
       const height = h.tileHeight;
       const zp = block.tiles.filter((v) => {
-        return v.k !== KIND.BACK;
+        return v.t !== TYPE.BACK;
       });
       assert(zp != null && zp.length == 2);
       const g = h.createBlockHandDiscard([
-        new Tile(KIND.BACK, 0),
+        new Tile(TYPE.BACK, 0),
         zp[0],
         zp[1],
-        new Tile(KIND.BACK, 0),
+        new Tile(TYPE.BACK, 0),
       ]);
       return { width: width, height: height, e: g };
     },
@@ -354,8 +354,8 @@ export const drawBlocks = (
 const getValidIDs = () => {
   const values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
   const ids: string[] = [];
-  for (let kind of Object.values(KIND)) {
-    if (kind == KIND.BACK) {
+  for (let kind of Object.values(TYPE)) {
+    if (kind == TYPE.BACK) {
       ids.push(BaseHelper.buildID(new Tile(kind, 0)));
       continue;
     }

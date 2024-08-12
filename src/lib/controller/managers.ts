@@ -1,6 +1,6 @@
 import assert from "assert";
-import { Wind, Round, KIND, WIND } from "../constants";
-import { Kind, Tile } from "../parser";
+import { Wind, Round, TYPE, WIND } from "../constants";
+import { Type, Tile } from "../parser";
 
 export class ScoreManager {
   private reachValue = 1000;
@@ -156,52 +156,52 @@ type FixedNumber = [
 
 export class Counter {
   private c: {
-    [KIND.M]: FixedNumber;
-    [KIND.S]: FixedNumber;
-    [KIND.P]: FixedNumber;
-    [KIND.Z]: [number, number, number, number, number, number, number, number];
+    [TYPE.M]: FixedNumber;
+    [TYPE.S]: FixedNumber;
+    [TYPE.P]: FixedNumber;
+    [TYPE.Z]: [number, number, number, number, number, number, number, number];
   } = {
-    [KIND.M]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-    [KIND.S]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-    [KIND.P]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-    [KIND.Z]: [0, 4, 4, 4, 4, 4, 4, 4],
+    [TYPE.M]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+    [TYPE.S]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+    [TYPE.P]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+    [TYPE.Z]: [0, 4, 4, 4, 4, 4, 4, 4],
   };
   safeMap = createWindMap({} as { [name: string]: boolean }, true);
   constructor(public disable = false) {}
   // FIXME get red
   get(t: Tile) {
-    if (t.k == KIND.BACK) return 0;
-    if (t.isNum() && t.n == 0) return this.c[t.k][5];
-    return this.c[t.k][t.n];
+    if (t.t == TYPE.BACK) return 0;
+    if (t.isNum() && t.n == 0) return this.c[t.t][5];
+    return this.c[t.t][t.n];
   }
   dec(...tiles: Tile[]) {
     if (this.disable) return;
     for (let t of tiles) {
-      if (t.k == KIND.BACK) continue;
+      if (t.t == TYPE.BACK) continue;
       if (this.get(t) <= 0)
         throw new Error(`cannot decrease ${t.toString()} due to zero`);
-      this.c[t.k][t.n] -= 1;
-      if (t.isNum() && t.n == 0) this.c[t.k][5] -= 1;
+      this.c[t.t][t.n] -= 1;
+      if (t.isNum() && t.n == 0) this.c[t.t][5] -= 1;
     }
   }
   addTileToSafeMap(t: Tile, targetUser: Wind) {
     if (this.disable) return;
-    this.safeMap[targetUser][this.key(t.k, t.n)] = true;
+    this.safeMap[targetUser][this.key(t.t, t.n)] = true;
   }
-  isSafeTile(k: Kind, n: number, targetUser: Wind) {
+  isSafeTile(k: Type, n: number, targetUser: Wind) {
     return this.safeMap[targetUser][this.key(k, n)];
   }
-  private key(k: Kind, n: number) {
+  private key(k: Type, n: number) {
     if (n == 0) n = 5;
     return `${k}${n}`;
   }
 
   reset() {
     this.c = {
-      [KIND.M]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-      [KIND.S]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-      [KIND.P]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-      [KIND.Z]: [0, 4, 4, 4, 4, 4, 4, 4],
+      [TYPE.M]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      [TYPE.S]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      [TYPE.P]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      [TYPE.Z]: [0, 4, 4, 4, 4, 4, 4, 4],
     };
   }
 }
