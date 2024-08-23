@@ -535,7 +535,7 @@ export class Controller {
   doReach(w: Wind): Candidate[] | false {
     const hand = this.hand(w);
     if (hand.reached) return false;
-    if (!hand.canReach) return false;
+    if (!hand.menzen) return false;
     const s = new ShantenCalculator(hand).calc();
     if (s > 0) return false;
     const r = Efficiency.calcCandidates(hand, hand.hands);

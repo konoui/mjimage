@@ -118,7 +118,7 @@ export class Hand {
     return this.data.tsumo;
   }
   get menzen() {
-    return this.called.some((v) => !(v instanceof BlockAnKan));
+    return !this.called.some((v) => !(v instanceof BlockAnKan));
   }
   getArrayLen(k: Type) {
     return this.data[k].length;
@@ -205,7 +205,7 @@ export class Hand {
     return;
   }
   reach() {
-    if (!this.canReach) throw new Error("cannot reach");
+    if (!this.menzen) throw new Error("cannot reach");
     if (this.data.reached) throw new Error("already reached");
     this.data.reached = true;
   }
@@ -256,9 +256,6 @@ export class Hand {
     }
 
     throw new Error(`unexpected input ${b}`);
-  }
-  get canReach() {
-    return this.called.filter((b) => !(b instanceof BlockAnKan)).length == 0;
   }
   clone(): Hand {
     const c = new Hand(this.toString());
@@ -474,40 +471,6 @@ export class ShantenCalculator {
 
     return 13 - nSet * 3 - nSerialPair * 2 - nIsolated;
   }
-}
-
-export class ExShantenCalculator {
-  private c: ShantenCalculator;
-  constructor(public h: Hand) {
-    this.c = new ShantenCalculator(h);
-  }
-  menzen() {
-    return this.h.menzen ? this.c.calc() : Number.POSITIVE_INFINITY;
-  }
-  yakuhai() {
-    let three = 0;
-    let vPon: null | BlockPon = null;
-    for (let n of [1, 2, 3, 4, 5, 6, 7]) {
-      // FIXME 自風、場風以外は continue
-      // TODO 捨てられた牌はどこで検査するべきか
-      if (this.h.get(TYPE.Z, n) >= 3) three++;
-      else if (this.h.get(TYPE.Z, n) == 2) {
-        const t = new Tile(TYPE.Z, n);
-        vPon = new BlockPon([t, t.clone(), t.clone()]);
-      } else
-        for (let b of this.h.called)
-          if (b.tiles[0].t == TYPE.Z && b.tiles[0].n == n) three++;
-    }
-
-    if (three > 0) return this.c.calc();
-    if (vPon) {
-      const cloned = this.h.clone();
-      cloned.call(vPon);
-      return new ShantenCalculator(cloned).calc() + 1; // 鳴いた場合を仮定しているので +1 する
-    }
-    return Number.POSITIVE_INFINITY;
-  }
-  tanyao() {}
 }
 
 export class TileCalculator {
@@ -980,7 +943,7 @@ export class DoubleCalculator {
     return ret;
   }
   private minus() {
-    return this.hand.canReach ? 0 : 1;
+    return this.hand.menzen ? 0 : 1;
   }
 
   dA1(h: Block[]) {
