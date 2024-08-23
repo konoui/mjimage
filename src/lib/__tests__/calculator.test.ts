@@ -21,7 +21,7 @@ describe("Hand", () => {
       [TYPE.M]: [0, 1, 2, 1, 1, 0, 0, 0, 0, 0],
       [TYPE.S]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       [TYPE.P]: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-      [TYPE.BACK]: [0],
+      [TYPE.BACK]: ["untouchable", 0],
       [TYPE.Z]: [0, 1, 1, 1, 0, 1, 0, 0],
       called: new Parser("-123s").parse(),
       reached: false,
@@ -35,7 +35,7 @@ describe("Hand", () => {
       [TYPE.M]: [0, 1, 3, 1, 1, 0, 0, 0, 0, 0],
       [TYPE.S]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       [TYPE.P]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [TYPE.BACK]: [0],
+      [TYPE.BACK]: ["untouchable", 0],
       [TYPE.Z]: [0, 1, 1, 1, 0, 1, 0, 0],
       called: [],
       reached: false,
@@ -47,7 +47,7 @@ describe("Hand", () => {
     const tsumo = new Tile(TYPE.M, 2, [OPERATOR.TSUMO]);
     h.draw(tsumo);
     want.tsumo = tsumo;
-    want[tsumo.t][tsumo.n] += 1;
+    want[TYPE.M][tsumo.n] += 1;
     expect(getData(h)).toStrictEqual(want);
 
     const chi = new Parser("-534m").parse()[0];
@@ -290,7 +290,7 @@ test("calc with drawn", () => {
 test("commonByKind", () => {
   const h = new Hand("111222333456m");
   const c = new BlockCalculator(h);
-  const got = (c as any).commonByKind(TYPE.M) as Block[][];
+  const got = (c as any).commonByType(TYPE.M) as Block[][];
   const want = [
     ["123m", "123m", "123m", "456m"],
     ["111m", "234m"],

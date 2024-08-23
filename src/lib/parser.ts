@@ -102,7 +102,10 @@ export class Block {
     let ret = "";
 
     if (sameAll) {
-      for (let v of this.tiles) ret += v.toString().slice(0, -1);
+      if (this.tiles[0].t == TYPE.BACK) return this.tiles.join("");
+      for (let v of this.tiles) {
+        ret += v.toString().slice(0, -1);
+      }
       return `${ret}${this.tiles[0].t}`;
     }
     for (const t of this.tiles) ret += t.toString();
@@ -391,7 +394,7 @@ function detectBlockType(tiles: Tile[]): BLOCK {
 
   if (numOfHorizontals == 0 && numOfBackTiles == 0) return BLOCK.HAND;
 
-  if (tiles.length === 3) {
+  if (tiles.length === 3 && numOfBackTiles === 0) {
     if (sameAll) return BLOCK.PON;
     if (numOfHorizontals == 1 && areConsecutiveTiles(tiles)) return BLOCK.CHI;
     return BLOCK.DISCARD;

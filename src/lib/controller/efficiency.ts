@@ -12,6 +12,8 @@ export interface Candidate {
 }
 
 export class Efficiency {
+  // ツモった後の17枚の手配から、牌効率に従って捨てるべき牌を返す。
+  // choices は、通常なら hand.hand を指定する。ただし、リーチしている場合は捨てる牌が限られているので choices で制限する。
   static calcCandidates(hand: Hand, choices: Tile[]) {
     assert(choices.length > 0, "choices to discard is zero");
     let ret: Candidate[] = [];
@@ -38,6 +40,7 @@ export class Efficiency {
     return ret;
   }
 
+  // 積もる前の16枚の手配から、有効牌の一覧を返す
   static candidateTiles(hand: Hand) {
     let r = Number.POSITIVE_INFINITY;
     let candidates: Tile[] = [];
@@ -61,6 +64,15 @@ export class Efficiency {
       shanten: r,
       candidates: candidates,
     };
+  }
+
+  // allow a partial input such as 23456s11z => 1,4,7s
+  static partialCandidateTiles(input: string) {
+    const h = new Hand(input, true);
+    Array(13 - h.hands.length)
+      .fill(undefined)
+      .map(() => h.inc([new Tile(TYPE.BACK, 0)]));
+    return Efficiency.candidateTiles(h);
   }
 }
 
