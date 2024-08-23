@@ -473,7 +473,7 @@ export class ShantenCalculator {
   }
 }
 
-export class TileCalculator {
+export class BlockCalculator {
   hand: Hand;
   constructor(hand: Hand) {
     this.hand = hand;

@@ -5,7 +5,7 @@ import {
   BoardParams,
   Hand,
   ShantenCalculator,
-  TileCalculator,
+  BlockCalculator,
   DoubleCalculator,
   WinResult,
 } from "../calculator";
@@ -393,7 +393,7 @@ export class Controller {
     }
     env.oneShotWin = params?.oneShot;
 
-    const tc = new TileCalculator(hand);
+    const tc = new BlockCalculator(hand);
     const dc = new DoubleCalculator(hand, env);
     const hands = tc.calc(t);
     const ret = dc.calc(hands);

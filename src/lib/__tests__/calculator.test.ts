@@ -1,7 +1,7 @@
 import { describe, test, expect } from "@jest/globals";
 import {
   ShantenCalculator,
-  TileCalculator,
+  BlockCalculator,
   Hand,
   HandData,
   DoubleCalculator,
@@ -179,7 +179,7 @@ describe("Shanten Calculator", () => {
   }
 });
 
-describe("Tile Calculator", () => {
+describe("Block Calculator", () => {
   const tests = [
     {
       name: "seven pairs tenpai",
@@ -263,7 +263,7 @@ describe("Tile Calculator", () => {
   for (const tt of tests) {
     test(tt.name, () => {
       const h = new Hand(tt.input);
-      const c = new TileCalculator(h);
+      const c = new BlockCalculator(h);
       let got: Block[][] = [];
       if (tt.handler == "Seven") got = c.sevenPairs();
       else if (tt.handler == "Orphans") got = c.thirteenOrphans();
@@ -278,7 +278,7 @@ describe("Tile Calculator", () => {
 test("calc with drawn", () => {
   const h = new Hand("1223m123s111z, -123m");
   h.draw(new Tile(TYPE.M, 2));
-  const c = new TileCalculator(h);
+  const c = new BlockCalculator(h);
   const want = [
     ["t22m", "123m", "123s", "111z", "-123m"],
     ["22m", "1t23m", "123s", "111z", "-123m"],
@@ -289,7 +289,7 @@ test("calc with drawn", () => {
 
 test("commonByKind", () => {
   const h = new Hand("111222333456m");
-  const c = new TileCalculator(h);
+  const c = new BlockCalculator(h);
   const got = (c as any).commonByKind(TYPE.M) as Block[][];
   const want = [
     ["123m", "123m", "123m", "456m"],
@@ -302,7 +302,7 @@ test("commonByKind", () => {
 
 test("handleCommon", () => {
   const h = new Hand("111222333456m111s");
-  const c = new TileCalculator(h);
+  const c = new BlockCalculator(h);
   const got = (c as any).commonAll() as Block[][];
   const want = [
     ["123m", "123m", "123m", "456m", "111s"],
@@ -424,7 +424,7 @@ describe("double Calculator", () => {
   for (let tt of tests) {
     test(tt.input, () => {
       const h = new Hand(tt.input);
-      const c = new TileCalculator(h);
+      const c = new BlockCalculator(h);
       const cfg: BoardParams = {
         doraMarkers: [new Tile(TYPE.M, 8)],
         myWind: "1w",
@@ -445,7 +445,7 @@ describe("double Calculator", () => {
 describe("calc", () => {
   const input = "111333m11p,5-5-55s, -3333s";
   const h = new Hand(input);
-  const c = new TileCalculator(h);
+  const c = new BlockCalculator(h);
   const cfg: BoardParams = {
     doraMarkers: [new Tile(TYPE.M, 8)],
     myWind: "1w",
@@ -462,7 +462,7 @@ describe("calc", () => {
   const input = "-123s,-234s,-456m, -567m, 11m";
   const lastTile = new Tile(TYPE.M, 1, [OPERATOR.TSUMO]);
   const h = new Hand(input);
-  const c = new TileCalculator(h);
+  const c = new BlockCalculator(h);
   const cfg: BoardParams = {
     doraMarkers: [new Tile(TYPE.M, 8)],
     myWind: "1w",
