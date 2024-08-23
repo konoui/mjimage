@@ -290,7 +290,7 @@ test("calc with drawn", () => {
 test("commonByKind", () => {
   const h = new Hand("111222333456m");
   const c = new BlockCalculator(h);
-  const got = (c as any).commonByKind(TYPE.M) as Block[][];
+  const got = (c as any).commonByType(TYPE.M) as Block[][];
   const want = [
     ["123m", "123m", "123m", "456m"],
     ["111m", "234m"],
