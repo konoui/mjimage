@@ -34,7 +34,7 @@ export interface HandData {
   [TYPE.S]: FixedNumber;
   [TYPE.P]: FixedNumber;
   [TYPE.Z]: [number, number, number, number, number, number, number, number];
-  [TYPE.BACK]: [number];
+  [TYPE.BACK]: [string, number];
   called: (BlockChi | BlockPon | BlockAnKan | BlockDaiKan | BlockShoKan)[];
   tsumo: Tile | null;
   reached: boolean;
@@ -48,7 +48,7 @@ export class Hand {
       [TYPE.P]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       [TYPE.S]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       [TYPE.Z]: [0, 0, 0, 0, 0, 0, 0, 0],
-      [TYPE.BACK]: [0],
+      [TYPE.BACK]: ["untouchable", 0],
       called: [],
       reached: false,
       tsumo: null,
@@ -72,8 +72,7 @@ export class Hand {
       } else if (input.split("").every((v) => v === TYPE.BACK)) {
         this.inc(b.tiles);
         continue;
-      }
-      if (allowBackBlock) {
+      } else if (allowBackBlock) {
         this.inc(b.tiles);
         continue;
       }
@@ -83,9 +82,12 @@ export class Hand {
   get hands() {
     const tiles: Tile[] = [];
     for (let k of Object.values(TYPE)) {
-      for (let n = 0; n < this.getArrayLen(k); n++) {
+      for (let n = 1; n < this.getArrayLen(k); n++) {
         let count = this.get(k, n);
-        if (k != TYPE.Z && n == 5) count -= this.get(k, 0); // for retd
+        if (k != TYPE.Z && n == 5 && this.get(k, 0) > 0) {
+          count -= this.get(k, 0); // for red
+          tiles.push(new Tile(k, 0));
+        }
         for (let i = 0; i < count; i++) {
           tiles.push(new Tile(k, n));
         }
@@ -132,8 +134,9 @@ export class Hand {
     for (let n = 1; n < this.getArrayLen(k); n++) sum += this.get(k, n);
     return sum;
   }
-  get(k: Type, n: number) {
-    return this.data[k][n];
+  get(t: Type, n: number) {
+    if (t == TYPE.BACK) return this.data[t][1];
+    return this.data[t][n];
   }
   inc(tiles: Tile[]): Tile[] {
     const backup: Tile[] = [];
@@ -146,7 +149,10 @@ export class Hand {
       if (!(t.t == TYPE.Z || t.t == TYPE.BACK) && t.n == 0) {
         this.data[t.t][5] += 1;
       }
-      this.data[t.t][t.n] += 1;
+
+      if (t.t == TYPE.BACK) this.data[t.t][1] += 1;
+      else this.data[t.t][t.n] += 1;
+
       if (
         t.t != TYPE.Z &&
         t.n == 5 &&
@@ -165,7 +171,7 @@ export class Hand {
     // for blind hands
     if (this.hands.every((t) => t.t == TYPE.BACK)) {
       const toRemove = tiles.map((v) => new Tile(TYPE.BACK, 0));
-      this.data[TYPE.BACK][0] -= tiles.length;
+      this.data[TYPE.BACK][1] -= tiles.length;
       return toRemove;
     }
 
@@ -182,7 +188,8 @@ export class Hand {
       if (!(t.t == TYPE.Z || t.t == TYPE.BACK) && t.n == 0) {
         this.data[t.t][5] -= 1;
       }
-      this.data[t.t][t.n] -= 1;
+      if (t.t == TYPE.BACK) this.data[t.t][1] -= 1;
+      else this.data[t.t][t.n] -= 1;
       if (
         t.t != TYPE.Z &&
         t.n == 5 &&
@@ -286,10 +293,11 @@ export class ShantenCalculator {
     if (this.hand.called.length > 0) return Infinity;
     let nPairs = 0;
     let nIsolated = 0;
-    for (let k of Object.values(TYPE)) {
-      for (let n = 1; n < this.hand.getArrayLen(k); n++) {
-        if (this.hand.get(k, n) == 2) nPairs++;
-        if (this.hand.get(k, n) == 1) nIsolated++;
+    for (let t of Object.values(TYPE)) {
+      if (t == TYPE.BACK) continue;
+      for (let n = 1; n < this.hand.getArrayLen(t); n++) {
+        if (this.hand.get(t, n) == 2) nPairs++;
+        if (this.hand.get(t, n) == 1) nIsolated++;
       }
     }
 
@@ -326,7 +334,7 @@ export class ShantenCalculator {
       const b = [0, 0, 0];
       const bn = this.hand.get(TYPE.BACK, 0);
       const bb = bn % 3;
-      b[0] = bn / 3;
+      b[0] = Math.floor(bn / 3);
       if (bb == 2) b[1] = 1;
       if (bb == 1) b[2] = 1;
 
@@ -337,6 +345,7 @@ export class ShantenCalculator {
       for (let m of [mr.patternA, mr.patternB]) {
         for (let p of [pr.patternA, pr.patternB]) {
           for (let s of [sr.patternA, sr.patternB]) {
+            // [set, pair, isolated]
             const v = [this.hand.called.length, 0, 0];
             for (let i = 0; i < 3; i++) {
               v[i] += m[i] + p[i] + s[i] + z[i] + b[i];
@@ -356,6 +365,8 @@ export class ShantenCalculator {
     // case has pairs
     for (let k of Object.values(TYPE)) {
       for (let n = 1; n < this.hand.getArrayLen(k); n++) {
+        // TODO why is the BACK statement required.
+        if (k == TYPE.BACK && this.hand.get(k, n) % 3 != 2) continue;
         if (this.hand.get(k, n) >= 2) {
           const tiles = this.hand.dec([new Tile(k, n), new Tile(k, n)]);
           const r = calc(true);
@@ -375,6 +386,8 @@ export class ShantenCalculator {
     patternA: [number, number, number];
     patternB: [number, number, number];
   } {
+    if (k == TYPE.BACK || k == TYPE.Z)
+      throw new Error(`expect number type but ${k}`);
     if (n > 9) return this.groupRemainingTiles(k);
 
     let max = this.commonByType(k, n + 1);
@@ -604,6 +617,8 @@ export class BlockCalculator {
     let ret: Block[][] = [];
     for (let k of Object.values(TYPE)) {
       for (let n = 1; n < this.hand.getArrayLen(k); n++) {
+        // TODO why is the BACK statement required.
+        if (k == TYPE.BACK && this.hand.get(k, n) % 3 != 2) continue;
         if (this.hand.get(k, n) >= 2) {
           const tiles = this.hand.dec([new Tile(k, n), new Tile(k, n)]);
           // 1. calc all cases without two pairs
@@ -642,7 +657,8 @@ export class BlockCalculator {
       const b: Block[] = [];
       const bt = TYPE.BACK;
       const sum = this.hand.get(bt, 0);
-      Array(sum / 3)
+      if (sum < 3) return [];
+      Array(Math.floor(sum / 3))
         .fill(undefined)
         .map((_) => {
           b.push(

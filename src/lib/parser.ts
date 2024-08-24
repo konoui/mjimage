@@ -394,7 +394,7 @@ function detectBlockType(tiles: Tile[]): BLOCK {
 
   if (numOfHorizontals == 0 && numOfBackTiles == 0) return BLOCK.HAND;
 
-  if (tiles.length === 3) {
+  if (tiles.length === 3 && numOfBackTiles === 0) {
     if (sameAll) return BLOCK.PON;
     if (numOfHorizontals == 1 && areConsecutiveTiles(tiles)) return BLOCK.CHI;
     return BLOCK.DISCARD;

@@ -7,14 +7,12 @@ import { handsToString } from "./utils/helper";
 
 describe("block", () => {
   test("mixed-back-block", () => {
-    const h = new Hand("23456m11z______", true);
+    const h = new Hand("23456m11z123s___", true);
     const sc = new ShantenCalculator(h);
-    const candidates = Efficiency.candidateTiles(h);
     expect(sc.calc()).toBe(0);
-    expect("1m,4m,7m").toBe(candidates.candidates.toString());
 
-    h.draw(new Tile(TYPE.S, 1));
-    expect(sc.calc()).toBe(0);
+    const candidates = Efficiency.candidateTiles(h);
+    expect("1m,4m,7m").toBe(candidates.candidates.toString());
 
     h.discard(new Tile(TYPE.M, 2));
     expect(sc.calc()).toBe(1);
@@ -27,5 +25,26 @@ describe("block", () => {
     const bc = new BlockCalculator(h);
     const res = handsToString(bc.calc(t));
     expect(res).toStrictEqual([["11z", "t123m", "456m", "___", "___"]]);
+  });
+  test("divide-mixed-block-with-no-head", () => {
+    const h = new Hand("23456m___,___,__", true);
+
+    const sc = new ShantenCalculator(h);
+    expect(sc.calc()).toBe(0);
+
+    const t = new Tile(TYPE.M, 1);
+    h.draw(t);
+    expect(sc.calc()).toBe(-1);
+
+    const bc = new BlockCalculator(h);
+    const res = handsToString(bc.calc(t));
+    expect(res).toStrictEqual([["__", "t123m", "456m", "___", "___"]]);
+  });
+  test("partial-candidate", () => {
+    let candidates = Efficiency.partialCandidateTiles("23456s11z");
+    expect(candidates.candidates.toString()).toBe("1s,4s,7s");
+
+    candidates = Efficiency.partialCandidateTiles("23456s");
+    expect(candidates.candidates.toString()).toBe("1s,4s,7s");
   });
 });
