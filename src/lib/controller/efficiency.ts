@@ -45,13 +45,14 @@ export class Efficiency {
     let r = Number.POSITIVE_INFINITY;
     let candidates: Tile[] = [];
 
+    const sc = new ShantenCalculator(hand);
     for (let k of Object.values(TYPE)) {
       if (k == TYPE.BACK) continue;
       for (let n = 1; n < hand.getArrayLen(k); n++) {
         if (hand.get(k, n) >= 4) continue;
         const t = new Tile(k, n);
         const tiles = hand.inc([t]);
-        const s = new ShantenCalculator(hand).calc();
+        const s = sc.calc();
         hand.dec(tiles);
 
         if (s < r) {
@@ -192,14 +193,14 @@ export class RiskRank {
   }
 
   static rankZ(c: Counter, targetUser: Wind, t: Tile) {
-    if (t.t != TYPE.Z) throw new Error(`expected KIND.Z but ${t.toString()}`);
+    if (t.t != TYPE.Z) throw new Error(`expected TYPE.Z but ${t.toString()}`);
     if (c.isSafeTile(t.t, t.n, targetUser)) return 0;
     const remaining = c.get(t);
     return Math.min(remaining, 3);
   }
 
   static rankN(c: Counter, targetUser: Wind, t: Tile) {
-    if (!t.isNum()) throw new Error(`expected KIND.NUMBER but ${t.toString()}`);
+    if (!t.isNum()) throw new Error(`expected TYPE.NUMBER but ${t.toString()}`);
     const n = t.n;
     const type = t.t;
     if (c.isSafeTile(type, n, targetUser)) return 0;
