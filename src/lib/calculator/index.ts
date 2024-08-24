@@ -603,7 +603,6 @@ export class BlockCalculator {
   fourSetsOnePair(): Block[][] {
     let ret: Block[][] = [];
     for (let k of Object.values(TYPE)) {
-      if (k == TYPE.BACK) continue;
       for (let n = 1; n < this.hand.getArrayLen(k); n++) {
         if (this.hand.get(k, n) >= 2) {
           const tiles = this.hand.dec([new Tile(k, n), new Tile(k, n)]);
@@ -627,15 +626,30 @@ export class BlockCalculator {
   private commonAll(): Block[][] {
     const handleZ = (): Block[][] => {
       const z: Block[] = [];
-      const k = TYPE.Z;
-      for (let n = 1; n < this.hand.getArrayLen(k); n++) {
-        if (this.hand.get(k, n) == 0) continue;
-        else if (this.hand.get(k, n) != 3) return [];
+      const zt = TYPE.Z;
+      for (let n = 1; n < this.hand.getArrayLen(zt); n++) {
+        if (this.hand.get(zt, n) == 0) continue;
+        else if (this.hand.get(zt, n) != 3) return [];
         z.push(
-          new BlockThree([new Tile(k, n), new Tile(k, n), new Tile(k, n)])
+          new BlockThree([new Tile(zt, n), new Tile(zt, n), new Tile(zt, n)])
         );
       }
       return z.length == 0 ? [] : [z];
+    };
+
+    // handle back tiles as same unknown tiles, Not joker tile.
+    const handleBack = (): Block[][] => {
+      const b: Block[] = [];
+      const bt = TYPE.BACK;
+      const sum = this.hand.get(bt, 0);
+      Array(sum / 3)
+        .fill(undefined)
+        .map((_) => {
+          b.push(
+            new BlockThree([new Tile(bt, 0), new Tile(bt, 0), new Tile(bt, 0)])
+          );
+        });
+      return b.length == 0 ? [] : [b];
     };
 
     // [["123m", "123m"], ["222m", "333m"]]
@@ -646,6 +660,7 @@ export class BlockCalculator {
       this.commonByType(TYPE.P),
       this.commonByType(TYPE.S),
       handleZ(),
+      handleBack(),
       [this.hand.called],
     ].sort((a, b) => b.length - a.length);
     const ret = vvv[0].concat();

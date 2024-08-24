@@ -19,4 +19,13 @@ describe("block", () => {
     h.discard(new Tile(TYPE.M, 2));
     expect(sc.calc()).toBe(1);
   });
+  test("divide-mixed-block", () => {
+    const h = new Hand("23456m11z______", true);
+    const t = new Tile(TYPE.M, 1);
+    h.draw(t);
+
+    const bc = new BlockCalculator(h);
+    const res = handsToString(bc.calc(t));
+    expect(res).toStrictEqual([["11z", "t123m", "456m", "___", "___"]]);
+  });
 });
