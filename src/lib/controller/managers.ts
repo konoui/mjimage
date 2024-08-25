@@ -1,5 +1,6 @@
 import assert from "assert";
 import { Wind, Round, TYPE, WIND } from "../constants";
+import { TupleOfSize } from "../calculator";
 import { Type, Tile } from "../parser";
 
 export class ScoreManager {
@@ -141,25 +142,12 @@ export function shuffle<T>(array: T[]) {
   return array;
 }
 
-type FixedNumber = [
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number
-];
-
 export class Counter {
   private c: {
-    [TYPE.M]: FixedNumber;
-    [TYPE.S]: FixedNumber;
-    [TYPE.P]: FixedNumber;
-    [TYPE.Z]: [number, number, number, number, number, number, number, number];
+    [TYPE.M]: TupleOfSize<number, 10>;
+    [TYPE.S]: TupleOfSize<number, 10>;
+    [TYPE.P]: TupleOfSize<number, 10>;
+    [TYPE.Z]: TupleOfSize<number, 8>;
   } = {
     [TYPE.M]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],
     [TYPE.S]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],

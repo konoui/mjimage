@@ -1,5 +1,6 @@
 import { Lexer } from "./lexer";
 import { BLOCK, OPERATOR, TYPE, INPUT_SEPARATOR } from "./constants";
+import assert from "assert";
 
 type Separator = typeof INPUT_SEPARATOR;
 
@@ -93,15 +94,10 @@ export class Block {
   }
 
   toString(): string {
-    const [sameAll, _] = this.tiles.reduce(
-      (a: [boolean, Tile], b: Tile): [boolean, Tile] => {
-        return [a[0] && a[1].t == b.t, b];
-      },
-      [true, this.tiles[0]]
-    );
-    let ret = "";
+    const sameType = this.tiles.every((v) => v.t == this.tiles[0].t);
 
-    if (sameAll) {
+    let ret = "";
+    if (sameType) {
       if (this.tiles[0].t == TYPE.BACK) return this.tiles.join("");
       for (let v of this.tiles) {
         ret += v.toString().slice(0, -1);
@@ -146,6 +142,7 @@ export class Block {
 
   minTile(): Tile {
     if (this.is(BLOCK.CHI)) return this.clone().tiles.sort(tileSortFunc)[0];
+    assert(!this.is(BLOCK.HAND), `mintile() is called with ${this.toString()}`);
     return this.tiles[0];
   }
 
@@ -380,8 +377,7 @@ function detectBlockType(tiles: Tile[]): BLOCK {
     return BLOCK.HAND; // 単騎
   }
 
-  const sameAll =
-    tiles.filter((v) => v.equals(tiles[0], true)).length == tiles.length;
+  const sameAll = tiles.every((v) => v.equals(tiles[0], true));
   const numOfHorizontals = tiles.filter((v) =>
     v.has(OPERATOR.HORIZONTAL)
   ).length;

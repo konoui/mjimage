@@ -46,19 +46,19 @@ export class Efficiency {
     let candidates: Tile[] = [];
 
     const sc = new ShantenCalculator(hand);
-    for (let k of Object.values(TYPE)) {
-      if (k == TYPE.BACK) continue;
-      for (let n = 1; n < hand.getArrayLen(k); n++) {
-        if (hand.get(k, n) >= 4) continue;
-        const t = new Tile(k, n);
-        const tiles = hand.inc([t]);
+    for (let t of Object.values(TYPE)) {
+      if (t == TYPE.BACK) continue;
+      for (let n = 1; n < hand.getArrayLen(t); n++) {
+        if (hand.get(t, n) >= 4) continue;
+        const tile = new Tile(t, n);
+        const tiles = hand.inc([tile]);
         const s = sc.calc();
         hand.dec(tiles);
 
         if (s < r) {
           r = s;
-          candidates = [t];
-        } else if (s == r) candidates.push(t);
+          candidates = [tile];
+        } else if (s == r) candidates.push(tile);
       }
     }
     return {
