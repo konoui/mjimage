@@ -7,6 +7,8 @@ import { loadTestData, initSvgDOM } from "./utils/helper";
 
 const { window, document } = initSvgDOM();
 
+const update = false;
+
 describe("use", () => {
   test("import existing", () => {
     const img = fs.readFileSync("src/lib/tiles.svg").toString();
@@ -14,7 +16,7 @@ describe("use", () => {
     const use = new Use().use("m1");
     draw.add(use);
     const got = draw.svg();
-    const want = loadTestData("use.1m.svg", got, false);
+    const want = loadTestData("use.1m.svg", got, update);
     expect(want.toString()).toBe(got);
   });
 
@@ -26,7 +28,7 @@ describe("use", () => {
 
     optimizeSVG(draw);
     const got = draw.svg();
-    const want = loadTestData("use.filtered-m1.svg", got, false);
+    const want = loadTestData("use.filtered-m1.svg", got, update);
     expect(want.toString()).toBe(got);
   });
 });
