@@ -7,7 +7,7 @@ import { loadTestData, initSvgDOM } from "./utils/helper";
 
 const { window, document } = initSvgDOM();
 
-const update = false;
+const update = true;
 
 const helperConfig = {
   imageHostUrl: "http://localhost:1234/svg/",
@@ -36,7 +36,7 @@ describe("generate svg", () => {
     expect(want.toString()).toBe(got);
   });
 
-  test("handle 0s and 5s as same for AN_KAN", () => {
+  test("handle 0s and 5s as same for DAI_KAN", () => {
     const blocks = new Parser("5-0-55m").parse();
 
     const draw = SVG();

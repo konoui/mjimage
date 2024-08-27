@@ -367,6 +367,6 @@ export const drawTable = (
   const { discards, hands, scoreBoard } = parse(tableInput);
   const table = createTable(helper, ctx, hands, discards, scoreBoard);
 
-  svg.size(table.width, table.height);
+  svg.viewbox(0, 0, table.width, table.height);
   svg.add(table.e);
 };

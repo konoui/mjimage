@@ -347,8 +347,8 @@ export const drawBlocks = (
 ) => {
   const helper = new ImageHelper(config);
   const hand = createHand(helper, blocks);
-  svg.size(hand.width, hand.height);
   svg.add(hand.e);
+  svg.viewbox(0, 0, hand.width, hand.height);
 };
 
 const getValidIDs = () => {

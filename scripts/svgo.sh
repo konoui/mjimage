@@ -1,3 +1,3 @@
 #!/bin/bash
 
-npx svgo -f static/svg/
+npx svgo --config ./svgo.config.mjs -f static/svg/
