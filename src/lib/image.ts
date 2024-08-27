@@ -343,12 +343,14 @@ export const createHand = (helper: ImageHelper, blocks: Block[]) => {
 export const drawBlocks = (
   svg: Svg,
   blocks: Block[],
-  config: ImageHelperConfig = {}
+  config: ImageHelperConfig = {},
+  params: { responsive: boolean } = { responsive: false }
 ) => {
   const helper = new ImageHelper(config);
   const hand = createHand(helper, blocks);
-  svg.add(hand.e);
+  if (!params.responsive) svg.size(hand.width, hand.height);
   svg.viewbox(0, 0, hand.width, hand.height);
+  svg.add(hand.e);
 };
 
 const getValidIDs = () => {

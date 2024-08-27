@@ -11,10 +11,12 @@ interface InitializeConfig extends Omit<ImageHelperConfig, "scale"> {
   querySelector?: string | string[];
   scale?: number;
   tableScale?: number;
+  responsive?: boolean;
 }
 
 const defaultQuerySelector = ".mjimage";
 const defaultScale = 1.6;
+const defaultResponsive = false;
 const defaultSvgSprite = false;
 const tableRegex = /^\s*table/;
 const minPaiHeight = Math.min(TILE_CONTEXT.WIDTH, TILE_CONTEXT.HEIGHT);
@@ -33,6 +35,7 @@ export class mjimage {
     let querySelector = props.querySelector ?? defaultQuerySelector;
     let handScale = props.scale ?? defaultScale;
     let tableScale = props.tableScale ?? handScale;
+    let responsive = props.responsive ?? defaultResponsive;
     let svgSprite = props.svgSprite ?? defaultSvgSprite;
     if (typeof querySelector === "string") querySelector = [querySelector];
 
@@ -70,16 +73,22 @@ export class mjimage {
                 svgSprite,
                 scale: scale,
               },
-              fontCtx
+              fontCtx,
+              { responsive: responsive }
             );
           } else {
             const scale = calculateScale(handScale, textHeight);
             const blocks = new Parser(input).parse();
-            drawBlocks(svg, blocks, {
-              ...props,
-              svgSprite,
-              scale: scale,
-            });
+            drawBlocks(
+              svg,
+              blocks,
+              {
+                ...props,
+                svgSprite,
+                scale: scale,
+              },
+              { responsive: responsive }
+            );
           }
           svg.addTo(target);
         } catch (e) {

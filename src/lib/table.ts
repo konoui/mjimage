@@ -359,14 +359,15 @@ export const drawTable = (
   svg: Svg,
   tableInput: string,
   config: ImageHelperConfig = {},
-  fontCtx: FontContext
+  fontCtx: FontContext,
+  params: { responsive: boolean } = { responsive: false }
 ) => {
   const helper = new ImageHelper(config);
   const ctx = fontCtx;
 
   const { discards, hands, scoreBoard } = parse(tableInput);
   const table = createTable(helper, ctx, hands, discards, scoreBoard);
-
+  if (!params.responsive) svg.size(table.width, table.height);
   svg.viewbox(0, 0, table.width, table.height);
   svg.add(table.e);
 };

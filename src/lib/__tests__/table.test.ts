@@ -46,7 +46,7 @@ describe("table yaml to svg", () => {
       const input = loadInputData(t.inputFilename);
 
       const draw = SVG();
-      drawTable(draw, input, helperConfig, fontCtx);
+      drawTable(draw, input, helperConfig, fontCtx, { responsive: true });
 
       const got = draw.svg();
       const want = loadTestData(t.gotFilename, got, update);
