@@ -1,5 +1,5 @@
 import assert from "assert";
-import { Tile, Block } from "./parser";
+import { Tile, Block, BlockAnKan } from "./parser";
 import { Svg, G, Image, Text, Use, Symbol } from "@svgdotjs/svg.js";
 import { FONT_FAMILY, TILE_CONTEXT, TYPE, OPERATOR, BLOCK } from "./constants";
 
@@ -13,8 +13,6 @@ export interface ImageHelperConfig {
 class BaseHelper {
   readonly tileWidth: number;
   readonly tileHeight: number;
-  readonly diffTileHeightWidth: number;
-  readonly textWidth: number;
   readonly image_host_path: string;
   readonly image_host_url: string;
   readonly scale: number;
@@ -25,9 +23,12 @@ class BaseHelper {
     this.image_host_url = props.imageHostUrl ?? "";
     this.tileWidth = TILE_CONTEXT.WIDTH * this.scale;
     this.tileHeight = TILE_CONTEXT.HEIGHT * this.scale;
-    this.textWidth = this.tileWidth * 0.8; // sum of 4 string
-    this.diffTileHeightWidth = (this.tileHeight - this.tileWidth) / 2;
     this.svgSprite = props.svgSprite ?? false;
+  }
+
+  protected getDiffTileHeightWidth(t: Tile) {
+    const size = t.imageSize(this.scale);
+    return (size.baseHeight - size.baseWidth) / 2;
   }
 
   // image wrapper
@@ -44,23 +45,24 @@ class BaseHelper {
   }
 
   createImage(tile: Tile, x: number, y: number) {
+    const size = tile.imageSize(this.scale);
     const image = this.image(tile)
       .dx(x)
       .dy(y)
-      .size(this.tileWidth, this.tileHeight);
+      .size(size.baseWidth, size.baseHeight);
     return image;
   }
 
   createTextImage(tile: Tile, x: number, y: number, t: string) {
     const image = this.createImage(tile, x, y);
 
-    const fontSize = this.tileHeight * 0.2;
-    const textX = this.tileWidth;
-    const textY = this.tileHeight;
+    const size = tile.imageSize(this.scale);
+    const fontSize = size.baseHeight * 0.2;
+    const textX = size.baseWidth;
+    const textY = size.baseHeight;
     const text = new Text().text(t);
     text
-      .width(this.tileWidth)
-      .height(this.tileHeight)
+      .size(size.baseWidth, size.baseHeight)
       .font({
         family: FONT_FAMILY,
         size: fontSize,
@@ -73,13 +75,6 @@ class BaseHelper {
     return g;
   }
 
-  createStackImage(baseTile: Tile, upTile: Tile, x: number, y: number) {
-    const base = this.createRotate90Image(baseTile, 0, 0, true);
-    const up = this.createRotate90Image(upTile, 0, this.tileWidth, true);
-    const g = new G().translate(x, y).add(base).add(up);
-    return g;
-  }
-
   createRotate90Image(
     tile: Tile,
     x: number,
@@ -88,10 +83,11 @@ class BaseHelper {
   ) {
     const image = this.createImage(tile, 0, 0);
 
-    const centerX = this.tileWidth / 2;
-    const centerY = this.tileHeight / 2;
-    const translatedX = x + this.diffTileHeightWidth;
-    const translatedY = adjustY ? y - this.diffTileHeightWidth : y;
+    const size = tile.imageSize(this.scale);
+    const centerX = size.baseWidth / 2;
+    const centerY = size.baseHeight / 2;
+    const translatedX = x + this.getDiffTileHeightWidth(tile);
+    const translatedY = adjustY ? y - this.getDiffTileHeightWidth(tile) : y;
     const g = new G();
     g.add(image)
       .translate(translatedX, translatedY)
@@ -121,20 +117,21 @@ class BaseHelper {
 }
 
 export class ImageHelper extends BaseHelper {
-  readonly blockMargin = this.tileWidth * 0.3;
-  createBlockHandDiscard(tiles: Tile[]) {
+  readonly blockMargin =
+    TILE_CONTEXT.WIDTH * TILE_CONTEXT.BLOCK_MARGIN_SCALE * this.scale;
+  createBlockHandDiscard(block: Block) {
     const g = new G();
     let pos = 0;
-    for (let t of tiles) {
-      if (t.has(OPERATOR.HORIZONTAL)) {
-        const img = this.createRotate90Image(t, pos, this.diffTileHeightWidth);
-        g.add(img);
-        pos += this.tileHeight;
-        continue;
-      }
-      const img = this.createImage(t, pos, 0);
+    for (let t of block.tiles) {
+      const size = t.imageSize(this.scale);
+      const f = t.has(OPERATOR.HORIZONTAL)
+        ? this.createRotate90Image.bind(this)
+        : this.createImage.bind(this);
+      const y = t.has(OPERATOR.HORIZONTAL) ? this.getDiffTileHeightWidth(t) : 0;
+
+      const img = f(t, pos, y);
       g.add(img);
-      pos += this.tileWidth;
+      pos += size.width;
     }
     return g;
   }
@@ -145,33 +142,33 @@ export class ImageHelper extends BaseHelper {
     let pos = 0;
     const g = new G();
     if (block.type == BLOCK.SHO_KAN) {
-      const diff = this.tileWidth * 2 - this.tileHeight;
-
       let lastIdx = idx;
-      let i = 0;
-      for (let t of block.tiles) {
-        if (t.has(OPERATOR.HORIZONTAL)) lastIdx = i;
-        i++;
-      }
+      for (let i = 0; i < block.tiles.length; i++)
+        if (block.tiles[i].has(OPERATOR.HORIZONTAL)) lastIdx = i;
 
       for (let i = 0; i < block.tiles.length; i++) {
+        const size = block.tiles[i].imageSize(this.scale);
         if (i == lastIdx) continue;
         if (i == idx) {
-          // Note first index is added tile
-          // TODO but first index is upper
-          let img = this.createStackImage(
-            block.tiles[idx],
-            block.tiles[lastIdx],
-            pos,
-            0
+          const baseTile = block.tiles[idx];
+          const upperTile = block.tiles[lastIdx];
+
+          const size = baseTile.imageSize(this.scale);
+          const baseImg = this.createRotate90Image(baseTile, 0, 0, true);
+          const upImg = this.createRotate90Image(
+            upperTile,
+            0,
+            size.height,
+            true
           );
-          pos += this.tileHeight;
-          g.add(img);
+          g.add(new G().translate(pos, 0).add(baseImg).add(upImg));
+          pos += size.width;
           continue;
         }
 
+        const diff = size.width * 2 - size.height;
         const img = this.createImage(block.tiles[i], pos, diff);
-        pos += this.tileWidth;
+        pos += size.width;
         g.add(img);
       }
       return g;
@@ -181,33 +178,30 @@ export class ImageHelper extends BaseHelper {
       const img = this.createRotate90Image(
         block.tiles[idx],
         pos,
-        this.diffTileHeightWidth
+        this.getDiffTileHeightWidth(block.tiles[idx])
       );
-      pos += this.tileHeight;
+      pos += block.tiles[idx].imageSize(this.scale).width;
       g.add(img);
 
       for (let i = 0; i < block.tiles.length; i++) {
         if (i == idx) continue;
+        const size = block.tiles[i].imageSize(this.scale);
         const img = this.createImage(block.tiles[i], pos, 0);
-        pos += this.tileWidth;
+        pos += size.width;
         g.add(img);
       }
       return g;
     }
 
     for (let i = 0; i < block.tiles.length; i++) {
-      if (i == idx) {
-        const img = this.createRotate90Image(
-          block.tiles[i],
-          pos,
-          this.diffTileHeightWidth
-        );
-        pos += this.tileHeight;
-        g.add(img);
-        continue;
-      }
-      const img = this.createImage(block.tiles[1], pos, 0);
-      pos += this.tileWidth;
+      const f =
+        i == idx
+          ? this.createRotate90Image.bind(this)
+          : this.createImage.bind(this);
+      const y = i == idx ? this.getDiffTileHeightWidth(block.tiles[i]) : 0;
+      const size = block.tiles[i].imageSize(this.scale);
+      const img = f(block.tiles[i], pos, y);
+      pos += size.width;
       g.add(img);
     }
     return g;
@@ -215,80 +209,64 @@ export class ImageHelper extends BaseHelper {
 }
 
 const getBlockCreators = (h: ImageHelper) => {
+  const scale = h.scale;
   const lookup = {
     [BLOCK.CHI]: function (block: Block) {
-      const width = h.tileWidth * 2 + h.tileHeight;
-      const height = h.tileHeight;
+      const size = block.imageSize(scale);
       const g = h.createBlockPonChiKan(block);
-      return { width: width, height: height, e: g };
+      return { ...size, e: g };
     },
     [BLOCK.PON]: function (block: Block) {
-      const width = h.tileWidth * 2 + h.tileHeight;
-      const height = h.tileHeight;
+      const size = block.imageSize(scale);
       const g = h.createBlockPonChiKan(block);
-      return { width: width, height: height, e: g };
+      return { ...size, e: g };
     },
     [BLOCK.DAI_KAN]: function (block: Block) {
-      const width = h.tileWidth * 3 + h.tileHeight;
-      const height = h.tileHeight;
+      const size = block.imageSize(scale);
       const g = h.createBlockPonChiKan(block);
-      return { width: width, height: height, e: g };
+      return { ...size, e: g };
     },
     [BLOCK.SHO_KAN]: function (block: Block) {
-      const width = h.tileWidth * 2 + h.tileHeight;
-      const height = h.tileWidth * 2;
+      const size = block.imageSize(scale);
       const g = h.createBlockPonChiKan(block);
-      return { width: width, height: height, e: g };
+      return { ...size, e: g };
     },
     [BLOCK.AN_KAN]: function (block: Block) {
-      const width = h.tileWidth * 4;
-      const height = h.tileHeight;
+      const size = block.imageSize(scale);
       const zp = block.tiles.filter((v) => {
         return v.t !== TYPE.BACK;
       });
       assert(zp != null && zp.length == 2);
-      const g = h.createBlockHandDiscard([
-        new Tile(TYPE.BACK, 0),
-        zp[0],
-        zp[1],
-        new Tile(TYPE.BACK, 0),
-      ]);
-      return { width: width, height: height, e: g };
+      const g = h.createBlockHandDiscard(
+        new BlockAnKan([zp[0], zp[1], zp[0], zp[1]])
+      );
+      return { ...size, e: g };
     },
     [BLOCK.DORA]: function (block: Block) {
-      const width = h.tileWidth + h.textWidth;
-      const height = h.tileHeight; // note not contains text height
+      const size = block.imageSize(scale);
       const g = new G();
       const img = h.createTextImage(block.tiles[0], 0, 0, "(ドラ)");
       g.add(img);
-      return { width: width, height: height, e: g };
+      return { ...size, e: g };
     },
     [BLOCK.TSUMO]: function (block: Block) {
-      const width = h.tileWidth + h.textWidth;
-      const height = h.tileHeight; // note not contains text height
+      const size = block.imageSize(scale);
       const g = new G();
       const img = h.createTextImage(block.tiles[0], 0, 0, "(ツモ)");
       g.add(img);
-      return { width: width, height: height, e: g };
+      return { ...size, e: g };
     },
     [BLOCK.HAND]: function (block: Block) {
-      const width = h.tileWidth * block.tiles.length;
-      const height = h.tileHeight;
-      const g = h.createBlockHandDiscard(block.tiles);
-      return { width: width, height: height, e: g };
+      const size = block.imageSize(scale);
+      const g = h.createBlockHandDiscard(block);
+      return { ...size, e: g };
     },
     [BLOCK.DISCARD]: function (block: Block) {
-      const width = block.tiles
-        .map((v) => (v.has(OPERATOR.HORIZONTAL) ? h.tileHeight : h.tileWidth))
-        .reduce((prev, v) => prev + v);
-      const height = h.tileHeight;
-      const g = h.createBlockHandDiscard(block.tiles);
-      return { width: width, height: height, e: g };
+      const size = block.imageSize(scale);
+      const g = h.createBlockHandDiscard(block);
+      return { ...size, e: g };
     },
     [BLOCK.UNKNOWN]: function (block: Block) {
-      const width = 0;
-      const height = 0;
-      const g = new G();
       throw new Error("found unknown block");
     },
     [BLOCK.PAIR]: function (block: Block) {
@@ -312,32 +290,42 @@ interface MySVGElement {
 }
 
 export const createHand = (helper: ImageHelper, blocks: Block[]) => {
+  const { maxHeight, sumWidth } = blocks.reduce(
+    (acc: { maxHeight: number; sumWidth: number }, b: Block) => {
+      const size = b.imageSize(helper.scale);
+      const v = size.height > acc.maxHeight ? size.height : acc.maxHeight;
+      return { maxHeight: v, sumWidth: acc.sumWidth + size.width };
+    },
+    { maxHeight: 0, sumWidth: 0 }
+  );
+
+  const viewBoxHeight = maxHeight;
+  const viewBoxWidth = sumWidth + (blocks.length - 1) * helper.blockMargin;
+
+  const params = {
+    viewBoxWidth: viewBoxWidth,
+    viewBoxHeight: viewBoxHeight,
+  };
+
   const creators = getBlockCreators(helper);
 
-  let baseHeight = helper.tileWidth;
-  let sumOfWidth = 0;
   const elms: MySVGElement[] = [];
   for (let block of blocks) {
     const fn = creators[block.type];
     const elm = fn(block);
     elms.push(elm);
-    sumOfWidth += elm.width;
-    if (elm.height > baseHeight) baseHeight = elm.height;
   }
 
-  const sizeHeight = baseHeight;
-  const sizeWidth = sumOfWidth + (blocks.length - 1) * helper.blockMargin;
   const hand = new G();
-
   let pos = 0;
   for (let elm of elms) {
-    const diff = baseHeight - elm.height;
+    const diff = viewBoxHeight - elm.height;
     const g = new G().translate(pos, diff);
     g.add(elm.e);
     hand.add(g);
     pos += elm.width + helper.blockMargin;
   }
-  return { e: hand, width: sizeWidth, height: sizeHeight };
+  return { e: hand, width: viewBoxWidth, height: viewBoxHeight };
 };
 
 export const drawBlocks = (

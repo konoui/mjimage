@@ -1,5 +1,11 @@
 import { Lexer } from "./lexer";
-import { BLOCK, OPERATOR, TYPE, INPUT_SEPARATOR } from "./constants";
+import {
+  BLOCK,
+  OPERATOR,
+  TYPE,
+  INPUT_SEPARATOR,
+  TILE_CONTEXT,
+} from "./constants";
 import assert from "assert";
 
 type Separator = typeof INPUT_SEPARATOR;
@@ -71,6 +77,22 @@ export class Tile {
       ok ||= (this.n == 5 && t.n == 0) || (this.n == 0 && t.n == 5);
     return this.t == t.t && ok;
   }
+
+  imageSize(scale: number): {
+    width: number;
+    height: number;
+    baseWidth: number;
+    baseHeight: number;
+  } {
+    const h = parseFloat((TILE_CONTEXT.HEIGHT * scale).toPrecision(5));
+    const w = parseFloat((TILE_CONTEXT.WIDTH * scale).toPrecision(5));
+    const size = this.has(OPERATOR.HORIZONTAL)
+      ? { width: h, height: w, baseWidth: w, baseHeight: h }
+      : { width: w, height: h, w, baseWidth: w, baseHeight: h };
+    if (this.has(OPERATOR.TSUMO) || this.has(OPERATOR.DORA))
+      size.width += w * TILE_CONTEXT.TEXT_SCALE; // note not contains text height
+    return size;
+  }
 }
 
 type BLOCK = (typeof BLOCK)[keyof typeof BLOCK];
@@ -122,24 +144,6 @@ export class Block {
     ].includes(this.type.toString());
   }
 
-  /**
-   * equals does not check operator
-   **/
-  equals(b: Block) {
-    if (this.tiles.length != b.tiles.length) return false;
-
-    let ab = this.tiles;
-    let bb = b.tiles;
-    if (this.is(BLOCK.CHI) || b.is(BLOCK.CHI)) {
-      ab = b.clone().tiles.sort(tileSortFunc);
-      bb = this.clone().tiles.sort(tileSortFunc);
-    }
-    for (let i = 0; i < b.tiles.length; i++) {
-      if (!ab[i].equals(bb[i], true)) return false;
-    }
-    return true;
-  }
-
   minTile(): Tile {
     if (this.is(BLOCK.CHI)) return this.clone().tiles.sort(tileSortFunc)[0];
     assert(!this.is(BLOCK.HAND), `mintile() is called with ${this.toString()}`);
@@ -150,6 +154,24 @@ export class Block {
   clone() {
     const tiles = this.tiles.map((t) => new Tile(t.t, t.n, [...t.ops]));
     return blockWrapper(tiles, this.type);
+  }
+
+  // user must multiple scale
+  // TODO scale is optional
+  imageSize(scale: number): { width: number; height: number } {
+    const bh = this.tiles[0].imageSize(scale).baseHeight;
+    const bw = this.tiles[0].imageSize(scale).baseWidth;
+    if (this.is(BLOCK.SHO_KAN))
+      return { width: bw * 2 + bh, height: Math.max(bw * 2, bh) };
+
+    const maxHeight = this.tiles.reduce((max: number, t: Tile) => {
+      const h = t.imageSize(scale).height;
+      return h > max ? h : max;
+    }, 0);
+    const sumWidth = this.tiles.reduce((sum: number, t: Tile) => {
+      return sum + t.imageSize(scale).width;
+    }, 0);
+    return { width: sumWidth, height: maxHeight };
   }
 }
 
@@ -165,14 +187,20 @@ export class BlockPon extends Block {
   }
 }
 
+// FIXME red handling
+// TODO consider tiles should return back tiles or original non back tiles
+// when using hand to inc with tiles, returned tile must be original tile.
 export class BlockAnKan extends Block {
   constructor(tiles: Tile[]) {
     super(tiles, BLOCK.AN_KAN);
   }
+
   toString() {
     const tiles = this.tiles.map((t) => t.clone());
-    tiles[1] = new Tile(TYPE.BACK, 0);
-    tiles[2] = new Tile(TYPE.BACK, 0);
+    if (!tiles.some((v) => v.t == TYPE.BACK)) {
+      tiles[0] = new Tile(TYPE.BACK, 0);
+      tiles[3] = new Tile(TYPE.BACK, 0);
+    }
     return tiles.reduce((s: string, t: Tile) => {
       return `${s}${t.toString()}`;
     }, "");

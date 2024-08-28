@@ -1,4 +1,4 @@
-import { Tile } from "./parser";
+import { Tile, Block } from "./parser";
 import { ImageHelper, createHand, ImageHelperConfig } from "./image";
 import { Svg, Element, Text, G, Rect } from "@svgdotjs/svg.js";
 import { FontContext } from "./measure-text";
@@ -8,6 +8,7 @@ import {
   DiscardsInput,
   HandsInput,
 } from "./table-parser";
+import { BLOCK } from "./constants";
 
 const splitTiles = (input: Tile[]) => {
   const chunkSize = 6;
@@ -57,7 +58,9 @@ const handleDiscard = (tiles: Tile[], helper: ImageHelper) => {
   for (let i = 0; i < chunks.length; i++) {
     let tiles = chunks[i];
     let posY = i * helper.tileHeight;
-    const e = helper.createBlockHandDiscard(tiles).translate(0, posY);
+    const e = helper
+      .createBlockHandDiscard(new Block(tiles, BLOCK.DISCARD))
+      .translate(0, posY);
     g.add(e);
   }
   // width is 11111-1

@@ -14,8 +14,8 @@ const { window, document } = initSvgDOM();
 // FIXME using node canvas
 const fontCtx: FontContext = {
   font: { family: FONT_FAMILY, size: 16 },
-  textWidth: 16.040000915527344,
-  textHeight: 16.040000915527344,
+  textWidth: 16.0,
+  textHeight: 16.0,
   numWidth: 11.84,
   numHeight: 11.84,
 };

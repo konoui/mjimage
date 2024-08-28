@@ -1,5 +1,11 @@
 export const FONT_FAMILY = "MS Gothic, sans-serif";
-export const TILE_CONTEXT = { WIDTH: 66, HEIGHT: 90 };
+// 0.8 results sum of 4 string
+export const TILE_CONTEXT = {
+  WIDTH: 66,
+  HEIGHT: 90,
+  TEXT_SCALE: 0.8,
+  BLOCK_MARGIN_SCALE: 0.3,
+};
 export const TABLE_CONTEXT = { BASE: 40 };
 export const INPUT_SEPARATOR = ",";
 export const TYPE = {
