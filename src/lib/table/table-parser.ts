@@ -1,6 +1,5 @@
 import { load } from "js-yaml";
 import { z } from "zod";
-
 import { Tile, Parser, Block } from "../core/parser";
 import { WIND_MAP, ROUND_MAP, WIND } from "../core/constants";
 

@@ -17,7 +17,10 @@ const defaultScale = 1.6;
 const defaultResponsive = false;
 const defaultSvgSprite = false;
 const tableRegex = /^\s*table/;
-const minPaiHeight = Math.min(TILE_CONTEXT.WIDTH, TILE_CONTEXT.HEIGHT);
+const minPaiHeight = /*#__PURE__*/ Math.min(
+  TILE_CONTEXT.WIDTH,
+  TILE_CONTEXT.HEIGHT
+);
 
 const calculateScale = (scale: number, textHeight: number) => {
   return (textHeight / minPaiHeight) * scale;

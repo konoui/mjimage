@@ -1,11 +1,5 @@
 import { Lexer } from "./lexer";
-import {
-  BLOCK,
-  OPERATOR,
-  TYPE,
-  INPUT_SEPARATOR,
-  TILE_CONTEXT,
-} from "./constants";
+import { BLOCK, OPERATOR, TYPE, INPUT_SEPARATOR, TILE_CONTEXT } from "./";
 import assert from "assert";
 
 type Separator = typeof INPUT_SEPARATOR;

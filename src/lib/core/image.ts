@@ -1,7 +1,7 @@
 import assert from "assert";
-import { Tile, Block, BlockAnKan } from "./parser";
+import { Tile, Block, BlockAnKan } from "./";
 import { Svg, G, Image, Text, Use, Symbol } from "@svgdotjs/svg.js";
-import { FONT_FAMILY, TILE_CONTEXT, TYPE, OPERATOR, BLOCK } from "./constants";
+import { FONT_FAMILY, TILE_CONTEXT, TYPE, OPERATOR, BLOCK } from "./";
 
 export interface ImageHelperConfig {
   scale?: number;

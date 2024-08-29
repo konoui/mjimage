@@ -1,6 +1,5 @@
 import assert from "assert";
-import { TYPE } from "../core/constants";
-import { Tile } from "../core/parser";
+import { TYPE, Tile } from "../core";
 import { Hand, ShantenCalculator } from "../calculator";
 
 // Controller tell candidates to players

@@ -1,7 +1,6 @@
 // see https://github.com/smly/mjai.app
 // https://mjai.app/docs/mjai-protocol
 
-import { DoubleCalculator } from "../calculator";
 import { TYPE, OPERATOR, Round, Wind } from "../core/constants";
 import {
   BlockAnKan,

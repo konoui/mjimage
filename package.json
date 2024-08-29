@@ -1,10 +1,11 @@
 {
     "name": "@konoui/mjimage",
-    "version": "0.0.15",
+    "version": "0.0.16",
     "description": "Generates Mahjong tiles in SVG format.",
     "author": "konoui",
     "license": "MIT",
     "repository": "github.com/konoui/mjimage",
+    "sideEffects": false,
     "keywords": [
         "mahjong"
     ],
@@ -30,9 +31,9 @@
     ],
     "exports": {
         ".": "./dist/mjs/index.js",
-        "./core": "./dist/mjs/core/index.js",
-        "./table": "./dist/mjs/table/index.js",
-        "./calculator": "./dist/mjs/calculator/index.js"
+        "./core": "./dist/mjs/lib/core/index.js",
+        "./table": "./dist/mjs/lib/table/index.js",
+        "./calculator": "./dist/mjs/lib/calculator/index.js"
     },
     "targets": {
         "global": {
@@ -54,6 +55,7 @@
         "staticOutPath": "svg"
     },
     "devDependencies": {
+        "@parcel/reporter-bundle-analyzer": "^2.12.0",
         "@parcel/transformer-inline-string": "^2.9.3",
         "@parcel/transformer-typescript-tsc": "^2.9.3",
         "@parcel/validator-typescript": "^2.9.3",
