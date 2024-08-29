@@ -1,6 +1,6 @@
 import { describe, test, expect } from "@jest/globals";
 
-import { Lexer } from "../lexer";
+import { Lexer } from "../core/lexer";
 
 describe("lexer", () => {
   test("0123456789", () => {

@@ -1,6 +1,6 @@
 import assert from "assert";
 import { createActor } from "xstate";
-import { TYPE, OPERATOR, Wind, Round, WIND } from "../constants";
+import { TYPE, OPERATOR, Wind, Round, WIND } from "../core/";
 import {
   BoardParams,
   Hand,
@@ -8,6 +8,8 @@ import {
   BlockCalculator,
   DoubleCalculator,
   WinResult,
+  Efficiency,
+  Candidate,
 } from "../calculator";
 import {
   BlockAnKan,
@@ -17,7 +19,7 @@ import {
   BlockShoKan,
   Tile,
   blockWrapper,
-} from "../parser";
+} from "../core/parser";
 import { createControllerMachine } from "./state-machine";
 import {
   ChoiceAfterDiscardedEvent,
@@ -41,8 +43,6 @@ import {
   shuffle,
   createWindMap,
   Counter,
-  Efficiency,
-  Candidate,
 } from ".";
 
 export interface History {

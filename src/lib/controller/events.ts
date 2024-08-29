@@ -1,5 +1,5 @@
 import { eventmit } from "eventmit";
-import { Wind, Round } from "../constants";
+import { Wind, Round } from "../core/constants";
 import {
   BlockAnKan,
   BlockChi,
@@ -7,9 +7,8 @@ import {
   BlockPon,
   BlockShoKan,
   Tile,
-} from "../parser";
-import { Candidate } from "./";
-import { WinResult } from "../calculator";
+} from "../core/parser";
+import { WinResult, Candidate, Efficiency } from "../calculator";
 
 type Event =
   | CallEvent

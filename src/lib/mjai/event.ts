@@ -2,8 +2,14 @@
 // https://mjai.app/docs/mjai-protocol
 
 import { DoubleCalculator } from "../calculator";
-import { TYPE, OPERATOR, Round, Wind } from "../constants";
-import { BlockAnKan, BlockChi, BlockDaiKan, BlockPon, Tile } from "../parser";
+import { TYPE, OPERATOR, Round, Wind } from "../core/constants";
+import {
+  BlockAnKan,
+  BlockChi,
+  BlockDaiKan,
+  BlockPon,
+  Tile,
+} from "../core/parser";
 import {
   PlaceManager,
   NewDoraEvent,

@@ -1,7 +1,6 @@
-import { WIND } from "../constants";
-import { Tile } from "../parser";
-import { BaseActor, River, Efficiency, PlayerEfficiency, RiskRank } from "./";
-import { Hand, ShantenCalculator } from "../calculator";
+import { WIND, Tile } from "../core/";
+import { BaseActor, River, PlayerEfficiency, RiskRank } from "./";
+import { Hand, ShantenCalculator, Efficiency } from "../calculator";
 import { PlayerEvent, EventHandler, DistributeEvent } from "./events";
 
 export class Player extends BaseActor {

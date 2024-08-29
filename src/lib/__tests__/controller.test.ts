@@ -1,8 +1,8 @@
 import { describe, test, expect } from "@jest/globals";
 import { createLocalGame } from "../controller";
-import { Tile } from "../parser";
+import { Tile } from "../core/parser";
 import { Hand } from "../calculator";
-import { TYPE, OPERATOR } from "../constants";
+import { TYPE, OPERATOR } from "../core/constants";
 describe("controller", () => {
   test("push-back-reach-stick", () => {
     // const c = createLocalGame({ debug: true });

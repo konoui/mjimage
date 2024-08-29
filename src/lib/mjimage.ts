@@ -1,8 +1,6 @@
-import { Parser } from "./parser";
-import { drawBlocks, ImageHelperConfig } from "./image";
+import { Parser, drawBlocks, ImageHelperConfig, TILE_CONTEXT } from "./core";
 import { MeasureText } from "./measure-text";
 import { drawTable } from "./table";
-import { TILE_CONTEXT } from "./constants";
 import { SVG } from "@svgdotjs/svg.js";
 // https://parceljs.org/languages/svg/#inlining-as-a-string
 // import tilesSvg from "./tiles.svg";

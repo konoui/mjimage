@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { Block } from "../../parser";
+import { Block } from "../../core/parser";
 import { registerWindow } from "@svgdotjs/svg.js";
 import { createHTMLWindow } from "svgdom";
 // @ts-ignore, https://github.com/DefinitelyTyped/DefinitelyTyped/pull/66501/files

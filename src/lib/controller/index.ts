@@ -7,4 +7,4 @@ export * from "./controller";
 export * from "./player";
 export * from "./replay";
 export * from "./game";
-export * from "./efficiency";
+export * from "./player-efficiency";

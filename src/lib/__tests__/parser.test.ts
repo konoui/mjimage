@@ -6,9 +6,9 @@ import {
   Parser,
   BlockAnKan,
   BlockChi,
-} from "../parser";
-import { TYPE, OPERATOR, BLOCK, INPUT_SEPARATOR } from "../constants";
-import { Lexer } from "../lexer";
+} from "../core/parser";
+import { TYPE, OPERATOR, BLOCK, INPUT_SEPARATOR } from "../core/constants";
+import { Lexer } from "../core/lexer";
 
 describe("parse", () => {
   test("12s34m1z2d,t1s,_05s_,-123s", () => {

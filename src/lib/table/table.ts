@@ -1,14 +1,14 @@
-import { Tile, Block } from "./parser";
-import { ImageHelper, createHand, ImageHelperConfig } from "./image";
+import { Tile, Block } from "../core/parser";
+import { ImageHelper, createHand, ImageHelperConfig } from "../core/image";
 import { Svg, Element, Text, G, Rect } from "@svgdotjs/svg.js";
-import { FontContext } from "./measure-text";
+import { FontContext } from "../measure-text/";
 import {
   parse,
   ScoreBoardInput,
   DiscardsInput,
   HandsInput,
 } from "./table-parser";
-import { BLOCK } from "./constants";
+import { BLOCK } from "../core/constants";
 
 const splitTiles = (input: Tile[]) => {
   const chunkSize = 6;

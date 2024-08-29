@@ -1,5 +1,5 @@
 import assert from "assert";
-import { FONT_FAMILY, TABLE_CONTEXT } from "./constants";
+import { FONT_FAMILY, TABLE_CONTEXT } from "../core/constants";
 
 export interface FontContext {
   font: { family: string; size: number };

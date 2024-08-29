@@ -1,7 +1,7 @@
 import assert from "assert";
-import { Wind, Round, TYPE, WIND } from "../constants";
+import { Wind, Round, TYPE, WIND } from "../core/constants";
 import { TupleOfSize } from "../calculator";
-import { Type, Tile } from "../parser";
+import { Type, Tile } from "../core/parser";
 
 export class ScoreManager {
   private reachValue = 1000;

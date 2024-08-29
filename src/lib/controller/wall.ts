@@ -1,5 +1,5 @@
-import { TYPE } from "../constants";
-import { Tile } from "../parser";
+import { TYPE } from "../core/constants";
+import { Tile } from "../core/parser";
 import { shuffle } from "./managers";
 
 export interface WallProps {

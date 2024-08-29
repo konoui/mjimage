@@ -7,8 +7,8 @@ import {
   DoubleCalculator,
   BoardParams,
 } from "../calculator";
-import { TYPE, OPERATOR } from "../constants";
-import { Block, Parser, Tile } from "../parser";
+import { TYPE, OPERATOR } from "../core/constants";
+import { Block, Parser, Tile } from "../core/parser";
 import { handsToString } from "./utils/helper";
 
 describe("Hand", () => {

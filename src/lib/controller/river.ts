@@ -1,6 +1,6 @@
 import assert from "assert";
-import { Wind } from "../constants";
-import { Tile } from "../parser";
+import { Wind } from "../core/constants";
+import { Tile } from "../core/parser";
 
 export class River {
   private m: { w: Wind; t: Tile; callMarker?: boolean }[] = [];

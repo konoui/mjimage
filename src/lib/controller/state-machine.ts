@@ -1,4 +1,4 @@
-import { Wind, TYPE, WIND, OPERATOR } from "../constants";
+import { Wind, TYPE, WIND, OPERATOR } from "../core/constants";
 import { Controller } from "./index";
 import {
   BlockAnKan,
@@ -7,7 +7,7 @@ import {
   BlockPon,
   BlockShoKan,
   Tile,
-} from "../parser";
+} from "../core/parser";
 import { ShantenCalculator, WinResult } from "./../calculator";
 import { nextWind, createWindMap } from "./managers";
 

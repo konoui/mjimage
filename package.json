@@ -1,6 +1,6 @@
 {
     "name": "@konoui/mjimage",
-    "version": "0.0.14",
+    "version": "0.0.15",
     "description": "Generates Mahjong tiles in SVG format.",
     "author": "konoui",
     "license": "MIT",
@@ -29,7 +29,10 @@
         "!dist/mjs/global.*"
     ],
     "exports": {
-        ".": "./dist/mjs/index.js"
+        ".": "./dist/mjs/index.js",
+        "./core": "./dist/mjs/core/index.js",
+        "./table": "./dist/mjs/table/index.js",
+        "./calculator": "./dist/mjs/calculator/index.js"
     },
     "targets": {
         "global": {

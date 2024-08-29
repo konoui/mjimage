@@ -1,8 +1,12 @@
 import { describe, test, expect } from "@jest/globals";
-import { BlockCalculator, Hand, ShantenCalculator } from "../calculator";
-import { Efficiency } from "../controller/efficiency";
-import { TYPE, OPERATOR } from "../constants";
-import { Block, Parser, Tile } from "../parser";
+import {
+  BlockCalculator,
+  Hand,
+  ShantenCalculator,
+  Efficiency,
+} from "../calculator";
+import { TYPE, OPERATOR } from "../core/constants";
+import { Block, Parser, Tile } from "../core/parser";
 import { handsToString } from "./utils/helper";
 
 describe("block", () => {
