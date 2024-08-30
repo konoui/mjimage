@@ -5,7 +5,9 @@
     "author": "konoui",
     "license": "MIT",
     "repository": "github.com/konoui/mjimage",
-    "sideEffects": false,
+    "sideEffects": [
+        "./src/global.ts"
+    ],
     "keywords": [
         "mahjong"
     ],
