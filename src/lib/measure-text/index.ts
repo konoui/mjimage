@@ -1,4 +1,3 @@
-import assert from "assert";
 import { FONT_FAMILY, TABLE_CONTEXT } from "../core/constants";
 
 export interface FontContext {
@@ -20,7 +19,7 @@ export class MeasureText {
   private measure = (str: string, fontStr: string): [number, number] => {
     if (this.ctx == null) {
       this.ctx = document.createElement("canvas").getContext("2d");
-      assert(this.ctx != null);
+      if (this.ctx == null) throw new Error("[debug] context is null");
     }
     const ctx = this.ctx;
     ctx.font = fontStr;

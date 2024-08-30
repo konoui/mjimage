@@ -1,4 +1,3 @@
-import assert from "assert";
 import { BLOCK, TYPE, OPERATOR, Round, Wind, WIND } from "../core/constants";
 import {
   Tile,
@@ -88,15 +87,18 @@ export class Hand {
     }
     if (this.drawn != null) {
       const idx = tiles.findIndex((t) => t.equals(t));
-      assert(idx >= 0, `hand has drawn: ${this.drawn} but no tile in hands`);
+      if (idx < 0)
+        throw new Error(
+          `[debug] hand has drawn: ${this.drawn} but no tile in hands`
+        );
       tiles[idx].add(OPERATOR.TSUMO);
     }
-    assert(
-      tiles.length > 0,
-      `no tiles in hand ${tiles.length}, called: ${
-        this.called
-      }, data: ${JSON.stringify(this.data, null, 2)}`
-    );
+    if (tiles.length < 1)
+      throw new Error(
+        `[debug] no tiles in hand ${tiles.length}, called: ${
+          this.called
+        }, data: ${JSON.stringify(this.data, null, 2)}`
+      );
     return tiles;
   }
   toString() {

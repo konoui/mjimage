@@ -1,4 +1,3 @@
-import assert from "assert";
 import { Tile, Block, BlockAnKan } from "../core";
 import { Svg, G, Image, Text, Use, Symbol } from "@svgdotjs/svg.js";
 import { FONT_FAMILY, TILE_CONTEXT, TYPE, OPERATOR, BLOCK } from "../core";
@@ -236,7 +235,8 @@ const getBlockCreators = (h: ImageHelper) => {
       const zp = block.tiles.filter((v) => {
         return v.t !== TYPE.BACK;
       });
-      assert(zp != null && zp.length == 2);
+      if (!(zp != null && zp.length == 2))
+        throw new Error(`[debug] back tile must be two but ${block}`);
       const g = h.createBlockHandDiscard(
         new BlockAnKan([zp[0], zp[1], zp[0], zp[1]])
       );
