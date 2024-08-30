@@ -1,7 +1,7 @@
 import { describe, test, expect } from "@jest/globals";
 import { SVG } from "@svgdotjs/svg.js";
 import { Parser } from "../core/parser";
-import { drawBlocks } from "../core/image";
+import { drawBlocks } from "../image/image";
 
 import { loadTestData, initSvgDOM } from "./utils/helper";
 

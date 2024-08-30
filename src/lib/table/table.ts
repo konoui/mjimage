@@ -1,5 +1,5 @@
 import { Tile, Block, BLOCK } from "../core/";
-import { ImageHelper, createHand, ImageHelperConfig } from "../core/image";
+import { ImageHelper, createHand, ImageHelperConfig } from "../image/image";
 import { Svg, Element, Text, G, Rect } from "@svgdotjs/svg.js";
 import { FontContext } from "../measure-text/";
 import { parse, ScoreBoardInput, DiscardsInput, HandsInput } from "./";

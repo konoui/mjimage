@@ -1,6 +1,7 @@
 import { describe, test, expect } from "@jest/globals";
 import { SVG } from "@svgdotjs/svg.js";
-import { Tile, Parser, ImageHelper } from "../core/";
+import { Tile, Parser } from "../core/";
+import { ImageHelper } from "../image";
 import { drawTable, createTable } from "../table";
 import { FontContext } from "../measure-text";
 import {

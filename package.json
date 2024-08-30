@@ -1,6 +1,6 @@
 {
     "name": "@konoui/mjimage",
-    "version": "0.0.17",
+    "version": "0.0.18",
     "description": "Generates Mahjong tiles in SVG format.",
     "author": "konoui",
     "license": "MIT",

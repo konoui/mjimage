@@ -1,4 +1,5 @@
-import { Parser, drawBlocks, ImageHelperConfig, TILE_CONTEXT } from "./core";
+import { Parser, TILE_CONTEXT } from "./core";
+import { drawBlocks, ImageHelperConfig } from "./image";
 import { MeasureText } from "./measure-text";
 import { drawTable } from "./table";
 import { SVG } from "@svgdotjs/svg.js";
