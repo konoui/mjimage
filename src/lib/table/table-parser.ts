@@ -1,68 +1,64 @@
 import { load } from "js-yaml";
-import { z } from "zod";
+import {
+  string,
+  number,
+  optional,
+  array,
+  maxValue,
+  minValue,
+  pipe,
+  picklist,
+  safeParse,
+  InferOutput,
+  strictObject,
+} from "valibot";
 import { Tile, Parser, Block } from "../core/parser";
 import { WIND_MAP, ROUND_MAP, WIND } from "../core/constants";
 
-const windInputSchema = z
-  .object({
-    discard: z.string().max(50).optional().default(""),
-    hand: z.string().max(25).optional().default(""),
-    score: z.number().optional().default(25000),
-  })
-  .strict()
-  .optional()
-  .default({ discard: "", hand: "", score: 25000 });
+// windInputSchema の定義
+const windInputSchema = optional(
+  strictObject({
+    discard: optional(string(), ""),
+    hand: optional(string(), ""),
+    score: optional(number(), 25000),
+  }),
+  { discard: "", hand: "", score: 25000 }
+);
 
-const windInputsSchema = z
-  .object({
-    // FIXME merge WIND_MAP
-    [WIND.EAST]: windInputSchema,
-    [WIND.SOUTH]: windInputSchema,
-    [WIND.WEST]: windInputSchema,
-    [WIND.NORTH]: windInputSchema,
-  })
-  .strict();
+// windInputsSchema の定義
+const windInputsSchema = strictObject({
+  [WIND.EAST]: windInputSchema,
+  [WIND.SOUTH]: windInputSchema,
+  [WIND.WEST]: windInputSchema,
+  [WIND.NORTH]: windInputSchema,
+});
 
-// https://github.com/colinhacks/zod/discussions/2790
-function unionOfLiterals<T extends TableRound | TableWind>(
-  constants: readonly T[]
-) {
-  const literals = constants.map((x) => z.literal(x)) as unknown as readonly [
-    z.ZodLiteral<T>,
-    z.ZodLiteral<T>,
-    ...z.ZodLiteral<T>[]
-  ];
-  return z.union(literals);
-}
+// boardInputSchema の定義
+const boardInputSchema = strictObject({
+  round: optional(picklist(Object.keys(ROUND_MAP) as TableRound[]), "1w1"),
+  sticks: optional(
+    strictObject({
+      reach: optional(pipe(number(), minValue(0, ""), maxValue(9, "")), 0),
+      dead: optional(pipe(number(), minValue(0, ""), maxValue(9, "")), 0),
+    }),
+    { reach: 0, dead: 0 }
+  ),
+  doras: optional(array(string()), ["3w"]),
+  front: optional(picklist(Object.keys(WIND_MAP) as TableWind[]), "1w"),
+});
 
-const boardInputSchema = z
-  .object({
-    round: unionOfLiterals(Object.keys(ROUND_MAP) as TableRound[])
-      .optional()
-      .default("1w1"),
-    sticks: z
-      .object({
-        reach: z.number().max(9).gte(0).optional().default(0),
-        dead: z.number().max(9).gte(0).optional().default(0),
-      })
-      .optional()
-      .default({ reach: 0, dead: 0 }),
-    doras: z.array(z.string()).max(4).optional().default(["3w"]),
-    front: unionOfLiterals(Object.keys(WIND_MAP) as TableWind[])
-      .optional()
-      .default("1w"),
-  })
-  .strict();
-
-const tableInputSchema = windInputsSchema.extend({
+// tableInputSchema の定義
+const tableInputSchema = strictObject({
+  ...windInputsSchema.entries,
   board: boardInputSchema,
 });
 
-type WindInput = z.infer<typeof windInputSchema>;
-type WindInputs = z.infer<typeof windInputsSchema>;
-type BoardInput = z.infer<typeof boardInputSchema>;
+// 型定義
+type WindInput = InferOutput<typeof windInputSchema>;
+type WindInputs = InferOutput<typeof windInputsSchema>;
+type BoardInput = InferOutput<typeof boardInputSchema>;
 
-export type TableInput = z.infer<typeof tableInputSchema>;
+export type TableInput = InferOutput<typeof tableInputSchema>;
 
 export interface DiscardsInput {
   front: Tile[];
@@ -104,11 +100,11 @@ export const parse = (s: string) => {
 export const parseTableInput = (s: string) => {
   const rawInput = load(s) as { table: TableInput };
 
-  const ret = tableInputSchema.safeParse(rawInput.table);
+  const ret = safeParse(tableInputSchema, rawInput.table);
   if (!ret.success) {
-    throw ret.error;
+    throw ret.issues;
   }
-  return ret.data;
+  return ret.output;
 };
 
 export const convertInput = (i: TableInput) => {
@@ -134,7 +130,7 @@ export const convertInput = (i: TableInput) => {
     round: ROUND_MAP[i.board.round],
     frontPlace: WIND_MAP[frontPlace],
     sticks: i.board.sticks,
-    doras: i.board.doras.map((v) => {
+    doras: i.board!.doras.map((v) => {
       return new Parser(v).tiles()[0];
     }),
     scores: {
