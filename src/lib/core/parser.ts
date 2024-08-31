@@ -1,6 +1,5 @@
 import { Lexer } from "./lexer";
 import { BLOCK, OPERATOR, TYPE, INPUT_SEPARATOR, TILE_CONTEXT } from "./";
-import assert from "assert";
 
 type Separator = typeof INPUT_SEPARATOR;
 
@@ -140,7 +139,8 @@ export class Block {
 
   minTile(): Tile {
     if (this.is(BLOCK.CHI)) return this.clone().tiles.sort(tileSortFunc)[0];
-    assert(!this.is(BLOCK.HAND), `mintile() is called with ${this.toString()}`);
+    if (this.is(BLOCK.HAND))
+      throw new Error(`[debug] mintile() is called with ${this.toString()}`);
     return this.tiles[0];
   }
 
