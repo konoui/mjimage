@@ -4,22 +4,26 @@ import { FONT_FAMILY, TILE_CONTEXT, TYPE, OPERATOR, BLOCK } from "../core";
 
 export interface ImageHelperConfig {
   scale?: number;
+  // specify either hostPath or hostUrl
   imageHostPath?: string;
   imageHostUrl?: string;
+  imageExt?: "svg" | "webp";
   svgSprite?: boolean;
 }
 
 class BaseHelper {
   readonly tileWidth: number;
   readonly tileHeight: number;
-  readonly image_host_path: string;
-  readonly image_host_url: string;
+  readonly imageHostPath: string;
+  readonly imageHostUrl: string;
+  readonly imageExt: string;
   readonly scale: number;
   readonly svgSprite: boolean;
   constructor(props: ImageHelperConfig = {}) {
     this.scale = props.scale ?? 1;
-    this.image_host_path = props.imageHostPath ?? "";
-    this.image_host_url = props.imageHostUrl ?? "";
+    this.imageHostPath = props.imageHostPath ?? "";
+    this.imageHostUrl = props.imageHostUrl ?? "";
+    this.imageExt = props.imageExt ?? "svg";
     this.tileWidth = TILE_CONTEXT.WIDTH * this.scale;
     this.tileHeight = TILE_CONTEXT.HEIGHT * this.scale;
     this.svgSprite = props.svgSprite ?? false;
@@ -107,11 +111,11 @@ class BaseHelper {
   }
 
   buildURL(tile: Tile | 100 | 1000) {
-    const filename = `${BaseHelper.buildID(tile)}.svg`;
-    if (this.image_host_url != "") {
-      return `${this.image_host_url}${filename}`;
+    const filename = `${BaseHelper.buildID(tile)}.${this.imageExt}`;
+    if (this.imageHostUrl != "") {
+      return `${this.imageHostUrl}${filename}`;
     }
-    return `${this.image_host_path}${filename}`;
+    return `${this.imageHostPath}${filename}`;
   }
 }
 

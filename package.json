@@ -1,6 +1,6 @@
 {
     "name": "@konoui/mjimage",
-    "version": "0.0.21",
+    "version": "0.0.22",
     "description": "Generates Mahjong tiles in SVG format.",
     "author": "konoui",
     "license": "MIT",
@@ -53,10 +53,16 @@
         "module": {}
     },
     "alias": {},
-    "staticFiles": {
-        "staticPath": "static/svg",
-        "staticOutPath": "svg"
-    },
+    "staticFiles": [
+        {
+            "staticPath": "static/svg",
+            "staticOutPath": "svg"
+        },
+        {
+            "staticPath": "static/webp",
+            "staticOutPath": "webp"
+        }
+    ],
     "devDependencies": {
         "@parcel/reporter-bundle-analyzer": "^2.12.0",
         "@parcel/transformer-inline-string": "^2.9.3",
