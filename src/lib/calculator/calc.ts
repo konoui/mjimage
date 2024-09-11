@@ -59,13 +59,13 @@ export class Hand {
         this.data.tsumo = t;
         continue;
       } else if (b.is(BLOCK.HAND)) {
-        this.inc(b.tiles);
+        this.inc([...b.tiles]);
         continue;
       } else if (input.split("").every((v) => v === TYPE.BACK)) {
-        this.inc(b.tiles);
+        this.inc([...b.tiles]);
         continue;
       } else if (allowBackBlock) {
-        this.inc(b.tiles);
+        this.inc([...b.tiles]);
         continue;
       }
       throw new Error(`unexpected block ${b.type} ${b.toString()}`);
@@ -248,7 +248,7 @@ export class Hand {
         (v) => v.is(BLOCK.PON) && v.tiles[0].equals(b.tiles[0], true) // FIXME handle which tile is called
       );
       if (idx == -1) throw new Error(`unable to find ${b.tiles[0]}`);
-      let t = b.tiles[0].clone();
+      let t = b.tiles[0];
       if (t.isNum() && t.n == 0) {
         t = new Tile(t.t, 5);
       }
@@ -266,7 +266,7 @@ export class Hand {
     const c = new Hand(this.toString());
     c.data.called = this.called.map((b) => b.clone());
     c.data.reached = this.data.reached;
-    c.data.tsumo = this.data.tsumo == null ? null : this.data.tsumo.clone();
+    c.data.tsumo = this.data.tsumo == null ? null : this.data.tsumo;
     return c;
   }
 }
@@ -541,10 +541,13 @@ export class BlockCalculator {
     const newHands: Block[][] = [];
     for (let [hidx, bidx, tidx] of indexes) {
       const hand = hands[hidx];
-      const newHand = hand.map((block) => block.clone());
-      newHand[bidx].tiles[tidx] = newHand[bidx].tiles[tidx].clone({
-        add: op,
-      });
+      const newHand = hand.map((block) => block.clone()); // block.clone is important now to use instanceof in calc.
+
+      const block = newHand[bidx];
+      const newTile = block.tiles[tidx].clone({ add: op });
+      newHand[bidx] = block.clone({
+        replace: { idx: tidx, tile: newTile },
+      }); // update with new block tiles with op
       newHands.push(newHand);
     }
 

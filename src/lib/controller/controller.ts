@@ -425,15 +425,18 @@ export class Controller {
     if (idx == 2) idx = 1;
     if (idx == 1) idx = 2;
 
-    const b = new BlockPon([fake.clone(), fake.clone(), fake.clone()]);
-    b.tiles[idx] = t.clone({ add: OPERATOR.HORIZONTAL });
+    let b = new BlockPon([fake, fake, fake]);
+    b = b.clone({
+      replace: { idx, tile: t.clone({ add: OPERATOR.HORIZONTAL }) },
+    });
+    const ridx = (idx % 2) + 1;
+    const rt = b.tiles[ridx];
     if (t.isNum() && fake.n == 5 && hand.get(t.t, 0) > 0)
-      b.tiles[(idx % 2) + 1] = b.tiles[(idx % 2) + 1].clone({ n: 0 });
+      b = b.clone({ replace: { idx: ridx, tile: rt.clone({ n: 0 }) } });
     blocks.push(b);
 
     if (t.isNum() && t.n == 5 && hand.get(t.t, fake.n) == 3) {
-      const red = b.clone();
-      red.tiles[(idx % 2) + 1] = red.tiles[(idx % 2) + 1].clone({ n: 5 });
+      const red = b.clone({ replace: { idx: ridx, tile: rt.clone({ n: 5 }) } });
       blocks.push(red);
     }
 
@@ -447,7 +450,7 @@ export class Controller {
     if (hand.reached) return false;
     if (hand.hands.length < 3) return false;
 
-    let fake = t.clone();
+    let fake = t;
     if (fake.n == 0) fake = t.clone({ n: 5 });
 
     const blocks: BlockChi[] = [];
@@ -524,12 +527,12 @@ export class Controller {
     return filtered
       .map((b) => {
         if (b.tiles[1].n == 5) {
-          const n = b.clone();
-          n.tiles[1] = n.tiles[1].clone({ n: 0 });
+          const rt = b.tiles[1].clone({ n: 0 });
+          const n = b.clone({ replace: { idx: 1, tile: rt } });
           return n;
         } else if (b.tiles[2].n == 5) {
-          const n = b.clone();
-          n.tiles[2] = n.tiles[2].clone({ n: 0 });
+          const rt = b.tiles[2].clone({ n: 0 });
+          const n = b.clone({ replace: { idx: 2, tile: rt } });
           return n;
         }
       })
@@ -587,6 +590,7 @@ export class Controller {
             new Tile(t, n),
             new Tile(t, n),
           ];
+          // NOTE： red にする index は関係ない
           if (t != TYPE.Z && n == 5) tiles[0] = tiles[0].clone({ n: 0 });
           blocks.push(new BlockAnKan(tiles));
         }
@@ -606,13 +610,16 @@ export class Controller {
     const called = hand.called.filter((b) => b instanceof BlockPon);
     if (called.length == 0) return false;
     const blocks: BlockShoKan[] = [];
-    for (let c of called) {
-      const pick = c.tiles[0];
+    for (let cb of called) {
+      const pick = cb.tiles[0];
       if (hand.get(pick.t, pick.n) == 1) {
-        const cb = c.clone();
-        cb.tiles.push(new Tile(pick.t, pick.n, [OPERATOR.HORIZONTAL])); // FIXME position of horizontal
-        if (pick.n == 5 && hand.get(pick.t, 0) == 1) cb.tiles[3].n == 0; // FIXME
-        blocks.push(new BlockShoKan(cb.tiles));
+        // FIXME 追加の HORIZONTAL は最後でいいのか
+        const tiles = [
+          ...cb.tiles,
+          new Tile(pick.t, pick.n, [OPERATOR.HORIZONTAL]),
+        ];
+        if (pick.n == 5 && hand.get(pick.t, 0) == 1) tiles[3].n == 0; // FIXME
+        blocks.push(new BlockShoKan(tiles));
       }
     }
     if (blocks.length == 0) return false;
@@ -631,19 +638,20 @@ export class Controller {
     let fake = t.clone({ remove: OPERATOR.HORIZONTAL });
     if (fake.isNum() && fake.n == 0) fake = fake.clone({ n: 5 });
     if (hand.get(fake.t, fake.n) != 3) return false;
-    const b = new BlockDaiKan([
-      fake.clone(),
-      fake.clone(),
-      fake.clone(),
-      fake.clone(),
-    ]);
+    let base = new BlockDaiKan([fake, fake, fake, fake]);
 
     let idx = Math.abs(Number(w[0]) - Number(whoDiscarded[0]));
     if (idx == 3) idx = 0;
     if (idx == 1) idx = 3;
-    b.tiles[idx] = t.clone({ add: OPERATOR.HORIZONTAL });
+    let b = base.clone({
+      replace: { idx, tile: t.clone({ add: OPERATOR.HORIZONTAL }) },
+    });
+    // 捨て牌が 5 なら鳴いた位置をずらして red にする
+    // TODO t.n == 0 の場合、horizontal tile を 0 にする必要がありそう。
     if (fake.isNum() && fake.n == 5 && t.n == 5) {
-      b.tiles[(idx % 3) + 1] = b.tiles[(idx % 3) + 1].clone({ n: 0 });
+      const ridx = (idx % 3) + 1;
+      const rt = b.tiles[ridx].clone({ n: 0 });
+      b = b.clone({ replace: { idx: ridx, tile: rt } });
     }
     assert(
       b.tiles.filter((t) => t.has(OPERATOR.HORIZONTAL)).length == 1,

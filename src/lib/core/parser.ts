@@ -60,7 +60,7 @@ export class Tile {
   }) {
     const t = override?.t ?? this.t;
     const n = override?.n ?? this.n;
-    const ops = this.ops.filter((v) => !override?.remove?.includes(v));
+    const ops = this.ops.filter((v) => override?.remove != v);
     const s = new Set([...ops]);
     if (override?.add) s.add(override.add);
     return new Tile(t, n, Array.from(s));
@@ -100,22 +100,35 @@ export class Tile {
 
 type BLOCK = (typeof BLOCK)[keyof typeof BLOCK];
 
+// Block is a immutable object
 export class Block {
-  constructor(public tiles: Tile[], public type: BLOCK) {
-    if (type == BLOCK.CHI) {
-      tiles.sort((a: Tile, b: Tile) => {
+  private readonly _tiles: readonly Tile[];
+  private readonly _type;
+  constructor(tiles: readonly Tile[], type: BLOCK) {
+    this._tiles = tiles;
+    this._type = type;
+    if (this._type == BLOCK.CHI) {
+      this._tiles = [...this._tiles].sort((a: Tile, b: Tile) => {
         if (a.has(OPERATOR.HORIZONTAL)) return -1;
         if (b.has(OPERATOR.HORIZONTAL)) return 1;
         return tileSortFunc(a, b);
       });
       return;
     }
-    if (type == BLOCK.SHO_KAN) {
+    if (this._type == BLOCK.SHO_KAN) {
       return;
     }
-    if (type != BLOCK.DISCARD) {
-      tiles.sort(tileSortFunc);
+    if (this._type != BLOCK.DISCARD) {
+      this._tiles = [...this._tiles].sort(tileSortFunc);
     }
+  }
+
+  get type() {
+    return this._type;
+  }
+
+  get tiles(): readonly Tile[] {
+    return this._tiles;
   }
 
   toString(): string {
@@ -134,7 +147,7 @@ export class Block {
   }
 
   is(type: BLOCK): boolean {
-    return this.type == type;
+    return this._type == type;
   }
 
   isCalled(): boolean {
@@ -144,20 +157,27 @@ export class Block {
       BLOCK.AN_KAN.toString(),
       BLOCK.DAI_KAN.toString(),
       BLOCK.SHO_KAN.toString(),
-    ].includes(this.type.toString());
+    ].includes(this._type.toString());
   }
 
   minTile(): Tile {
-    if (this.is(BLOCK.CHI)) return this.clone().tiles.sort(tileSortFunc)[0];
+    if (this.is(BLOCK.CHI)) return [...this.tiles].sort(tileSortFunc)[0];
     if (this.is(BLOCK.HAND))
       throw new Error(`[debug] mintile() is called with ${this.toString()}`);
     return this.tiles[0];
   }
 
   // clone the block with the operators
-  clone() {
-    const tiles = this.tiles.map((t) => new Tile(t.t, t.n, [...t.ops]));
-    return blockWrapper(tiles, this.type);
+  clone(override?: {
+    replace?: {
+      idx: number;
+      tile: Tile;
+    };
+  }) {
+    const rp = override?.replace;
+    let tiles = [...this.tiles];
+    if (rp) tiles[rp.idx] = rp.tile;
+    return blockWrapper(tiles, this._type);
   }
 
   // user must multiple scale
