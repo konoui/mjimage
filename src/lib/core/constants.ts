@@ -32,11 +32,12 @@ export const BLOCK = {
   DORA: "dora",
   TSUMO: "tsumo",
   //  RON: "ron",
+  THREE: "three",
+  RUN: "run",
   HAND: "hand",
   DISCARD: "simple-discard",
   UNKNOWN: "unknown",
   PAIR: "pair",
-  SET: "set",
   ISOLATED: "isolated",
 } as const;
 

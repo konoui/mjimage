@@ -101,7 +101,7 @@ export class Tile {
 type BLOCK = (typeof BLOCK)[keyof typeof BLOCK];
 
 // Block is a immutable object
-export class Block {
+export abstract class Block {
   private readonly _tiles: readonly Tile[];
   private readonly _type;
   constructor(tiles: readonly Tile[], type: BLOCK) {
@@ -212,8 +212,6 @@ export class BlockPon extends Block {
 }
 
 // FIXME red handling
-// TODO consider tiles should return back tiles or original non back tiles
-// when using hand to inc with tiles, returned tile must be original tile.
 export class BlockAnKan extends Block {
   constructor(tiles: Tile[]) {
     super(tiles, BLOCK.AN_KAN);
@@ -249,21 +247,15 @@ export class BlockPair extends Block {
   }
 }
 
-class BlockSet extends Block {
+export class BlockThree extends Block {
   constructor(tiles: [Tile, Tile, Tile]) {
-    super(tiles, BLOCK.SET);
+    super(tiles, BLOCK.THREE);
   }
 }
 
-export class BlockThree extends BlockSet {
+export class BlockRun extends Block {
   constructor(tiles: [Tile, Tile, Tile]) {
-    super(tiles);
-  }
-}
-
-export class BlockRun extends BlockSet {
-  constructor(tiles: [Tile, Tile, Tile]) {
-    super(tiles);
+    super(tiles, BLOCK.RUN);
   }
 }
 
@@ -273,6 +265,20 @@ export class BlockIsolated extends Block {
   }
 }
 
+export class BlockHand extends Block {
+  constructor(tiles: Tile[]) {
+    super(tiles, BLOCK.HAND);
+  }
+}
+
+// block other means tsumo/dora etc...
+export class BlockOther extends Block {
+  constructor(tiles: Tile[], type: BLOCK) {
+    super(tiles, type);
+  }
+}
+
+// TODO remove export
 export const blockWrapper = (
   tiles: Tile[],
   type: BLOCK
@@ -284,8 +290,11 @@ export const blockWrapper = (
   | BlockDaiKan
   | BlockShoKan
   | BlockPair
-  | BlockSet
-  | BlockIsolated => {
+  | BlockRun
+  | BlockThree
+  | BlockHand
+  | BlockIsolated
+  | BlockOther => {
   switch (type) {
     case BLOCK.CHI:
       return new BlockChi([tiles[0], tiles[1], tiles[2]]);
@@ -297,16 +306,18 @@ export const blockWrapper = (
       return new BlockDaiKan(tiles);
     case BLOCK.SHO_KAN:
       return new BlockShoKan(tiles);
-    case BLOCK.SET:
-      if (tiles[0].equals(tiles[1], true))
-        return new BlockThree(tiles as [Tile, Tile, Tile]);
+    case BLOCK.THREE:
+      return new BlockThree(tiles as [Tile, Tile, Tile]);
+    case BLOCK.RUN:
       return new BlockRun(tiles as [Tile, Tile, Tile]);
     case BLOCK.PAIR:
       return new BlockPair(tiles[0], tiles[1]);
     case BLOCK.ISOLATED:
       return new BlockIsolated(tiles[0]);
+    case BLOCK.HAND:
+      return new BlockHand(tiles);
     default:
-      return new Block(tiles, type);
+      return new BlockOther(tiles, type);
   }
 };
 
@@ -380,12 +391,17 @@ export class Parser {
   private makeBlocks(tiles: (Tile | Separator)[]) {
     let cluster: Tile[] = [];
     const res: (
-      | Block
+      | BlockHand
+      | BlockOther
       | BlockChi
       | BlockPon
       | BlockAnKan
       | BlockDaiKan
       | BlockShoKan
+      | BlockThree
+      | BlockRun
+      | BlockIsolated
+      | BlockPair
     )[] = [];
 
     if (tiles.length == 0) return res;

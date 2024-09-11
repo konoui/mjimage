@@ -6,6 +6,8 @@ import {
   Parser,
   BlockAnKan,
   BlockChi,
+  BlockOther,
+  BlockHand,
 } from "../core/parser";
 import { TYPE, OPERATOR, BLOCK, INPUT_SEPARATOR } from "../core/constants";
 import { Lexer } from "../core/lexer";
@@ -14,18 +16,15 @@ describe("parse", () => {
   test("12s34m1z2d,t1s,_05s_,-123s", () => {
     const got = new Parser("12s34m1z2d,t1s,_05s_,-123s").parse();
     const want = [
-      new Block(
-        [
-          new Tile(TYPE.S, 1),
-          new Tile(TYPE.S, 2),
-          new Tile(TYPE.M, 3),
-          new Tile(TYPE.M, 4),
-          new Tile(TYPE.Z, 1),
-          new Tile(TYPE.Z, 6),
-        ],
-        BLOCK.HAND
-      ),
-      new Block([new Tile(TYPE.S, 1, [OPERATOR.TSUMO])], BLOCK.TSUMO),
+      new BlockHand([
+        new Tile(TYPE.S, 1),
+        new Tile(TYPE.S, 2),
+        new Tile(TYPE.M, 3),
+        new Tile(TYPE.M, 4),
+        new Tile(TYPE.Z, 1),
+        new Tile(TYPE.Z, 6),
+      ]),
+      new BlockOther([new Tile(TYPE.S, 1, [OPERATOR.TSUMO])], BLOCK.TSUMO),
       new BlockAnKan([
         new Tile(TYPE.BACK, 0),
         new Tile(TYPE.S, 0),

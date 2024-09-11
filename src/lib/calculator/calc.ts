@@ -8,11 +8,12 @@ import {
   BlockAnKan,
   BlockDaiKan,
   Type,
-  Block,
   BlockPair,
+  Block,
   BlockIsolated,
   BlockThree,
   BlockRun,
+  BlockHand,
 } from "../core/parser";
 
 export type TupleOfSize<
@@ -106,7 +107,7 @@ export class Hand {
     for (let b of this.called) c = `${c},${b.toString()}`;
 
     const tiles = this.hands;
-    const b = new Block(tiles, BLOCK.HAND).toString();
+    const b = new BlockHand(tiles).toString();
     return `${b}${c}`;
   }
   get called() {
@@ -604,7 +605,7 @@ export class BlockCalculator {
         cond(t, 8, [1, 2]);
       const cond2 = this.hand.sum(t) == 14;
       if (cond1 && cond2) {
-        return [[new Block(this.hand.hands, BLOCK.HAND)]];
+        return [[new BlockHand(this.hand.hands)]];
       }
     }
     return [];

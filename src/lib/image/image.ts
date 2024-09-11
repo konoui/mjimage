@@ -270,13 +270,16 @@ const getBlockCreators = (h: ImageHelper) => {
       const g = h.createBlockHandDiscard(block);
       return { ...size, e: g };
     },
+    [BLOCK.THREE]: function (block: Block) {
+      throw new Error("found unknown block");
+    },
+    [BLOCK.RUN]: function (block: Block) {
+      throw new Error("found unknown block");
+    },
     [BLOCK.UNKNOWN]: function (block: Block) {
       throw new Error("found unknown block");
     },
     [BLOCK.PAIR]: function (block: Block) {
-      throw new Error("unsupported");
-    },
-    [BLOCK.SET]: function (block: Block) {
       throw new Error("unsupported");
     },
     [BLOCK.ISOLATED]: function (block: Block) {

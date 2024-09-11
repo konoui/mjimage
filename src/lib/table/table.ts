@@ -1,4 +1,4 @@
-import { Tile, Block, BLOCK } from "../core/";
+import { Tile, Block, BLOCK, BlockOther } from "../core/";
 import { ImageHelper, createHand, ImageHelperConfig } from "../image/image";
 import { Svg, Element, Text, G, Rect } from "@svgdotjs/svg.js";
 import { FontContext } from "../measure-text/";
@@ -53,7 +53,7 @@ const handleDiscard = (tiles: Tile[], helper: ImageHelper) => {
     let tiles = chunks[i];
     let posY = i * helper.tileHeight;
     const e = helper
-      .createBlockHandDiscard(new Block(tiles, BLOCK.DISCARD))
+      .createBlockHandDiscard(new BlockOther(tiles, BLOCK.DISCARD))
       .translate(0, posY);
     g.add(e);
   }
