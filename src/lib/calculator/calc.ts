@@ -780,8 +780,8 @@ export class DoubleCalculator {
         params.blindDoraMarkers == null
           ? []
           : params.blindDoraMarkers.map((v) => toDora(v)),
-      roundWind: new Parser(params.round.substring(0, 2)).parse()[0].tiles[0],
-      myWind: new Parser(params.myWind).parse()[0].tiles[0],
+      roundWind: Tile.from(params.round.substring(0, 2)),
+      myWind: Tile.from(params.myWind),
       reached: params.reached ?? 0,
       sticks: params.sticks ?? { dead: 0, reach: 0 },
       replacementWin: params.replacementWin ?? false,

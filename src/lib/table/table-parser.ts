@@ -131,7 +131,7 @@ export const convertInput = (i: TableInput) => {
     frontPlace: WIND_MAP[frontPlace],
     sticks: i.board.sticks,
     doras: i.board!.doras.map((v) => {
-      return new Parser(v).tiles()[0];
+      return Tile.from(v);
     }),
     scores: {
       front: i[m.front].score,

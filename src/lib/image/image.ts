@@ -306,11 +306,6 @@ export const createHand = (helper: ImageHelper, blocks: Block[]) => {
   const viewBoxHeight = maxHeight;
   const viewBoxWidth = sumWidth + (blocks.length - 1) * helper.blockMargin;
 
-  const params = {
-    viewBoxWidth: viewBoxWidth,
-    viewBoxHeight: viewBoxHeight,
-  };
-
   const creators = getBlockCreators(helper);
 
   const elms: MySVGElement[] = [];
