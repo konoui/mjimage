@@ -45,9 +45,6 @@ export class Player extends BaseActor {
   handleEvent(e: PlayerEvent) {
     switch (e.type) {
       case "CHOICE_AFTER_DISCARDED":
-        e.choices.CHI = false;
-        e.choices.DAI_KAN = false;
-        e.choices.PON = false;
         this.eventHandler.emit(e);
         break;
       case "CHOICE_AFTER_CALLED":

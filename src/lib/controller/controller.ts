@@ -692,116 +692,127 @@ export abstract class BaseActor {
   protected abstract setHands(e: DistributeEvent): void;
   // handle event expect for choice events
   handleEvent(e: PlayerEvent) {
-    switch (e.type) {
-      case "CHOICE_AFTER_CALLED":
-      case "CHOICE_AFTER_DISCARDED":
-      case "CHOICE_AFTER_DRAWN":
-      case "CHOICE_FOR_CHAN_KAN":
-        break;
-      case "DISTRIBUTE":
-        // reset
-        this.counter.reset();
+    try {
+      switch (e.type) {
+        case "CHOICE_AFTER_CALLED":
+        case "CHOICE_AFTER_DISCARDED":
+        case "CHOICE_AFTER_DRAWN":
+        case "CHOICE_FOR_CHAN_KAN":
+          break;
+        case "DISTRIBUTE":
+          // reset
+          this.counter.reset();
 
-        this.setHands(e);
-        this.placeManager = new PlaceManager(structuredClone(e.places), {
-          round: structuredClone(e.round),
-          sticks: structuredClone(e.sticks),
-        });
-        this.scoreManager = new ScoreManager(structuredClone(e.scores));
-        this.doraMarkers = [e.doraMarker];
+          this.setHands(e);
+          this.placeManager = new PlaceManager(structuredClone(e.places), {
+            round: structuredClone(e.round),
+            sticks: structuredClone(e.sticks),
+          });
+          this.scoreManager = new ScoreManager(structuredClone(e.scores));
+          this.doraMarkers = [e.doraMarker];
 
-        this.counter.dec(e.doraMarker);
-        for (let w of Object.values(WIND)) {
-          if (w != e.wind) continue;
-          this.counter.dec(...this.hand(w).hands);
-        }
-        break;
-      case "DRAW":
-        this.hands[e.iam].draw(e.tile);
-        this.counter.dec(e.tile);
-        break;
-      case "DISCARD":
-        this.river.discard(e.tile, e.iam);
-        this.hands[e.iam].discard(e.tile);
-        if (e.iam != e.wind) {
-          this.counter.dec(e.tile); // own tile is recorded by DRAW event
-          this.counter.addTileToSafeMap(e.tile, e.iam); // そのユーザの捨て牌を現物に追加
-          // 立直されている場合、捨て牌は立直ユーザの現物になる
-          for (let w of Object.values(WIND))
-            if (this.hand(w).reached) this.counter.addTileToSafeMap(e.tile, w);
-        }
-        break;
-      case "PON":
-      case "CHI":
-      case "DAI_KAN":
-        this.hands[e.iam].call(e.block);
-        this.river.markCalled();
-        if (e.iam != e.wind)
-          this.counter.dec(
-            ...e.block.tiles.filter((t) => !t.has(OPERATOR.HORIZONTAL))
-          );
-        break;
-      case "SHO_KAN":
-      case "AN_KAN":
-        this.hands[e.iam].kan(e.block);
-        if (e.iam != e.wind)
-          this.counter.dec(
-            ...e.block.tiles.filter((t) => !t.has(OPERATOR.HORIZONTAL))
-          );
-        break;
-      case "REACH":
-        const pid = this.placeManager.playerID(e.iam);
-        this.hands[e.iam].reach();
-        this.scoreManager.reach(pid);
-        this.placeManager.incrementReachStick();
-
-        // Note: discarded tile is handled by discard event
-        // this.hands[e.iam].discard(e.tile);
-        // this.river.discard(e.tile, e.iam);
-        break;
-      case "NEW_DORA":
-        this.doraMarkers.push(e.doraMarker);
-        this.counter.dec(e.doraMarker);
-        break;
-      case "TSUMO":
-        break;
-      case "RON":
-        if (e.pushBackReachStick) {
-          const w = e.targetInfo.wind;
-          const id = this.placeManager.playerID(w);
-          this.scoreManager.restoreReachStick(id);
-          this.placeManager.decrementReachStick();
-        }
-        break;
-      case "END_GAME":
-        switch (e.subType) {
-          case "NINE_TILES":
-          case "FOUR_KAN":
-          case "FOUR_WIND":
-            this.placeManager.incrementDeadStick();
-            break;
-          case "DRAWN_GAME": {
-            const pm = this.placeManager.playerMap;
-            this.scoreManager.update(e.deltas, pm);
-            this.placeManager.incrementDeadStick();
-            if (!e.shouldContinue) this.placeManager.nextRound();
-            break;
+          this.counter.dec(e.doraMarker);
+          for (let w of Object.values(WIND)) {
+            if (w != e.wind) continue;
+            this.counter.dec(...this.hand(w).hands);
           }
-          case "WIN_GAME": {
-            const pm = this.placeManager.playerMap;
-            this.scoreManager.update(e.deltas, pm);
-            if (e.shouldContinue) this.placeManager.incrementDeadStick();
-            else {
-              this.placeManager.nextRound();
-              this.placeManager.resetDeadStick();
+          break;
+        case "DRAW":
+          this.hands[e.iam].draw(e.tile);
+          this.counter.dec(e.tile);
+          break;
+        case "DISCARD":
+          this.river.discard(e.tile, e.iam);
+          this.hands[e.iam].discard(e.tile);
+          if (e.iam != e.wind) {
+            this.counter.dec(e.tile); // own tile is recorded by DRAW event
+            this.counter.addTileToSafeMap(e.tile, e.iam); // そのユーザの捨て牌を現物に追加
+            // 立直されている場合、捨て牌は立直ユーザの現物になる
+            for (let w of Object.values(WIND))
+              if (this.hand(w).reached)
+                this.counter.addTileToSafeMap(e.tile, w);
+          }
+          break;
+        case "PON":
+        case "CHI":
+        case "DAI_KAN":
+          this.hands[e.iam].call(e.block);
+          this.river.markCalled();
+          if (e.iam != e.wind)
+            this.counter.dec(
+              ...e.block.tiles.filter((t) => !t.has(OPERATOR.HORIZONTAL))
+            );
+          break;
+        case "SHO_KAN":
+          this.hands[e.iam].kan(e.block);
+          if (e.iam != e.wind)
+            this.counter.dec(
+              e.block.tiles.filter((t) => t.has(OPERATOR.HORIZONTAL))[0]
+            );
+          break;
+        case "AN_KAN":
+          this.hands[e.iam].kan(e.block);
+          if (e.iam != e.wind)
+            this.counter.dec(
+              ...e.block.tiles.filter((t) => !t.has(OPERATOR.HORIZONTAL))
+            );
+          break;
+        case "REACH":
+          const pid = this.placeManager.playerID(e.iam);
+          this.hands[e.iam].reach();
+          this.scoreManager.reach(pid);
+          this.placeManager.incrementReachStick();
+
+          // Note: discarded tile is handled by discard event
+          // this.hands[e.iam].discard(e.tile);
+          // this.river.discard(e.tile, e.iam);
+          break;
+        case "NEW_DORA":
+          this.doraMarkers.push(e.doraMarker);
+          this.counter.dec(e.doraMarker);
+          break;
+        case "TSUMO":
+          break;
+        case "RON":
+          if (e.pushBackReachStick) {
+            const w = e.targetInfo.wind;
+            const id = this.placeManager.playerID(w);
+            this.scoreManager.restoreReachStick(id);
+            this.placeManager.decrementReachStick();
+          }
+          break;
+        case "END_GAME":
+          switch (e.subType) {
+            case "NINE_TILES":
+            case "FOUR_KAN":
+            case "FOUR_WIND":
+              this.placeManager.incrementDeadStick();
+              break;
+            case "DRAWN_GAME": {
+              const pm = this.placeManager.playerMap;
+              this.scoreManager.update(e.deltas, pm);
+              this.placeManager.incrementDeadStick();
+              if (!e.shouldContinue) this.placeManager.nextRound();
+              break;
             }
-            this.placeManager.resetReachStick();
-            break;
+            case "WIN_GAME": {
+              const pm = this.placeManager.playerMap;
+              this.scoreManager.update(e.deltas, pm);
+              if (e.shouldContinue) this.placeManager.incrementDeadStick();
+              else {
+                this.placeManager.nextRound();
+                this.placeManager.resetDeadStick();
+              }
+              this.placeManager.resetReachStick();
+              break;
+            }
           }
-        }
-        break;
-      default:
-        throw new Error(`unexpected event ${JSON.stringify(e, null, 2)}`);
+          break;
+        default:
+          throw new Error(`unexpected event ${JSON.stringify(e, null, 2)}`);
+      }
+    } catch (error) {
+      throw new Error(`${this.id} ${e.type} ${error}`);
     }
   }
 }
