@@ -33,31 +33,41 @@ export function isType(v: string): [Type, boolean] {
 
 type Operator = (typeof OPERATOR)[keyof typeof OPERATOR];
 
+// Tile is a immutable object
 export class Tile {
-  constructor(public t: Type, public n: number, public ops: Operator[] = []) {}
+  constructor(
+    public readonly t: Type,
+    public readonly n: number,
+    public readonly ops: Operator[] = []
+  ) {}
+
+  static from(s: string) {
+    const tiles = new Parser(s).tiles();
+    if (tiles.length != 1) throw new Error(`input is not single tile ${s}`);
+    return tiles[0];
+  }
 
   toString(): string {
     if (this.t === TYPE.BACK) return this.t;
     return `${this.ops.join("")}${this.n}${this.t}`;
   }
 
-  clone() {
-    return new Tile(this.t, this.n, [...this.ops]);
+  clone(override?: {
+    t?: Type;
+    n?: number;
+    remove?: Operator;
+    add?: Operator;
+  }) {
+    const t = override?.t ?? this.t;
+    const n = override?.n ?? this.n;
+    const ops = this.ops.filter((v) => !override?.remove?.includes(v));
+    const s = new Set([...ops]);
+    if (override?.add) s.add(override.add);
+    return new Tile(t, n, Array.from(s));
   }
 
   has(op: Operator) {
     return this.ops.includes(op);
-  }
-
-  add(op: Operator): Tile {
-    this.ops.push(op);
-    this.ops = Array.from(new Set(this.ops));
-    return this;
-  }
-
-  remove(op: Operator): Tile {
-    this.ops = this.ops.filter((v) => v != op);
-    return this;
   }
 
   isNum() {
@@ -458,7 +468,9 @@ function isTypeAlias(s: string, cluster: Tile[]): [Type, boolean] {
   if (isAlias && cluster.length > 0) {
     for (let i = 0; i < cluster.length; i++) {
       // convert alias
-      if (s === "d") cluster[i].n += 4;
+      if (s === "d") {
+        cluster[i] = cluster[i].clone({ n: cluster[i].n + 4 });
+      }
     }
     return [TYPE.Z, true];
   }

@@ -287,7 +287,7 @@ export class MJAIPlayer {
       }
       case "chi": {
         const block = new BlockChi([
-          toTile(e.pai).add(OPERATOR.HORIZONTAL),
+          toTile(e.pai).added(OPERATOR.HORIZONTAL),
           toTile(e.consumed[0]),
           toTile(e.consumed[1]),
         ]);
@@ -306,7 +306,7 @@ export class MJAIPlayer {
         if (idx == 2) idx = 1;
         if (idx == 1) idx = 2;
         const block = new BlockPon([
-          toTile(e.pai).add(OPERATOR.HORIZONTAL),
+          toTile(e.pai).added(OPERATOR.HORIZONTAL),
           toTile(e.consumed[0]),
           toTile(e.consumed[1]),
         ]);
@@ -326,7 +326,7 @@ export class MJAIPlayer {
         if (idx == 2) idx = 1;
         if (idx == 1) idx = 2;
         const block = new BlockDaiKan([
-          toTile(e.pai).add(OPERATOR.HORIZONTAL),
+          toTile(e.pai).added(OPERATOR.HORIZONTAL),
           toTile(e.consumed[0]),
           toTile(e.consumed[1]),
           toTile(e.consumed[2]),
@@ -344,8 +344,8 @@ export class MJAIPlayer {
       case "kakan": {
         // FIXME
         const block = new BlockAnKan([
-          toTile(e.pai).add(OPERATOR.HORIZONTAL),
-          toTile(e.consumed[0]).add(OPERATOR.HORIZONTAL),
+          toTile(e.pai).added(OPERATOR.HORIZONTAL),
+          toTile(e.consumed[0]).added(OPERATOR.HORIZONTAL),
           toTile(e.consumed[1]),
           toTile(e.consumed[2]),
         ]);

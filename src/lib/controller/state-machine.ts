@@ -374,7 +374,7 @@ export const createControllerMachine = (c: Controller) => {
         notify_choice_after_discarded: ({ context, event }) => {
           const id = context.genEventID();
           const discarded = context.controller.river.lastTile;
-          const ltile = discarded.t.clone().add(OPERATOR.HORIZONTAL);
+          const ltile = discarded.t.clone({ add: OPERATOR.HORIZONTAL });
           for (let w of Object.values(WIND)) {
             const e = {
               id: id,
@@ -425,11 +425,11 @@ export const createControllerMachine = (c: Controller) => {
             throw new Error(`unexpected event ${event.type}`);
           const id = context.genEventID();
 
-          const t = event.block.tiles[0].clone().remove(OPERATOR.HORIZONTAL);
+          const t = event.block.tiles[0].clone({ remove: OPERATOR.HORIZONTAL });
           for (let w of Object.values(WIND)) {
             const ron = context.controller.doWin(
               w,
-              event.block.tiles[0].clone().remove(OPERATOR.HORIZONTAL),
+              event.block.tiles[0].clone({ remove: OPERATOR.HORIZONTAL }),
               {
                 whoDiscarded: event.iam,
                 quadWin: true,
@@ -571,7 +571,7 @@ export const createControllerMachine = (c: Controller) => {
             throw new Error(`unexpected event ${event.type}`);
           const id = context.genEventID();
           const iam = event.iam;
-          const t = event.tile.clone().add(OPERATOR.HORIZONTAL);
+          const t = event.tile.clone({ add: OPERATOR.HORIZONTAL });
           context.oneShotMap[iam] = true; // enable one shot
           for (let w of Object.values(WIND)) {
             const e = {

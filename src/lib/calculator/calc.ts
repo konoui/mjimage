@@ -91,7 +91,7 @@ export class Hand {
         throw new Error(
           `[debug] hand has drawn: ${this.drawn} but no tile in hands`
         );
-      tiles[idx].add(OPERATOR.TSUMO);
+      tiles[idx] = tiles[idx].clone({ add: OPERATOR.TSUMO });
     }
     if (tiles.length < 1)
       throw new Error(
@@ -155,8 +155,7 @@ export class Hand {
         this.get(t.t, 0) == 0
       ) {
         this.data[t.t][0] = 1;
-        const c = backup.pop()!.clone();
-        c.n = 0;
+        const c = backup.pop()!.clone({ n: 0 });
         backup.push(c);
       }
     }
@@ -193,17 +192,16 @@ export class Hand {
         this.get(t.t, 0) > 0
       ) {
         this.data[t.t][0] = 0;
-        const c = backup.pop()!.clone();
-        c.n = 0;
+        const c = backup.pop()!.clone({ n: 0 });
         backup.push(c);
       }
     }
     return backup;
   }
   draw(t: Tile) {
-    t.add(OPERATOR.TSUMO);
-    this.inc([t]);
-    this.data.tsumo = t;
+    const ts = t.clone({ add: OPERATOR.TSUMO });
+    this.inc([ts]);
+    this.data.tsumo = ts;
     return;
   }
   discard(t: Tile) {
@@ -544,7 +542,9 @@ export class BlockCalculator {
     for (let [hidx, bidx, tidx] of indexes) {
       const hand = hands[hidx];
       const newHand = hand.map((block) => block.clone());
-      newHand[bidx].tiles[tidx].add(op);
+      newHand[bidx].tiles[tidx] = newHand[bidx].tiles[tidx].clone({
+        add: op,
+      });
       newHands.push(newHand);
     }
 
