@@ -243,8 +243,7 @@ export class Controller {
             iam: w,
           });
           break;
-        case "AN_KAN":
-        case "SHO_KAN":
+        case "AN_KAN": {
           const choices = e.choices[selected.type];
           assert(choices, `${selected.type} choice is none`);
           this.actor.send({
@@ -253,6 +252,17 @@ export class Controller {
             iam: w,
           });
           break;
+        }
+        case "SHO_KAN": {
+          const choices = e.choices[selected.type];
+          assert(choices, `${selected.type} choice is none`);
+          this.actor.send({
+            type: selected.type,
+            block: choices[0],
+            iam: w,
+          });
+          break;
+        }
         case "DRAWN_GAME_BY_NINE_TILES":
           this.actor.send({ type: "DRAWN_GAME_BY_NINE_TILES", iam: w });
           break;

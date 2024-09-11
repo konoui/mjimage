@@ -22,7 +22,7 @@ export const tileSortFunc = (i: Tile, j: Tile) => {
 
 export type Type = (typeof TYPE)[keyof typeof TYPE];
 
-export function isType(v: string): [Type, boolean] {
+function isType(v: string): [Type, boolean] {
   for (let t of Object.values(TYPE)) {
     if (t == v) {
       return [t, true];
@@ -154,9 +154,9 @@ export abstract class Block {
     return [
       BLOCK.PON.toString(),
       BLOCK.CHI.toString(),
-      BLOCK.AN_KAN.toString(),
       BLOCK.DAI_KAN.toString(),
       BLOCK.SHO_KAN.toString(),
+      BLOCK.AN_KAN.toString(),
     ].includes(this._type.toString());
   }
 
@@ -200,29 +200,50 @@ export abstract class Block {
 }
 
 export class BlockChi extends Block {
-  constructor(tiles: [Tile, Tile, Tile]) {
+  constructor(tiles: readonly [Tile, Tile, Tile]) {
     super(tiles, BLOCK.CHI);
   }
 }
 
 export class BlockPon extends Block {
-  constructor(tiles: [Tile, Tile, Tile]) {
+  constructor(tiles: readonly [Tile, Tile, Tile]) {
     super(tiles, BLOCK.PON);
   }
 }
 
-// FIXME red handling
+// BlockAnkan store tiles for number tiles
+// if getting tiles with back tile, to use tilesWithBack
 export class BlockAnKan extends Block {
-  constructor(tiles: Tile[]) {
+  constructor(tiles: readonly Tile[]) {
+    const ftiles = tiles.filter((v) => v.t != TYPE.BACK);
+    const sample = ftiles[0];
+    if (ftiles.length < tiles.length) {
+      if (sample.isNum() && (sample.n == 5 || sample.n == 0)) {
+        const t = new Tile(sample.t, 5);
+        super([new Tile(sample.t, 0), t, t, t], BLOCK.AN_KAN);
+        return;
+      }
+      super([sample, sample, sample, sample], BLOCK.AN_KAN);
+      return;
+    }
     super(tiles, BLOCK.AN_KAN);
   }
 
-  toString() {
-    const tiles = this.tiles.map((t) => t.clone());
-    if (!tiles.some((v) => v.t == TYPE.BACK)) {
-      tiles[0] = new Tile(TYPE.BACK, 0);
-      tiles[3] = new Tile(TYPE.BACK, 0);
+  get tilesWithBack() {
+    const sample = this.tiles[0];
+    if (sample.isNum() && (sample.n == 5 || sample.n == 0)) {
+      return [
+        new Tile(TYPE.BACK, 0),
+        new Tile(sample.t, 0),
+        new Tile(sample.t, 5),
+        new Tile(TYPE.BACK, 0),
+      ];
     }
+    return [new Tile(TYPE.BACK, 0), sample, sample, new Tile(TYPE.BACK, 0)];
+  }
+
+  toString() {
+    const tiles = this.tilesWithBack;
     return tiles.reduce((s: string, t: Tile) => {
       return `${s}${t.toString()}`;
     }, "");
@@ -230,13 +251,13 @@ export class BlockAnKan extends Block {
 }
 
 export class BlockDaiKan extends Block {
-  constructor(tiles: Tile[]) {
+  constructor(tiles: readonly Tile[]) {
     super(tiles, BLOCK.DAI_KAN);
   }
 }
 
 export class BlockShoKan extends Block {
-  constructor(tiles: Tile[]) {
+  constructor(tiles: readonly Tile[]) {
     super(tiles, BLOCK.SHO_KAN);
   }
 }
@@ -248,13 +269,13 @@ export class BlockPair extends Block {
 }
 
 export class BlockThree extends Block {
-  constructor(tiles: [Tile, Tile, Tile]) {
+  constructor(tiles: readonly [Tile, Tile, Tile]) {
     super(tiles, BLOCK.THREE);
   }
 }
 
 export class BlockRun extends Block {
-  constructor(tiles: [Tile, Tile, Tile]) {
+  constructor(tiles: readonly [Tile, Tile, Tile]) {
     super(tiles, BLOCK.RUN);
   }
 }
@@ -266,14 +287,14 @@ export class BlockIsolated extends Block {
 }
 
 export class BlockHand extends Block {
-  constructor(tiles: Tile[]) {
+  constructor(tiles: readonly Tile[]) {
     super(tiles, BLOCK.HAND);
   }
 }
 
 // block other means tsumo/dora etc...
 export class BlockOther extends Block {
-  constructor(tiles: Tile[], type: BLOCK) {
+  constructor(tiles: readonly Tile[], type: BLOCK) {
     super(tiles, type);
   }
 }
@@ -476,7 +497,7 @@ function detectBlockType(tiles: Tile[]): BLOCK {
 }
 
 function areConsecutiveTiles(tiles: Tile[]): boolean {
-  tiles = tiles.map((t) => t.clone()).sort(tileSortFunc);
+  tiles = [...tiles].sort(tileSortFunc);
   for (let i = 0; i < tiles.length - 1; i++) {
     let n = tiles[i].n,
       np = tiles[i + 1].n;
@@ -503,9 +524,9 @@ function isTypeAlias(s: string, cluster: Tile[]): [Type, boolean] {
   const isAlias = s === "w" || s === "d";
   if (isAlias && cluster.length > 0) {
     for (let i = 0; i < cluster.length; i++) {
-      // convert alias
+      const t = cluster[i];
       if (s === "d") {
-        cluster[i] = cluster[i].clone({ n: cluster[i].n + 4 });
+        cluster[i] = t.clone({ n: cluster[i].n + 4 });
       }
     }
     return [TYPE.Z, true];
