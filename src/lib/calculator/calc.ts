@@ -63,13 +63,13 @@ export class Hand {
         this.data.tsumo = t;
         continue;
       } else if (b.is(BLOCK.HAND)) {
-        this.inc([...b.tiles]);
+        this.inc(b.tiles);
         continue;
       } else if (input.split("").every((v) => v === TYPE.BACK)) {
-        this.inc([...b.tiles]);
+        this.inc(b.tiles);
         continue;
       } else if (allowBackBlock) {
-        this.inc([...b.tiles]);
+        this.inc(b.tiles);
         continue;
       }
       throw new Error(`unexpected block ${b.type} ${b.toString()}`);
@@ -140,7 +140,7 @@ export class Hand {
     if (t == TYPE.BACK) return this.data[t][1];
     return this.data[t][n];
   }
-  inc(tiles: Tile[]): Tile[] {
+  inc(tiles: readonly Tile[]): Tile[] {
     const backup: Tile[] = [];
     for (let t of tiles) {
       if (t.t != TYPE.BACK && this.get(t.t, t.n) >= 4) {
@@ -163,7 +163,7 @@ export class Hand {
     }
     return backup;
   }
-  dec(tiles: Tile[]): Tile[] {
+  dec(tiles: readonly Tile[]): Tile[] {
     const backup: Tile[] = [];
     for (let t of tiles) {
       if (this.get(t.t, t.n) < 1) {

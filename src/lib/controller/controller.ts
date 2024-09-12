@@ -715,10 +715,10 @@ export class ActorHand extends Hand {
     return c;
   }
 
-  override dec(tiles: Tile[]) {
+  override dec(tiles: readonly Tile[]) {
     if (!this.isBackHand()) return super.dec(tiles);
     super.dec(tiles.map(() => new Tile(TYPE.BACK, 0)));
-    return tiles;
+    return [...tiles];
   }
 }
 
