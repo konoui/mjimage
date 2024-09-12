@@ -160,13 +160,6 @@ export abstract class Block {
     ].includes(this._type.toString());
   }
 
-  minTile(): Tile {
-    if (this.is(BLOCK.CHI)) return [...this.tiles].sort(tileSortFunc)[0];
-    if (this.is(BLOCK.HAND))
-      throw new Error(`[debug] mintile() is called with ${this.toString()}`);
-    return this.tiles[0];
-  }
-
   // clone the block with the operators
   clone(override?: {
     replace?: {
@@ -526,7 +519,7 @@ function isTypeAlias(s: string, cluster: Tile[]): [Type, boolean] {
     for (let i = 0; i < cluster.length; i++) {
       const t = cluster[i];
       if (s === "d") {
-        cluster[i] = t.clone({ n: cluster[i].n + 4 });
+        cluster[i] = t.clone({ n: t.n + 4 });
       }
     }
     return [TYPE.Z, true];

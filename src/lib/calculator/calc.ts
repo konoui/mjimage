@@ -14,6 +14,7 @@ import {
   BlockThree,
   BlockRun,
   BlockHand,
+  tileSortFunc,
 } from "../core/parser";
 
 export type TupleOfSize<
@@ -1076,16 +1077,16 @@ export class DoubleCalculator {
     };
     for (let block of h) {
       if (!check(block)) continue;
-      const tile = block.minTile();
+      const tile = minTile(block);
       if (tile.t == TYPE.Z) continue;
       const filteredTypes = [TYPE.M, TYPE.P, TYPE.S].filter((v) => v != tile.t);
       const cond1 = h.some((b) => {
         const newTile = new Tile(filteredTypes[0], tile.n);
-        return check(b) && newTile.equals(b.minTile(), true);
+        return check(b) && newTile.equals(minTile(b), true);
       });
       const cond2 = h.some((b) => {
         const newTile = new Tile(filteredTypes[1], tile.n);
-        return check(b) && newTile.equals(b.minTile(), true);
+        return check(b) && newTile.equals(minTile(b), true);
       });
       if (cond1 && cond2)
         return [{ name: "三色同順", double: 2 - this.minus() }];
@@ -1136,16 +1137,16 @@ export class DoubleCalculator {
     };
     for (let block of h) {
       if (!check(block)) continue;
-      const tile = block.minTile();
+      const tile = minTile(block);
       if (tile.t == TYPE.Z) continue;
       const filteredTypes = [TYPE.M, TYPE.P, TYPE.S].filter((v) => v != tile.t);
       const cond1 = h.some((b) => {
         const newTile = new Tile(filteredTypes[0], tile.n);
-        return check(b) && newTile.equals(b.minTile(), true);
+        return check(b) && newTile.equals(minTile(b), true);
       });
       const cond2 = h.some((b) => {
         const newTile = new Tile(filteredTypes[1], tile.n);
-        return check(b) && newTile.equals(b.minTile(), true);
+        return check(b) && newTile.equals(minTile(b), true);
       });
       if (cond1 && cond2) return [{ name: "三色同刻", double: 2 }];
     }
@@ -1190,10 +1191,10 @@ export class DoubleCalculator {
     };
 
     for (let block of h) {
-      const tile = block.minTile();
+      const tile = minTile(block);
       if (tile.t == TYPE.BACK) continue;
       if (tile.t == TYPE.Z) continue;
-      if (!(block instanceof BlockRun)) continue;
+      if (!(block instanceof BlockRun || block instanceof BlockChi)) continue;
       if (tile.n == 1) m[tile.t][0]++;
       if (tile.n == 4) m[tile.t][1]++;
       if (tile.n == 7) m[tile.t][2]++;
@@ -1439,6 +1440,10 @@ const countSameBlocks = (h: Block[]) => {
     if (v >= 2) count++;
   }
   return count;
+};
+
+const minTile = (b: Block) => {
+  return [...b.tiles].sort(tileSortFunc)[0];
 };
 
 const toDora = (doraMarker: Tile) => {
