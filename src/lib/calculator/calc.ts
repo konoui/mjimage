@@ -90,7 +90,8 @@ export class Hand {
       }
     }
     if (this.drawn != null) {
-      const idx = tiles.findIndex((t) => t.equals(t));
+      const drawn = this.drawn;
+      const idx = tiles.findIndex((t) => t.equals(drawn));
       if (idx < 0)
         throw new Error(
           `[debug] hand has drawn: ${this.drawn} but no tile in hands`
