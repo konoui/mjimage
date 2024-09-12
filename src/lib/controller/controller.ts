@@ -15,6 +15,7 @@ import {
   BlockAnKan,
   BlockChi,
   BlockDaiKan,
+  Block,
   BlockPon,
   BlockShoKan,
   Tile,
@@ -308,7 +309,6 @@ export class Controller {
   }
   static load(h: History) {
     const events = h.choiceEvents;
-    replaceTileBlock(events);
     const playerIDs = Object.keys(h.players);
     const empty: EventHandler = {
       emit: (_: PlayerEvent) => {},
@@ -698,12 +698,36 @@ export class Controller {
   }
 }
 
+export class ActorHand extends Hand {
+  isBackHand() {
+    for (let t of Object.values(TYPE)) {
+      if (t == TYPE.BACK) continue;
+      if (this.sum(t) > 0) return false;
+    }
+    return this.sum(TYPE.BACK) > 0;
+  }
+
+  override clone() {
+    const c = new ActorHand(this.toString());
+    c.data.called = this.called.map((b) => b.clone());
+    c.data.reached = this.data.reached;
+    c.data.tsumo = this.data.tsumo == null ? null : this.data.tsumo;
+    return c;
+  }
+
+  override dec(tiles: Tile[]) {
+    if (!this.isBackHand()) return super.dec(tiles);
+    super.dec(tiles.map(() => new Tile(TYPE.BACK, 0)));
+    return tiles;
+  }
+}
+
 export abstract class BaseActor {
   id: string;
   river = new River();
   placeManager = new PlaceManager({}); // empty for init
   scoreManager = new ScoreManager({}); // empty for init
-  hands = createWindMap(new Hand("")); // empty for init
+  hands = createWindMap(new ActorHand("")); // empty for init
   counter = new Counter();
   doraMarkers: Tile[] = []; // empty for init
   eventHandler: EventHandler;
@@ -748,7 +772,7 @@ export abstract class BaseActor {
           break;
         case "DISCARD":
           this.river.discard(e.tile, e.iam);
-          this.hands[e.iam].discard(e.tile);
+          this.hands[e.iam].discard(e.tile); // FIXME
           if (e.iam != e.wind) {
             this.counter.dec(e.tile); // own tile is recorded by DRAW event
             this.counter.addTileToSafeMap(e.tile, e.iam); // そのユーザの捨て牌を現物に追加
@@ -847,10 +871,10 @@ export class Observer extends BaseActor {
   constructor(eventHandler: EventHandler) {
     super("observer", eventHandler);
     this.counter.disable = true;
-    this.hands = createWindMap(new Hand("_____________"));
+    this.hands = createWindMap(new ActorHand("_____________"));
   }
   setHands(e: DistributeEvent): void {
-    this.hands[e.wind] = new Hand(e.hands[e.wind]);
+    this.hands[e.wind] = new ActorHand(e.hands[e.wind]);
   }
   handleEvent(e: PlayerEvent): void {
     super.handleEvent(e);
@@ -928,58 +952,6 @@ export class Observer extends BaseActor {
           JSON.stringify(this.scoreManager.summary, null, 2),
           `sticks: ${JSON.stringify(this.placeManager.sticks, null, 2)}`
         );
-    }
-  }
-}
-
-export function replaceTileBlock(obj: any): void {
-  for (const key in obj) {
-    if (obj.hasOwnProperty(key)) {
-      const propValue = obj[key];
-      if (
-        typeof propValue === "object" &&
-        propValue !== null &&
-        "k" in propValue &&
-        "n" in propValue &&
-        "ops" in propValue
-      ) {
-        obj[key] = new Tile(propValue.k, propValue.n, propValue.ops);
-      } else if (
-        typeof propValue === "object" &&
-        propValue != null &&
-        "tiles" in propValue &&
-        "type" in propValue
-      ) {
-        obj[key] = blockWrapper(
-          propValue.tiles.map((t: Tile) => new Tile(t.t, t.n, t.ops)),
-          propValue.type
-        );
-      } else if (Array.isArray(propValue)) {
-        for (let i = 0; i < propValue.length; i++) {
-          const v = propValue[i];
-          if (
-            typeof v === "object" &&
-            v !== null &&
-            "k" in v &&
-            "n" in v &&
-            "ops" in v
-          )
-            propValue[i] = new Tile(v.k, v.n, v.ops);
-          else if (
-            typeof v === "object" &&
-            v != null &&
-            "tiles" in v &&
-            "type" in v
-          )
-            propValue[i] = blockWrapper(
-              v.tiles.map((t: Tile) => new Tile(t.t, t.n, t.ops)),
-              v.type
-            );
-          else replaceTileBlock(propValue[i]);
-        }
-      } else if (typeof propValue === "object") {
-        replaceTileBlock(propValue);
-      }
     }
   }
 }

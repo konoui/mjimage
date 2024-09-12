@@ -37,7 +37,7 @@ export interface HandData {
 }
 
 export class Hand {
-  private data: HandData;
+  protected data: HandData;
   constructor(input: string, allowBackBlock = false) {
     this.data = {
       [TYPE.M]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -94,9 +94,11 @@ export class Hand {
       const idx = tiles.findIndex((t) => t.equals(drawn));
       if (idx < 0)
         throw new Error(
-          `[debug] hand has drawn: ${this.drawn} but no tile in hands`
+          `[debug] hand has drawn: ${
+            this.drawn
+          } but no tile in hands: ${tiles.join("")}`
         );
-      tiles[idx] = tiles[idx].clone({ add: OPERATOR.TSUMO });
+      else tiles[idx] = tiles[idx].clone({ add: OPERATOR.TSUMO });
     }
     if (tiles.length < 1)
       throw new Error(
@@ -162,13 +164,6 @@ export class Hand {
     return backup;
   }
   dec(tiles: Tile[]): Tile[] {
-    // for blind hands
-    if (this.hands.every((t) => t.t == TYPE.BACK)) {
-      const toRemove = tiles.map((v) => new Tile(TYPE.BACK, 0));
-      this.data[TYPE.BACK][1] -= tiles.length;
-      return toRemove;
-    }
-
     const backup: Tile[] = [];
     for (let t of tiles) {
       if (this.get(t.t, t.n) < 1) {
@@ -231,8 +226,8 @@ export class Hand {
   kan(b: BlockAnKan | BlockShoKan) {
     if (b instanceof BlockAnKan) {
       // Note: there is a case that t.len == 1
-      const t = b.tiles.filter((v) => v.t != TYPE.BACK && v.n != 0);
-      this.dec([t[0], t[0], t[0], t[0]]);
+      const t = b.tiles[0];
+      this.dec([t, t, t, t]);
       this.data.called.push(b);
       this.data.tsumo = null;
       return;
@@ -751,6 +746,7 @@ export interface WinResult {
   }[];
   point: number;
   hand: Block[];
+  //  handBlocks: string[]; // for hand, call handBlocks.map(b => Block.from(b))
   params: BoardParams;
 }
 
@@ -895,6 +891,7 @@ export class DoubleCalculator {
       fu: fu,
       points: patterns[idx].points,
       point: deltas[myWind],
+      //      handBlocks: patterns[idx].hand.map((b) => b.toString()),
       hand: patterns[idx].hand,
       params: this.cfg.orig,
     };

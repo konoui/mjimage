@@ -1,6 +1,6 @@
-import { WIND, Tile } from "../core/";
-import { BaseActor, River, PlayerEfficiency, RiskRank } from "./";
-import { Hand, ShantenCalculator, Efficiency } from "../calculator";
+import { WIND, Tile, TYPE } from "../core/";
+import { BaseActor, River, PlayerEfficiency, RiskRank, ActorHand } from "./";
+import { ShantenCalculator, Efficiency } from "../calculator";
 import { PlayerEvent, EventHandler, DistributeEvent } from "./events";
 
 export class Player extends BaseActor {
@@ -16,7 +16,8 @@ export class Player extends BaseActor {
     return this.placeManager.wind(this.id);
   }
   setHands(e: DistributeEvent): void {
-    for (let w of Object.values(WIND)) this.hands[w] = new Hand(e.hands[w]);
+    for (let w of Object.values(WIND))
+      this.hands[w] = new ActorHand(e.hands[w]);
   }
   handleDiscard(tiles: Tile[]) {
     const reachUsers = Object.values(WIND).filter((w) => {
