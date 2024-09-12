@@ -9,8 +9,3 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
-    groups:
-      prod-dependency:
-        dependency-type: production
-      dev-dependency:
-        dependency-type: development
