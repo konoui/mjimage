@@ -19,6 +19,8 @@ import {
   BlockShoKan,
   Tile,
   blockWrapper,
+  isNum0,
+  isNum5,
 } from "../core/parser";
 import { createControllerMachine } from "./state-machine";
 import {
@@ -426,7 +428,7 @@ export class Controller {
     if (hand.hands.length < 3) return false;
 
     let fake = t.clone({ remove: OPERATOR.HORIZONTAL });
-    if (t.isNum() && t.n == 0) fake = fake.clone({ n: 5 });
+    if (isNum0(t)) fake = fake.clone({ n: 5 });
     if (hand.get(t.t, fake.n) < 2) return false;
 
     const blocks: BlockPon[] = [];
@@ -441,11 +443,11 @@ export class Controller {
     });
     const ridx = (idx % 2) + 1;
     const rt = b.tiles[ridx];
-    if (t.isNum() && fake.n == 5 && hand.get(t.t, 0) > 0)
+    if (isNum5(t) && hand.get(t.t, 0) > 0)
       b = b.clone({ replace: { idx: ridx, tile: rt.clone({ n: 0 }) } });
     blocks.push(b);
 
-    if (t.isNum() && t.n == 5 && hand.get(t.t, fake.n) == 3) {
+    if (isNum5(t) && hand.get(t.t, fake.n) == 3) {
       const red = b.clone({ replace: { idx: ridx, tile: rt.clone({ n: 5 }) } });
       blocks.push(red);
     }
@@ -461,7 +463,7 @@ export class Controller {
     if (hand.hands.length < 3) return false;
 
     let fake = t;
-    if (fake.n == 0) fake = t.clone({ n: 5 });
+    if (isNum0(fake)) fake = t.clone({ n: 5 });
 
     const blocks: BlockChi[] = [];
     const left =
@@ -532,15 +534,15 @@ export class Controller {
     if (blocks.length == 0) return [];
     if (!hasRed) return [];
     const filtered = blocks.filter(
-      (b) => b.tiles[1].n == 5 || b.tiles[2].n == 5
+      (b) => isNum5(b.tiles[1]) || isNum5(b.tiles[2])
     );
     return filtered
       .map((b) => {
-        if (b.tiles[1].n == 5) {
+        if (isNum5(b.tiles[1])) {
           const rt = b.tiles[1].clone({ n: 0 });
           const n = b.clone({ replace: { idx: 1, tile: rt } });
           return n;
-        } else if (b.tiles[2].n == 5) {
+        } else if (isNum5(b.tiles[2])) {
           const rt = b.tiles[2].clone({ n: 0 });
           const n = b.clone({ replace: { idx: 2, tile: rt } });
           return n;
@@ -628,7 +630,7 @@ export class Controller {
           ...cb.tiles,
           new Tile(pick.t, pick.n, [OPERATOR.HORIZONTAL]),
         ];
-        if (pick.n == 5 && hand.get(pick.t, 0) == 1) tiles[3].n == 0; // FIXME
+        if (isNum5(pick) && hand.get(pick.t, 0) == 1) tiles[3].n == 0; // FIXME
         blocks.push(new BlockShoKan(tiles));
       }
     }
@@ -646,7 +648,7 @@ export class Controller {
     if (hand.reached) return false;
     if (w == whoDiscarded) return false;
     let fake = t.clone({ remove: OPERATOR.HORIZONTAL });
-    if (fake.isNum() && fake.n == 0) fake = fake.clone({ n: 5 });
+    if (isNum0(fake)) fake = fake.clone({ n: 5 });
     if (hand.get(fake.t, fake.n) != 3) return false;
     let base = new BlockDaiKan([fake, fake, fake, fake]);
 
@@ -656,9 +658,9 @@ export class Controller {
     let b = base.clone({
       replace: { idx, tile: t.clone({ add: OPERATOR.HORIZONTAL }) },
     });
-    // 捨て牌が 5 なら鳴いた位置をずらして red にする
+    // 捨て牌が 5 なら鳴いた位置からずらして red にする
     // TODO t.n == 0 の場合、horizontal tile を 0 にする必要がありそう。
-    if (fake.isNum() && fake.n == 5 && t.n == 5) {
+    if (isNum5(fake) && isNum5(t)) {
       const ridx = (idx % 3) + 1;
       const rt = b.tiles[ridx].clone({ n: 0 });
       b = b.clone({ replace: { idx: ridx, tile: rt } });

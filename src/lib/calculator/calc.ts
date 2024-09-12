@@ -15,6 +15,8 @@ import {
   BlockRun,
   BlockHand,
   tileSortFunc,
+  isNum5,
+  isNum0,
 } from "../core/parser";
 
 export type TupleOfSize<
@@ -143,19 +145,14 @@ export class Hand {
         throw new Error(`unable to increase ${t} in ${this.toString()}`);
       }
       backup.push(t);
-      if (!(t.t == TYPE.Z || t.t == TYPE.BACK) && t.n == 0) {
-        this.data[t.t][5] += 1;
+      if (isNum0(t)) {
+        this.data[t.t][5]! += 1;
       }
 
       if (t.t == TYPE.BACK) this.data[t.t][1] += 1;
       else this.data[t.t][t.n] += 1;
 
-      if (
-        t.t != TYPE.Z &&
-        t.n == 5 &&
-        this.get(t.t, 5) == 4 &&
-        this.get(t.t, 0) == 0
-      ) {
+      if (isNum5(t) && this.get(t.t, 5) == 4 && this.get(t.t, 0) == 0) {
         this.data[t.t][0] = 1;
         const c = backup.pop()!.clone({ n: 0 });
         backup.push(c);
@@ -181,18 +178,13 @@ export class Hand {
       }
 
       backup.push(t);
-      if (!(t.t == TYPE.Z || t.t == TYPE.BACK) && t.n == 0) {
-        this.data[t.t][5] -= 1;
+      if (isNum0(t)) {
+        this.data[t.t][5]! -= 1;
       }
       if (t.t == TYPE.BACK) this.data[t.t][1] -= 1;
       else this.data[t.t][t.n] -= 1;
 
-      if (
-        t.t != TYPE.Z &&
-        t.n == 5 &&
-        this.get(t.t, 5) == 0 &&
-        this.get(t.t, 0) > 0
-      ) {
+      if (isNum5(t) && this.get(t.t, 5) == 0 && this.get(t.t, 0) > 0) {
         this.data[t.t][0] = 0;
         const c = backup.pop()!.clone({ n: 0 });
         backup.push(c);
@@ -251,7 +243,7 @@ export class Hand {
       );
       if (idx == -1) throw new Error(`unable to find ${b.tiles[0]}`);
       let t = b.tiles[0];
-      if (t.isNum() && t.n == 0) {
+      if (isNum0(t)) {
         t = new Tile(t.t, 5);
       }
 
@@ -1056,7 +1048,7 @@ export class DoubleCalculator {
       for (let t of b.tiles) {
         for (let d of this.cfg.doras) if (t.equals(d, true)) dcount++;
         for (let d of this.cfg.blindDoras) if (t.equals(d, true)) bcount++;
-        if (t.n == 0) rcount++;
+        if (isNum0(t)) rcount++;
       }
     }
 

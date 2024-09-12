@@ -8,7 +8,7 @@ import {
   BlockShoKan,
   Tile,
 } from "../core/parser";
-import { WinResult, Candidate, Efficiency } from "../calculator";
+import { WinResult, Candidate } from "../calculator";
 
 type Event =
   | CallEvent

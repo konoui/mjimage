@@ -43,7 +43,7 @@ export class Tile {
 
   static from(s: string) {
     const tiles = new Parser(s).tiles();
-    if (tiles.length != 1) throw new Error(`input is not single tile ${s}`);
+    if (tiles.length != 1) throw new Error(`input is not a single tile ${s}`);
     return tiles[0];
   }
 
@@ -76,8 +76,7 @@ export class Tile {
 
   equals(t: Tile, ignoreRed: boolean = false): boolean {
     let ok = this.n == t.n;
-    if (ignoreRed)
-      ok ||= (this.n == 5 && t.n == 0) || (this.n == 0 && t.n == 5);
+    if (ignoreRed) ok ||= isNum5or0(this) && isNum5or0(t);
     return this.t == t.t && ok;
   }
 
@@ -96,6 +95,18 @@ export class Tile {
       size.width += w * TILE_CONTEXT.TEXT_SCALE; // note not contains text height
     return size;
   }
+}
+
+export function isNum5or0(t: Tile) {
+  return isNum0(t) || isNum5(t);
+}
+
+export function isNum5(t: Tile) {
+  return t.isNum() && t.n == 5;
+}
+
+export function isNum0(t: Tile) {
+  return t.isNum() && t.n == 0;
 }
 
 type BLOCK = (typeof BLOCK)[keyof typeof BLOCK];
@@ -121,6 +132,12 @@ export abstract class Block {
     if (this._type != BLOCK.DISCARD) {
       this._tiles = [...this._tiles].sort(tileSortFunc);
     }
+  }
+
+  static from(s: string) {
+    const b = new Parser(s).parse();
+    if (b.length != 1) throw new Error(`input is not a single block ${s}`);
+    return b[0];
   }
 
   get type() {
@@ -211,7 +228,7 @@ export class BlockAnKan extends Block {
     const ftiles = tiles.filter((v) => v.t != TYPE.BACK);
     const sample = ftiles[0];
     if (ftiles.length < tiles.length) {
-      if (sample.isNum() && (sample.n == 5 || sample.n == 0)) {
+      if (isNum5or0(sample)) {
         const t = new Tile(sample.t, 5);
         super([new Tile(sample.t, 0), t, t, t], BLOCK.AN_KAN);
         return;
@@ -224,7 +241,7 @@ export class BlockAnKan extends Block {
 
   get tilesWithBack() {
     const sample = this.tiles[0];
-    if (sample.isNum() && (sample.n == 5 || sample.n == 0)) {
+    if (isNum5or0(sample)) {
       return [
         new Tile(TYPE.BACK, 0),
         new Tile(sample.t, 0),
