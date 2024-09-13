@@ -31,7 +31,13 @@ export interface HandData {
   [TYPE.P]: TupleOfSize<number, 10>;
   [TYPE.Z]: TupleOfSize<number, 8>;
   [TYPE.BACK]: [string, number];
-  called: (BlockChi | BlockPon | BlockAnKan | BlockDaiKan | BlockShoKan)[];
+  called: readonly (
+    | BlockChi
+    | BlockPon
+    | BlockAnKan
+    | BlockDaiKan
+    | BlockShoKan
+  )[];
   tsumo: Tile | null;
   reached: boolean;
 }
@@ -55,7 +61,7 @@ export class Hand {
     const blocks = new Parser(input).parse();
     for (let b of blocks) {
       if (b.isCalled()) {
-        this.data.called.push(b);
+        this.data.called = [...this.called, b];
         continue;
       } else if (b.is(BLOCK.TSUMO)) {
         const t = b.tiles[0];
@@ -117,7 +123,7 @@ export class Hand {
     return `${b}${c}`;
   }
   get called() {
-    return this.data.called.concat();
+    return this.data.called;
   }
   get reached() {
     return this.data.reached;
@@ -219,16 +225,17 @@ export class Hand {
       throw new Error(`removal: ${toRemove} block: ${b}`);
 
     this.dec(toRemove);
-    this.data.called.push(b);
+    this.data.called = [...this.called, b];
     this.data.tsumo = null;
     return;
   }
   kan(b: BlockAnKan | BlockShoKan) {
     if (b instanceof BlockAnKan) {
       // Note: there is a case that t.len == 1
-      const t = b.tiles[0];
+      let t = b.tiles[0];
+      if (isNum0(t)) t = new Tile(t.t, 5);
       this.dec([t, t, t, t]);
-      this.data.called.push(b);
+      this.data.called = [...this.called, b];
       this.data.tsumo = null;
       return;
     }
@@ -239,13 +246,15 @@ export class Hand {
       );
       if (idx == -1) throw new Error(`unable to find ${b.tiles[0]}`);
       let t = b.tiles[0];
-      if (isNum0(t)) {
-        t = new Tile(t.t, 5);
-      }
+      if (isNum0(t)) t = new Tile(t.t, 5);
 
-      this.data.called.splice(idx, 1);
       this.dec([t]);
-      this.data.called.push(b);
+      // remove an existing pon block and add kakan block
+      this.data.called = [
+        ...this.called.slice(0, idx),
+        ...this.called.slice(idx + 1),
+        b,
+      ];
       this.data.tsumo = null;
       return;
     }
@@ -254,7 +263,6 @@ export class Hand {
   }
   clone(): Hand {
     const c = new Hand(this.toString());
-    c.data.called = this.called.map((b) => b.clone());
     c.data.reached = this.data.reached;
     c.data.tsumo = this.data.tsumo == null ? null : this.data.tsumo;
     return c;
@@ -662,7 +670,7 @@ export class BlockCalculator {
       this.commonByType(TYPE.S),
       handleZ(),
       handleBack(),
-      [this.hand.called],
+      [this.hand.called.concat()],
     ].sort((a, b) => b.length - a.length);
     const ret = vvv[0].concat();
     for (let i = 0; i < ret.length; i++) {

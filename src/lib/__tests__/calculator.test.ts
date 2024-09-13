@@ -52,7 +52,7 @@ describe("Hand", () => {
 
     const chi = new Parser("-534m").parse()[0];
     h.call(chi);
-    want.called.push(chi);
+    want.called = [...want.called, chi];
     want.m[3] -= 1;
     want.m[4] -= 1;
     want.tsumo = null;
@@ -60,7 +60,7 @@ describe("Hand", () => {
 
     const ankan = new Parser("_22_m").parse()[0];
     h.kan(ankan);
-    want.called.push(ankan);
+    want.called = [...want.called, ankan];
     want.m[2] -= 4;
     expect(getData(h)).toStrictEqual(want);
 
