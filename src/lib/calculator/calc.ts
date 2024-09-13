@@ -17,6 +17,7 @@ import {
   tileSortFunc,
   isNum5,
   isNum0,
+  SerializedBlock,
 } from "../core/parser";
 
 export type TupleOfSize<
@@ -755,8 +756,7 @@ export interface WinResult {
     double: number;
   }[];
   point: number;
-  hand: Block[];
-  //  handBlocks: string[]; // for hand, call handBlocks.map(b => Block.from(b))
+  serializedBlocks: SerializedBlock[];
   params: BoardParams;
 }
 
@@ -901,8 +901,7 @@ export class DoubleCalculator {
       fu: fu,
       points: patterns[idx].points,
       point: deltas[myWind],
-      //      handBlocks: patterns[idx].hand.map((b) => b.toString()),
-      hand: patterns[idx].hand,
+      serializedBlocks: patterns[idx].hand.map((b) => b.serialize()),
       params: this.cfg.orig,
     };
     return v;

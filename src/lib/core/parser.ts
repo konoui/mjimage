@@ -111,6 +111,8 @@ export function isNum0(t: Tile) {
 
 type BLOCK = (typeof BLOCK)[keyof typeof BLOCK];
 
+export type SerializedBlock = ReturnType<Block["serialize"]>;
+
 // Block is a immutable object
 export abstract class Block {
   private readonly _tiles: readonly Tile[];
@@ -134,10 +136,16 @@ export abstract class Block {
     }
   }
 
-  static from(s: string) {
-    const b = new Parser(s).parse();
-    if (b.length != 1) throw new Error(`input is not a single block ${s}`);
-    return b[0];
+  static from(v: SerializedBlock) {
+    const tiles = new Parser(v.tiles).tiles();
+    return blockWrapper(tiles, v.type);
+  }
+
+  serialize() {
+    return {
+      tiles: this.toString(),
+      type: this.type,
+    };
   }
 
   get type() {
@@ -190,8 +198,6 @@ export abstract class Block {
     return blockWrapper(tiles, this._type);
   }
 
-  // user must multiple scale
-  // TODO scale is optional
   imageSize(scale: number): { width: number; height: number } {
     const bh = this.tiles[0].imageSize(scale).baseHeight;
     const bw = this.tiles[0].imageSize(scale).baseWidth;
@@ -309,8 +315,7 @@ export class BlockOther extends Block {
   }
 }
 
-// TODO remove export
-export const blockWrapper = (
+const blockWrapper = (
   tiles: Tile[],
   type: BLOCK
 ):

@@ -19,7 +19,6 @@ import {
   BlockPon,
   BlockShoKan,
   Tile,
-  blockWrapper,
   isNum0,
   isNum5,
 } from "../core/parser";
@@ -372,7 +371,7 @@ export class Controller {
       ...ret.params,
       sticks: this.placeManager.sticks,
       blindDoraMarkers: blindDoraMarkers,
-    }).calc([ret.hand]);
+    }).calc([ret.serializedBlocks.map((v) => Block.from(v))]);
     assert(final);
     return final;
   }
