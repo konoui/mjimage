@@ -65,7 +65,7 @@ export interface RonEvent {
   iam: Wind;
   wind: Wind;
   ret: WinResult;
-  targetInfo: { wind: Wind; tile: string };
+  victimInfo: { wind: Wind; tile: string };
   pushBackReachStick: boolean;
 }
 
@@ -114,7 +114,7 @@ export interface ChoiceAfterDrawnEvent {
   id: string;
   type: Extract<Event, "CHOICE_AFTER_DRAWN">;
   wind: Wind;
-  tileInfo: { wind: Wind; tile: string };
+  drawerInfo: { wind: Wind; tile: string };
   choices: DrawnChoice;
 }
 
@@ -122,7 +122,7 @@ export interface ChoiceAfterDiscardedEvent {
   id: string;
   type: Extract<Event, "CHOICE_AFTER_DISCARDED">;
   wind: Wind;
-  tileInfo: { wind: Wind; tile: string };
+  discarterInfo: { wind: Wind; tile: string };
   choices: DiscardedChoice;
 }
 
@@ -137,7 +137,7 @@ export interface ChoiceForChanKan {
   id: string;
   type: Extract<Event, "CHOICE_FOR_CHAN_KAN">;
   wind: Wind;
-  tileInfo: { wind: Wind; tile: string };
+  callerInfo: { wind: Wind; tile: string };
   choices: Pick<DiscardedChoice, "RON">;
 }
 

@@ -185,8 +185,8 @@ export class Controller {
             iam: e.wind,
             ret: e.choices.RON,
             targetInfo: {
-              wind: e.tileInfo.wind,
-              tile: Tile.from(e.tileInfo.tile),
+              wind: e.discarterInfo.wind,
+              tile: Tile.from(e.discarterInfo.tile),
             },
           });
           break;
@@ -226,7 +226,7 @@ export class Controller {
           this.actor.send({
             type: selected.type,
             ret: e.choices.TSUMO,
-            lastTile: Tile.from(e.tileInfo.tile),
+            lastTile: Tile.from(e.drawerInfo.tile),
             iam: w,
           });
           break;
@@ -303,8 +303,8 @@ export class Controller {
         ret: e.choices.RON,
         quadWin: true,
         targetInfo: {
-          wind: e.tileInfo.wind,
-          tile: Tile.from(e.tileInfo.tile),
+          wind: e.callerInfo.wind,
+          tile: Tile.from(e.callerInfo.tile),
         },
       });
     }
@@ -840,7 +840,7 @@ export abstract class BaseActor {
           break;
         case "RON":
           if (e.pushBackReachStick) {
-            const w = e.targetInfo.wind;
+            const w = e.victimInfo.wind;
             const id = this.placeManager.playerID(w);
             this.scoreManager.restoreReachStick(id);
             this.placeManager.decrementReachStick();

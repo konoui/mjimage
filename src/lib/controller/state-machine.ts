@@ -2,6 +2,7 @@ import { Wind, TYPE, WIND, OPERATOR } from "../core/constants";
 import {
   ChoiceAfterDiscardedEvent,
   ChoiceAfterDrawnEvent,
+  ChoiceForChanKan,
   Controller,
 } from "./index";
 import {
@@ -387,7 +388,7 @@ export const createControllerMachine = (c: Controller) => {
             id: id,
             type: "CHOICE_AFTER_DRAWN" as const,
             wind: w,
-            tileInfo: { wind: w, tile: drawn!.toString() },
+            drawerInfo: { wind: w, tile: drawn!.toString() },
             choices: {
               TSUMO: context.controller.doWin(w, drawn, {
                 oneShot: context.oneShotMap[w],
@@ -414,7 +415,10 @@ export const createControllerMachine = (c: Controller) => {
               id: id,
               type: "CHOICE_AFTER_DISCARDED" as const,
               wind: w,
-              tileInfo: { wind: discarded.w, tile: discarded.t.toString() },
+              discarterInfo: {
+                wind: discarded.w,
+                tile: discarded.t.toString(),
+              },
               choices: {
                 RON: context.controller.doWin(w, ltile, {
                   whoDiscarded: discarded.w,
@@ -473,11 +477,11 @@ export const createControllerMachine = (c: Controller) => {
                 missingRon: context.missingMap[event.iam],
               }
             ); // TODO which tile is sho kaned for 0/5
-            const e = {
+            const e: ChoiceForChanKan = {
               id: id,
               type: "CHOICE_FOR_CHAN_KAN" as const,
               wind: w,
-              tileInfo: { wind: event.iam, tile: t.toString() },
+              callerInfo: { wind: event.iam, tile: t.toString() },
               choices: {
                 RON: event.type == "SHO_KAN" ? ron : false,
               },
@@ -576,7 +580,7 @@ export const createControllerMachine = (c: Controller) => {
                 type: event.type,
                 iam: iam,
                 wind: w,
-                targetInfo: {
+                victimInfo: {
                   wind: event.targetInfo.wind,
                   tile: event.targetInfo.tile.toString(),
                 },
