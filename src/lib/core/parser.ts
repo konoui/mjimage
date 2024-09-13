@@ -258,6 +258,10 @@ export class BlockAnKan extends Block {
     return [new Tile(TYPE.BACK, 0), sample, sample, new Tile(TYPE.BACK, 0)];
   }
 
+  static override from(v: SerializedBlock) {
+    return super.from(v) as BlockAnKan;
+  }
+
   toString() {
     const tiles = this.tilesWithBack;
     return tiles.reduce((s: string, t: Tile) => {

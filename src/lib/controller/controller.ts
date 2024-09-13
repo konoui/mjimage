@@ -184,7 +184,10 @@ export class Controller {
             type: selected.type,
             iam: e.wind,
             ret: e.choices.RON,
-            targetInfo: e.tileInfo,
+            targetInfo: {
+              wind: e.tileInfo.wind,
+              tile: Tile.from(e.tileInfo.tile),
+            },
           });
           break;
         case "DAI_KAN":
@@ -192,7 +195,7 @@ export class Controller {
           this.actor.send({
             type: selected.type,
             iam: e.wind,
-            block: e.choices.DAI_KAN,
+            block: Block.from(e.choices.DAI_KAN),
           });
           break;
         case "CHI":
@@ -206,7 +209,7 @@ export class Controller {
           this.actor.send({
             type: selected.type,
             iam: e.wind,
-            block: c[0],
+            block: Block.from(c[0]),
           });
       }
     } else if (sample.type == "CHOICE_AFTER_DRAWN") {
@@ -223,7 +226,7 @@ export class Controller {
           this.actor.send({
             type: selected.type,
             ret: e.choices.TSUMO,
-            lastTile: e.tileInfo.tile,
+            lastTile: Tile.from(e.tileInfo.tile),
             iam: w,
           });
           break;
@@ -232,7 +235,7 @@ export class Controller {
           assert(candidates, `${selected.type} candidates is none`);
           this.actor.send({
             type: selected.type,
-            tile: candidates[0].tile,
+            tile: Tile.from(candidates[0].tile),
             iam: w,
           });
           break;
@@ -241,7 +244,7 @@ export class Controller {
           assert(tiles, `${selected.type} choice is none`);
           this.actor.send({
             type: selected.type,
-            tile: tiles[0].clone({ remove: OPERATOR.TSUMO }),
+            tile: Tile.from(tiles[0]).clone({ remove: OPERATOR.TSUMO }),
             iam: w,
           });
           break;
@@ -250,7 +253,7 @@ export class Controller {
           assert(choices, `${selected.type} choice is none`);
           this.actor.send({
             type: selected.type,
-            block: choices[0],
+            block: BlockAnKan.from(choices[0]),
             iam: w,
           });
           break;
@@ -260,7 +263,7 @@ export class Controller {
           assert(choices, `${selected.type} choice is none`);
           this.actor.send({
             type: selected.type,
-            block: choices[0],
+            block: Block.from(choices[0]),
             iam: w,
           });
           break;
@@ -279,7 +282,7 @@ export class Controller {
         )} ${this.hand(sample.wind).toString()}`
       );
       const w = sample.wind;
-      const t = sample.choices.DISCARD[0];
+      const t = Tile.from(sample.choices.DISCARD[0]);
       assert(t != null, `undefined tile ${this.hand(w).toString()}`);
       this.actor.send({ type: "DISCARD", tile: t, iam: w });
     } else if (sample.type == "CHOICE_FOR_CHAN_KAN") {
@@ -299,7 +302,10 @@ export class Controller {
         iam: e.wind,
         ret: e.choices.RON,
         quadWin: true,
-        targetInfo: e.tileInfo,
+        targetInfo: {
+          wind: e.tileInfo.wind,
+          tile: Tile.from(e.tileInfo.tile),
+        },
       });
     }
   }
@@ -749,60 +755,71 @@ export abstract class BaseActor {
           // reset
           this.counter.reset();
 
+          const doraMarker = Tile.from(e.doraMarker);
+
           this.setHands(e);
           this.placeManager = new PlaceManager(structuredClone(e.places), {
             round: structuredClone(e.round),
             sticks: structuredClone(e.sticks),
           });
           this.scoreManager = new ScoreManager(structuredClone(e.scores));
-          this.doraMarkers = [e.doraMarker];
+          this.doraMarkers = [doraMarker];
 
-          this.counter.dec(e.doraMarker);
+          this.counter.dec(doraMarker);
           for (let w of Object.values(WIND)) {
             if (w != e.wind) continue;
             this.counter.dec(...this.hand(w).hands);
           }
           break;
-        case "DRAW":
-          this.hands[e.iam].draw(e.tile);
-          this.counter.dec(e.tile);
+        case "DRAW": {
+          const t = Tile.from(e.tile);
+          this.hands[e.iam].draw(t);
+          this.counter.dec(t);
           break;
-        case "DISCARD":
-          this.river.discard(e.tile, e.iam);
-          this.hands[e.iam].discard(e.tile); // FIXME
+        }
+        case "DISCARD": {
+          const t = Tile.from(e.tile);
+          this.river.discard(t, e.iam);
+          this.hands[e.iam].discard(t); // FIXME
           if (e.iam != e.wind) {
-            this.counter.dec(e.tile); // own tile is recorded by DRAW event
-            this.counter.addTileToSafeMap(e.tile, e.iam); // そのユーザの捨て牌を現物に追加
+            this.counter.dec(t); // own tile is recorded by DRAW event
+            this.counter.addTileToSafeMap(t, e.iam); // そのユーザの捨て牌を現物に追加
             // 立直されている場合、捨て牌は立直ユーザの現物になる
             for (let w of Object.values(WIND))
-              if (this.hand(w).reached)
-                this.counter.addTileToSafeMap(e.tile, w);
+              if (this.hand(w).reached) this.counter.addTileToSafeMap(t, w);
           }
           break;
+        }
         case "PON":
         case "CHI":
-        case "DAI_KAN":
-          this.hands[e.iam].call(e.block);
+        case "DAI_KAN": {
+          const block = Block.from(e.block);
+          this.hands[e.iam].call(block);
           this.river.markCalled();
           if (e.iam != e.wind)
             this.counter.dec(
-              ...e.block.tiles.filter((t) => !t.has(OPERATOR.HORIZONTAL))
+              ...block.tiles.filter((t) => !t.has(OPERATOR.HORIZONTAL))
             );
           break;
-        case "SHO_KAN":
-          this.hands[e.iam].kan(e.block);
+        }
+        case "SHO_KAN": {
+          const block = Block.from(e.block);
+          this.hands[e.iam].kan(block);
           if (e.iam != e.wind)
             this.counter.dec(
-              e.block.tiles.filter((t) => t.has(OPERATOR.HORIZONTAL))[0]
+              block.tiles.filter((t) => t.has(OPERATOR.HORIZONTAL))[0]
             );
           break;
-        case "AN_KAN":
-          this.hands[e.iam].kan(e.block);
+        }
+        case "AN_KAN": {
+          const block = Block.from(e.block);
+          this.hands[e.iam].kan(block);
           if (e.iam != e.wind)
             this.counter.dec(
-              ...e.block.tiles.filter((t) => !t.has(OPERATOR.HORIZONTAL))
+              ...block.tiles.filter((t) => !t.has(OPERATOR.HORIZONTAL))
             );
           break;
+        }
         case "REACH":
           const pid = this.placeManager.playerID(e.iam);
           this.hands[e.iam].reach();
@@ -813,10 +830,12 @@ export abstract class BaseActor {
           // this.hands[e.iam].discard(e.tile);
           // this.river.discard(e.tile, e.iam);
           break;
-        case "NEW_DORA":
-          this.doraMarkers.push(e.doraMarker);
-          this.counter.dec(e.doraMarker);
+        case "NEW_DORA": {
+          const doraMarker = Tile.from(e.doraMarker);
+          this.doraMarkers.push(doraMarker);
+          this.counter.dec(doraMarker);
           break;
+        }
         case "TSUMO":
           break;
         case "RON":

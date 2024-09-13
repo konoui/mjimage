@@ -1,14 +1,7 @@
 import { eventmit } from "eventmit";
 import { Wind, Round } from "../core/constants";
-import {
-  BlockAnKan,
-  BlockChi,
-  BlockDaiKan,
-  BlockPon,
-  BlockShoKan,
-  Tile,
-} from "../core/parser";
-import { WinResult, Candidate } from "../calculator";
+import { SerializedBlock } from "../core/parser";
+import { WinResult, SerializedCandidate } from "../calculator";
 
 type Event =
   | CallEvent
@@ -38,7 +31,7 @@ export interface DistributeEvent {
   type: Extract<Event, "DISTRIBUTE">;
   hands: { [key in Wind]: string };
   wind: Wind;
-  doraMarker: Tile;
+  doraMarker: string;
   players: string[];
   places: { [key: string]: Wind };
   sticks: { reach: number; dead: number };
@@ -63,7 +56,7 @@ export interface CallEvent {
   type: Extract<ChoiceEvent, "PON" | "CHI" | "AN_KAN" | "SHO_KAN" | "DAI_KAN">;
   iam: Wind;
   wind: Wind;
-  block: BlockPon | BlockChi | BlockAnKan | BlockShoKan | BlockDaiKan;
+  block: SerializedBlock;
 }
 
 export interface RonEvent {
@@ -72,7 +65,7 @@ export interface RonEvent {
   iam: Wind;
   wind: Wind;
   ret: WinResult;
-  targetInfo: { wind: Wind; tile: Tile };
+  targetInfo: { wind: Wind; tile: string };
   pushBackReachStick: boolean;
 }
 
@@ -81,7 +74,7 @@ export interface TsumoEvent {
   type: Extract<ChoiceEvent, "TSUMO">;
   iam: Wind;
   wind: Wind;
-  lastTile: Tile;
+  lastTile: string;
   ret: WinResult;
 }
 
@@ -90,7 +83,7 @@ export interface DiscardEvent {
   type: Extract<ChoiceEvent, "DISCARD">;
   iam: Wind;
   wind: Wind;
-  tile: Tile;
+  tile: string;
 }
 
 export interface DrawEvent {
@@ -99,13 +92,13 @@ export interface DrawEvent {
   subtype?: "kan";
   iam: Wind;
   wind: Wind;
-  tile: Tile;
+  tile: string;
 }
 
 export interface ReachEvent {
   id: string;
   type: Extract<ChoiceEvent, "REACH">;
-  tile: Tile;
+  tile: string;
   iam: Wind;
   wind: Wind;
 }
@@ -113,7 +106,7 @@ export interface ReachEvent {
 export interface NewDoraEvent {
   id: string;
   type: Extract<Event, "NEW_DORA">;
-  doraMarker: Tile;
+  doraMarker: string;
   wind: Wind;
 }
 
@@ -121,7 +114,7 @@ export interface ChoiceAfterDrawnEvent {
   id: string;
   type: Extract<Event, "CHOICE_AFTER_DRAWN">;
   wind: Wind;
-  tileInfo: { wind: Wind; tile: Tile };
+  tileInfo: { wind: Wind; tile: string };
   choices: DrawnChoice;
 }
 
@@ -129,7 +122,7 @@ export interface ChoiceAfterDiscardedEvent {
   id: string;
   type: Extract<Event, "CHOICE_AFTER_DISCARDED">;
   wind: Wind;
-  tileInfo: { wind: Wind; tile: Tile };
+  tileInfo: { wind: Wind; tile: string };
   choices: DiscardedChoice;
 }
 
@@ -144,7 +137,7 @@ export interface ChoiceForChanKan {
   id: string;
   type: Extract<Event, "CHOICE_FOR_CHAN_KAN">;
   wind: Wind;
-  tileInfo: { wind: Wind; tile: Tile };
+  tileInfo: { wind: Wind; tile: string };
   choices: Pick<DiscardedChoice, "RON">;
 }
 
@@ -165,17 +158,17 @@ export type PlayerEvent =
 
 interface DiscardedChoice {
   RON: false | WinResult;
-  PON: false | BlockPon[];
-  CHI: false | BlockChi[];
-  DAI_KAN: false | BlockDaiKan;
+  PON: false | SerializedBlock[];
+  CHI: false | SerializedBlock[];
+  DAI_KAN: false | SerializedBlock;
 }
 
 interface DrawnChoice {
   TSUMO: false | WinResult;
-  REACH: false | Candidate[];
-  AN_KAN: false | BlockAnKan[];
-  SHO_KAN: false | BlockShoKan[];
-  DISCARD: false | Tile[];
+  REACH: false | SerializedCandidate[];
+  AN_KAN: false | SerializedBlock[];
+  SHO_KAN: false | SerializedBlock[];
+  DISCARD: false | string[];
   DRAWN_GAME_BY_NINE_TILES: boolean;
 }
 

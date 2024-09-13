@@ -51,8 +51,8 @@ export class Player extends BaseActor {
       case "CHOICE_AFTER_CALLED":
       case "CHOICE_AFTER_DRAWN":
         if (e.choices.DISCARD) {
-          const t = this.handleDiscard(e.choices.DISCARD);
-          e.choices.DISCARD = [t];
+          const t = this.handleDiscard(e.choices.DISCARD.map(Tile.from));
+          e.choices.DISCARD = [t.toString()];
         }
         this.eventHandler.emit(e);
         break;

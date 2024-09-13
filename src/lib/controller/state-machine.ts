@@ -1,14 +1,25 @@
 import { Wind, TYPE, WIND, OPERATOR } from "../core/constants";
-import { Controller } from "./index";
+import {
+  ChoiceAfterDiscardedEvent,
+  ChoiceAfterDrawnEvent,
+  Controller,
+} from "./index";
 import {
   BlockAnKan,
   BlockChi,
   BlockDaiKan,
   BlockPon,
   BlockShoKan,
+  Block,
   Tile,
 } from "../core/parser";
-import { ShantenCalculator, WinResult, createWindMap } from "./../calculator";
+import {
+  Candidate,
+  SerializedCandidate,
+  ShantenCalculator,
+  WinResult,
+  createWindMap,
+} from "./../calculator";
 import { nextWind } from "./managers";
 
 type ControllerContext = {
@@ -20,6 +31,29 @@ type ControllerContext = {
 };
 
 import { createMachine } from "xstate";
+
+const serialize = (b: Block[] | false) => {
+  if (b === false) return false;
+  return b.map((v) => v.serialize());
+};
+
+const serializeS = (b: Block | false) => {
+  if (b === false) return false;
+  return b.serialize();
+};
+
+const serializeCandidate = (
+  cs: Candidate[] | false
+): SerializedCandidate[] | false => {
+  if (cs === false) return false;
+  return cs.map((c) => {
+    return {
+      tile: c.tile.toString(),
+      candidates: c.candidates.map((v) => v.toString()),
+      shanten: c.shanten,
+    };
+  });
+};
 
 export const createControllerMachine = (c: Controller) => {
   return createMachine(
@@ -334,7 +368,7 @@ export const createControllerMachine = (c: Controller) => {
               type: "DISTRIBUTE" as const,
               hands: hands,
               wind: w,
-              doraMarker: context.controller.wall.doraMarkers[0],
+              doraMarker: context.controller.wall.doraMarkers[0].toString(),
               sticks: context.controller.placeManager.sticks,
               round: context.controller.placeManager.round,
               players: context.controller.playerIDs,
@@ -349,11 +383,11 @@ export const createControllerMachine = (c: Controller) => {
           const w = context.currentWind;
           const drawn = context.controller.hand(w).drawn;
           const id = context.genEventID();
-          const e = {
+          const e: ChoiceAfterDrawnEvent = {
             id: id,
             type: "CHOICE_AFTER_DRAWN" as const,
             wind: w,
-            tileInfo: { wind: w, tile: drawn! },
+            tileInfo: { wind: w, tile: drawn!.toString() },
             choices: {
               TSUMO: context.controller.doWin(w, drawn, {
                 oneShot: context.oneShotMap[w],
@@ -361,10 +395,10 @@ export const createControllerMachine = (c: Controller) => {
                   params as { replacementWin: boolean } | undefined
                 )?.replacementWin,
               }),
-              REACH: context.controller.doReach(w),
-              AN_KAN: context.controller.doAnKan(w),
-              SHO_KAN: context.controller.doShoKan(w),
-              DISCARD: context.controller.doDiscard(w),
+              REACH: serializeCandidate(context.controller.doReach(w)),
+              AN_KAN: serialize(context.controller.doAnKan(w)),
+              SHO_KAN: serialize(context.controller.doShoKan(w)),
+              DISCARD: context.controller.doDiscard(w).map((v) => v.toString()),
               DRAWN_GAME_BY_NINE_TILES: context.controller.canDrawnGame(w),
             },
           };
@@ -376,20 +410,22 @@ export const createControllerMachine = (c: Controller) => {
           const discarded = context.controller.river.lastTile;
           const ltile = discarded.t.clone({ add: OPERATOR.HORIZONTAL });
           for (let w of Object.values(WIND)) {
-            const e = {
+            const e: ChoiceAfterDiscardedEvent = {
               id: id,
               type: "CHOICE_AFTER_DISCARDED" as const,
               wind: w,
-              tileInfo: { wind: discarded.w, tile: discarded.t },
+              tileInfo: { wind: discarded.w, tile: discarded.t.toString() },
               choices: {
                 RON: context.controller.doWin(w, ltile, {
                   whoDiscarded: discarded.w,
                   oneShot: context.oneShotMap[w],
                   missingRon: context.missingMap[w],
                 }),
-                PON: context.controller.doPon(w, discarded.w, ltile),
-                CHI: context.controller.doChi(w, discarded.w, ltile),
-                DAI_KAN: context.controller.doDaiKan(w, discarded.w, ltile),
+                PON: serialize(context.controller.doPon(w, discarded.w, ltile)),
+                CHI: serialize(context.controller.doChi(w, discarded.w, ltile)),
+                DAI_KAN: serializeS(
+                  context.controller.doDaiKan(w, discarded.w, ltile)
+                ),
               },
             };
             if (e.choices.RON) context.missingMap[w] = true; // ロン可能であればフリテンをtrueにする。次のツモ番で解除される想定
@@ -414,7 +450,7 @@ export const createControllerMachine = (c: Controller) => {
             type: "CHOICE_AFTER_CALLED" as const,
             wind: w,
             choices: {
-              DISCARD: discard,
+              DISCARD: discard.map((v) => v.toString()),
             },
           };
           context.controller.emit(e);
@@ -441,7 +477,7 @@ export const createControllerMachine = (c: Controller) => {
               id: id,
               type: "CHOICE_FOR_CHAN_KAN" as const,
               wind: w,
-              tileInfo: { wind: event.iam, tile: t },
+              tileInfo: { wind: event.iam, tile: t.toString() },
               choices: {
                 RON: event.type == "SHO_KAN" ? ron : false,
               },
@@ -472,7 +508,7 @@ export const createControllerMachine = (c: Controller) => {
               type: event.type,
               iam: iam,
               wind: w,
-              block: event.block,
+              block: event.block.serialize(),
             };
             context.controller.emit(e);
           }
@@ -490,7 +526,7 @@ export const createControllerMachine = (c: Controller) => {
               type: "DISCARD" as const,
               iam: iam,
               wind: w,
-              tile: t,
+              tile: t.toString(),
             };
             context.controller.emit(e);
           }
@@ -520,7 +556,7 @@ export const createControllerMachine = (c: Controller) => {
               subType: action,
               iam: iam,
               wind: w,
-              tile: t,
+              tile: t.toString(),
             };
             context.controller.emit(e);
           }
@@ -540,7 +576,10 @@ export const createControllerMachine = (c: Controller) => {
                 type: event.type,
                 iam: iam,
                 wind: w,
-                targetInfo: event.targetInfo,
+                targetInfo: {
+                  wind: event.targetInfo.wind,
+                  tile: event.targetInfo.tile.toString(),
+                },
                 ret: event.ret,
                 pushBackReachStick: pushBackReachStick,
               };
@@ -560,7 +599,7 @@ export const createControllerMachine = (c: Controller) => {
               type: event.type,
               iam: iam,
               wind: w,
-              lastTile: context.controller.hand(iam).drawn!,
+              lastTile: context.controller.hand(iam).drawn!.toString(),
               ret: event.ret,
             };
             context.controller.emit(e);
@@ -579,7 +618,7 @@ export const createControllerMachine = (c: Controller) => {
               type: event.type,
               iam: iam,
               wind: w,
-              tile: t,
+              tile: t.toString(),
             };
             context.controller.emit(e);
           }
@@ -593,7 +632,7 @@ export const createControllerMachine = (c: Controller) => {
                 id: id,
                 type: "NEW_DORA" as const,
                 wind: w,
-                doraMarker: tile,
+                doraMarker: tile.toString(),
               };
               context.controller.emit(e);
             }

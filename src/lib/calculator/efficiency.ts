@@ -1,6 +1,12 @@
 import { TYPE, Tile } from "../core";
 import { Hand, ShantenCalculator } from "./calc";
 
+export interface SerializedCandidate {
+  tile: string;
+  candidates: string[];
+  shanten: number;
+}
+
 // Controller tell candidates to players
 export interface Candidate {
   tile: Tile;
