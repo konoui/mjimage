@@ -710,7 +710,6 @@ export class ActorHand extends Hand {
   override clone() {
     const c = new ActorHand(this.toString());
     c.data.reached = this.data.reached;
-    c.data.tsumo = this.data.tsumo == null ? null : this.data.tsumo;
     return c;
   }
 

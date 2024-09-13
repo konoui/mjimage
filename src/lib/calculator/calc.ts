@@ -115,12 +115,15 @@ export class Hand {
     return tiles;
   }
   toString() {
-    let c = "";
-    for (let b of this.called) c = `${c},${b.toString()}`;
+    let called = "";
+    for (let b of this.called) called = `${called},${b.toString()}`;
 
-    const tiles = this.hands;
+    let tsumo = "";
+    if (this.drawn) tsumo = `,${this.drawn.toString()}`;
+
+    const tiles = this.hands.filter((v) => !v.has(OPERATOR.TSUMO));
     const b = new BlockHand(tiles).toString();
-    return `${b}${c}`;
+    return `${b}${tsumo}${called}`;
   }
   get called() {
     return this.data.called;
@@ -264,7 +267,6 @@ export class Hand {
   clone(): Hand {
     const c = new Hand(this.toString());
     c.data.reached = this.data.reached;
-    c.data.tsumo = this.data.tsumo == null ? null : this.data.tsumo;
     return c;
   }
 }

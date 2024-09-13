@@ -89,6 +89,17 @@ describe("Hand", () => {
   });
 });
 
+test("idempotency hand", () => {
+  const input = "123m123s123p1z,t1z";
+  const h = new Hand(input);
+  expect(h.drawn?.toString()).toEqual("t1z");
+
+  const ch = new Hand(h.toString());
+  expect(ch.drawn?.toString()).toEqual("t1z");
+
+  expect(h.toString()).toEqual("1m2m3m1p2p3p1s2s3s1z,t1z");
+});
+
 describe("Shanten Calculator", () => {
   const tests = [
     {
