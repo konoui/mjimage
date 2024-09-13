@@ -437,7 +437,7 @@ describe("double Calculator", () => {
       const h = new Hand(tt.input);
       const c = new BlockCalculator(h);
       const cfg: BoardParams = {
-        doraMarkers: [new Tile(TYPE.M, 8)],
+        doraMarkers: ["8m"],
         myWind: "1w",
         round: "1w1",
       };
@@ -458,7 +458,7 @@ describe("calc", () => {
   const h = new Hand(input);
   const c = new BlockCalculator(h);
   const cfg: BoardParams = {
-    doraMarkers: [new Tile(TYPE.M, 8)],
+    doraMarkers: ["8m"],
     myWind: "1w",
     round: "1w1",
     ronWind: "2w",
@@ -475,7 +475,7 @@ describe("calc", () => {
   const h = new Hand(input);
   const c = new BlockCalculator(h);
   const cfg: BoardParams = {
-    doraMarkers: [new Tile(TYPE.M, 8)],
+    doraMarkers: ["8m"],
     myWind: "1w",
     round: "1w1",
     ronWind: "2w",

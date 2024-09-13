@@ -8,8 +8,8 @@ import {
   BlockShoKan,
   Tile,
 } from "../core/parser";
-import { ShantenCalculator, WinResult } from "./../calculator";
-import { nextWind, createWindMap } from "./managers";
+import { ShantenCalculator, WinResult, createWindMap } from "./../calculator";
+import { nextWind } from "./managers";
 
 type ControllerContext = {
   currentWind: Wind;

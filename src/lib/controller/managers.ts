@@ -1,7 +1,7 @@
 import assert from "assert";
-import { Wind, Round, TYPE, WIND } from "../core/constants";
-import { TupleOfSize } from "../calculator";
-import { Type, Tile } from "../core/parser";
+import { Wind, Round, TYPE } from "../core/constants";
+import { TupleOfSize, createWindMap } from "../calculator";
+import { Type, Tile, isNum0 } from "../core/parser";
 
 export class ScoreManager {
   private reachValue = 1000;
@@ -120,20 +120,6 @@ export const prevWind = (w: Wind): Wind => {
   return nextWind(nextWind(nextWind(w)));
 };
 
-export function createWindMap<T>(initial: T, clone = false) {
-  const m: { [key in Wind]: T } = {
-    "1w": initial,
-    "2w": initial,
-    "3w": initial,
-    "4w": initial,
-  };
-  if (clone) {
-    for (let w of Object.values(WIND)) m[w] = structuredClone(initial);
-  }
-
-  return m;
-}
-
 export function shuffle<T>(array: T[]) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -159,7 +145,7 @@ export class Counter {
   // FIXME get red
   get(t: Tile) {
     if (t.t == TYPE.BACK) return 0;
-    if (t.isNum() && t.n == 0) return this.c[t.t][5];
+    if (isNum0(t)) return this.c[t.t][5];
     return this.c[t.t][t.n];
   }
   dec(...tiles: Tile[]) {
@@ -169,7 +155,7 @@ export class Counter {
       if (this.get(t) <= 0)
         throw new Error(`cannot decrease ${t.toString()} due to zero`);
       this.c[t.t][t.n] -= 1;
-      if (t.isNum() && t.n == 0) this.c[t.t][5] -= 1;
+      if (isNum0(t)) this.c[t.t][5] -= 1;
     }
   }
   addTileToSafeMap(t: Tile, targetUser: Wind) {

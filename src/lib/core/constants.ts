@@ -29,16 +29,16 @@ export const BLOCK = {
   SHO_KAN: "shokan",
   DAI_KAN: "daikan",
   AN_KAN: "ankan",
-  DORA: "dora",
   TSUMO: "tsumo",
   //  RON: "ron",
   THREE: "three",
-  RUN: "run",
-  HAND: "hand",
-  DISCARD: "simple-discard",
-  UNKNOWN: "unknown",
   PAIR: "pair",
   ISOLATED: "isolated",
+  RUN: "run",
+  HAND: "hand",
+  IMAGE_DORA: "dora",
+  IMAGE_DISCARD: "simple-discard",
+  UNKNOWN: "unknown",
 } as const;
 
 export const WIND = {

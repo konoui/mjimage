@@ -10,6 +10,7 @@ import {
   WinResult,
   Efficiency,
   Candidate,
+  createWindMap,
 } from "../calculator";
 import {
   BlockAnKan,
@@ -43,7 +44,6 @@ import {
   ScoreManager,
   nextWind,
   shuffle,
-  createWindMap,
   Counter,
 } from ".";
 
@@ -106,7 +106,7 @@ export class Controller {
   boardParams(w: Wind): BoardParams {
     const hand = this.hand(w);
     return {
-      doraMarkers: this.observer.doraMarkers,
+      doraMarkers: this.observer.doraMarkers.map((v) => v.toString()),
       round: this.placeManager.round,
       myWind: w,
       sticks: this.observer.placeManager.sticks,
@@ -370,8 +370,8 @@ export class Controller {
     const final = new DoubleCalculator(hand, {
       ...ret.params,
       sticks: this.placeManager.sticks,
-      blindDoraMarkers: blindDoraMarkers,
-    }).calc([ret.serializedBlocks.map((v) => Block.from(v))]);
+      blindDoraMarkers: blindDoraMarkers?.map((v) => v.toString()),
+    }).calc([ret.blocks.map(Block.from)]);
     assert(final);
     return final;
   }

@@ -1,4 +1,5 @@
 import { BLOCK, TYPE, OPERATOR, Round, Wind, WIND } from "../core/constants";
+import { createWindMap } from "./helper";
 import {
   Tile,
   Parser,
@@ -307,7 +308,7 @@ export class ShantenCalculator {
     let nPairs = 0;
     for (let t of Object.values(TYPE)) {
       if (t == TYPE.BACK) continue;
-      const nn = t == TYPE.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 9];
+      const nn = t == TYPE.Z ? NZ : N19;
       for (let n of nn) {
         if (this.hand.get(t, n) >= 1) nOrphans++;
         if (this.hand.get(t, n) >= 2) nPairs++;
@@ -575,7 +576,7 @@ export class BlockCalculator {
     let pairs: string = "";
     for (let t of Object.values(TYPE)) {
       if (t == TYPE.BACK) continue;
-      const nn = t == TYPE.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 9];
+      const nn = t == TYPE.Z ? NZ : N19;
       for (let n of nn) {
         if (this.hand.get(t, n) == 1)
           ret.push(new BlockIsolated(new Tile(t, n)));
@@ -732,9 +733,12 @@ export class BlockCalculator {
   }
 }
 
+export const NZ: readonly number[] = [1, 2, 3, 4, 5, 6, 7];
+export const N19: readonly number[] = [1, 9];
+
 export interface BoardParams {
-  doraMarkers: Tile[];
-  blindDoraMarkers?: Tile[];
+  doraMarkers: string[];
+  blindDoraMarkers?: string[];
   round: Round;
   myWind: Wind;
   ronWind?: Wind;
@@ -756,7 +760,7 @@ export interface WinResult {
     double: number;
   }[];
   point: number;
-  serializedBlocks: SerializedBlock[];
+  blocks: SerializedBlock[];
   params: BoardParams;
 }
 
@@ -779,11 +783,11 @@ export class DoubleCalculator {
   constructor(hand: Hand, params: BoardParams) {
     this.hand = hand;
     this.cfg = {
-      doras: params.doraMarkers.map((v) => toDora(v)), // convert to dora
+      doras: params.doraMarkers.map((v) => toDora(Tile.from(v))), // convert to dora
       blindDoras:
         params.blindDoraMarkers == null
           ? []
-          : params.blindDoraMarkers.map((v) => toDora(v)),
+          : params.blindDoraMarkers.map((v) => toDora(Tile.from(v))),
       roundWind: Tile.from(params.round.substring(0, 2)),
       myWind: Tile.from(params.myWind),
       reached: params.reached ?? 0,
@@ -858,14 +862,9 @@ export class DoubleCalculator {
       b.tiles.some((t) => t.has(OPERATOR.TSUMO))
     );
     const myWind = this.cfg.orig.myWind;
-    const isParent = myWind == "1w";
+    const isParent = myWind == WIND.EAST;
 
-    const deltas: { [key in Wind]: number } = {
-      "1w": 0,
-      "2w": 0,
-      "3w": 0,
-      "4w": 0,
-    };
+    const deltas = createWindMap(0);
     if (!isTsumo) {
       const deadPoint = this.cfg.sticks.dead * 300;
       if (this.cfg.orig.ronWind == null)
@@ -885,7 +884,7 @@ export class DoubleCalculator {
       } else {
         for (let key of Object.values(WIND)) {
           if (key == myWind) continue;
-          const coefficient = key == "1w" ? 2 : 1;
+          const coefficient = key == WIND.EAST ? 2 : 1;
           const point = ceil(base * coefficient) + deadPoint;
           deltas[key] -= point;
           deltas[myWind] += point;
@@ -901,7 +900,7 @@ export class DoubleCalculator {
       fu: fu,
       points: patterns[idx].points,
       point: deltas[myWind],
-      serializedBlocks: patterns[idx].hand.map((b) => b.serialize()),
+      blocks: patterns[idx].hand.map((b) => b.serialize()),
       params: this.cfg.orig,
     };
     return v;
@@ -997,16 +996,17 @@ export class DoubleCalculator {
   }
   dC1(h: Block[]) {
     if (this.minus() != 0) return [];
+    const yaku = "平和";
     const fu = this.calcFu(h);
-    if (fu == 20) return [{ name: "平和", double: 1 }];
+    if (fu == 20) return [{ name: yaku, double: 1 }];
     if (!h.some((b) => b.tiles.some((t) => t.has(OPERATOR.TSUMO)))) {
-      if (fu == 30) return [{ name: "平和", double: 1 }];
+      if (fu == 30) return [{ name: yaku, double: 1 }];
     }
     return [];
   }
   dD1(h: Block[]) {
     const cond = h.some((block) =>
-      block.tiles.some((t) => t.t == TYPE.Z || [1, 9].includes(t.n))
+      block.tiles.some((t) => t.t == TYPE.Z || N19.includes(t.n))
     );
     return cond ? [] : [{ name: "断么九", double: 1 }];
   }
@@ -1160,7 +1160,7 @@ export class DoubleCalculator {
   }
   dH2(h: Block[]) {
     const cond = h.every((b) => {
-      const values = b.tiles[0].t == TYPE.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 9];
+      const values = b.tiles[0].t == TYPE.Z ? NZ : N19;
       return b.tiles.every((t) => values.includes(t.n));
     });
     return cond ? [{ name: "混老頭", double: 2 }] : [];
@@ -1173,8 +1173,7 @@ export class DoubleCalculator {
     if (!h.some((b) => b.tiles[0].t == TYPE.Z)) return [];
 
     const cond = h.every((block) => {
-      const values =
-        block.tiles[0].t == TYPE.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 9];
+      const values = block.tiles[0].t == TYPE.Z ? NZ : N19;
       return block.tiles.some((t) => values.includes(t.n));
     });
     return cond ? [{ name: "混全帯么九", double: 2 - this.minus() }] : [];
@@ -1222,7 +1221,7 @@ export class DoubleCalculator {
     if (h.some((b) => b.tiles[0].t == TYPE.Z)) return [];
 
     const cond = h.every((b) => {
-      return b.tiles.some((t) => [1, 9].includes(t.n));
+      return b.tiles.some((t) => N19.includes(t.n));
     });
     return cond ? [{ name: "純全帯么九色", double: 3 - this.minus() }] : [];
   }
@@ -1287,12 +1286,12 @@ export class DoubleCalculator {
     return cond ? [{ name: "大三元", double: 13 }] : [];
   }
   dE13(h: Block[]) {
-    const cond = h.every((b) => b.tiles.every((t) => t.t == TYPE.Z));
+    const cond = h.every((b) => b.tiles[0].t == TYPE.Z);
     return cond ? [{ name: "字一色", double: 13 }] : [];
   }
   dF13(h: Block[]) {
     const cond = h.every((b) =>
-      b.tiles.every((t) => t.t != TYPE.Z && [1, 9].includes(t.n))
+      b.tiles.every((t) => t.t != TYPE.Z && N19.includes(t.n))
     );
     return cond ? [{ name: "清老頭", double: 13 }] : [];
   }
@@ -1360,7 +1359,7 @@ export class DoubleCalculator {
       if (tile.t == TYPE.Z && [5, 6, 7].includes(tile.n)) return base * 2;
       else if (tile.t == TYPE.Z && [myWind, round].includes(tile.n))
         return base * 2;
-      else if ([1, 9].includes(tile.n)) return base * 2;
+      else if (N19.includes(tile.n)) return base * 2;
       else return base;
     };
 
@@ -1446,7 +1445,7 @@ const minTile = (b: Block) => {
 };
 
 const toDora = (doraMarker: Tile) => {
-  let n = doraMarker.isNum() && doraMarker.n == 0 ? 5 : doraMarker.n;
+  let n = isNum0(doraMarker) ? 5 : doraMarker.n;
   let t = doraMarker.t;
   return new Tile(t, (n % 9) + 1);
 };

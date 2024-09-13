@@ -53,7 +53,7 @@ const handleDiscard = (tiles: Tile[], helper: ImageHelper) => {
     let tiles = chunks[i];
     let posY = i * helper.tileHeight;
     const e = helper
-      .createBlockHandDiscard(new BlockOther(tiles, BLOCK.DISCARD))
+      .createBlockHandDiscard(new BlockOther(tiles, BLOCK.IMAGE_DISCARD))
       .translate(0, posY);
     g.add(e);
   }

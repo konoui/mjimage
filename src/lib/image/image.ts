@@ -248,7 +248,7 @@ const getBlockCreators = (h: ImageHelper) => {
       );
       return { ...size, e: g };
     },
-    [BLOCK.DORA]: function (block: Block) {
+    [BLOCK.IMAGE_DORA]: function (block: Block) {
       const size = block.imageSize(scale);
       const g = new G();
       const img = h.createTextImage(block.tiles[0], 0, 0, "(ドラ)");
@@ -267,7 +267,7 @@ const getBlockCreators = (h: ImageHelper) => {
       const g = h.createBlockHandDiscard(block);
       return { ...size, e: g };
     },
-    [BLOCK.DISCARD]: function (block: Block) {
+    [BLOCK.IMAGE_DISCARD]: function (block: Block) {
       const size = block.imageSize(scale);
       const g = h.createBlockHandDiscard(block);
       return { ...size, e: g };

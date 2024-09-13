@@ -131,7 +131,7 @@ export abstract class Block {
     if (this._type == BLOCK.SHO_KAN) {
       return;
     }
-    if (this._type != BLOCK.DISCARD) {
+    if (this._type != BLOCK.IMAGE_DISCARD) {
       this._tiles = [...this._tiles].sort(tileSortFunc);
     }
   }
@@ -476,7 +476,7 @@ export class Parser {
 function detectBlockType(tiles: Tile[]): BLOCK {
   if (tiles.length === 0) return BLOCK.UNKNOWN;
   if (tiles.length === 1) {
-    if (tiles[0].has(OPERATOR.DORA)) return BLOCK.DORA;
+    if (tiles[0].has(OPERATOR.DORA)) return BLOCK.IMAGE_DORA;
     if (tiles[0].has(OPERATOR.TSUMO)) return BLOCK.TSUMO;
     return BLOCK.HAND; // 単騎
   }
@@ -497,7 +497,7 @@ function detectBlockType(tiles: Tile[]): BLOCK {
   if (tiles.length === 3 && numOfBackTiles === 0) {
     if (sameAll) return BLOCK.PON;
     if (numOfHorizontals == 1 && areConsecutiveTiles(tiles)) return BLOCK.CHI;
-    return BLOCK.DISCARD;
+    return BLOCK.IMAGE_DISCARD;
   }
 
   if (tiles.length == 4 && numOfBackTiles == 2) return BLOCK.AN_KAN;
@@ -506,7 +506,7 @@ function detectBlockType(tiles: Tile[]): BLOCK {
     if (numOfHorizontals == 2) return BLOCK.SHO_KAN;
   }
 
-  if (numOfHorizontals == 1) return BLOCK.DISCARD;
+  if (numOfHorizontals == 1) return BLOCK.IMAGE_DISCARD;
 
   return BLOCK.UNKNOWN;
 }
