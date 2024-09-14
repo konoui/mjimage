@@ -23,7 +23,8 @@
         "svg-sprite": "svg-sprite -C svg-sprite.config.json -shape-transform-svgo  svg-sprite.config.json static/svg/*.svg",
         "tsc": "tsc --declaration --outDir ./dist/mjs",
         "prepublishOnly": "rm -rf ./dist && npm run tsc && cp -rf ./static/svg ./dist/mjs/svg/",
-        "deploy": "./scripts/sync.sh personal"
+        "deploy": "./scripts/sync.sh personal",
+        "analyze": "parcel build --reporter @parcel/reporter-bundle-analyzer"
     },
     "types": "dist/mjs/index.d.ts",
     "files": [
