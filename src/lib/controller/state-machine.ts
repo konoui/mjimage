@@ -4,6 +4,7 @@ import {
   ChoiceAfterDrawnEvent,
   ChoiceForChanKan,
   Controller,
+  RonEvent,
 } from "./index";
 import {
   BlockAnKan,
@@ -20,6 +21,7 @@ import {
   ShantenCalculator,
   WinResult,
   createWindMap,
+  SerializedWinResult,
 } from "./../calculator";
 import { nextWind } from "./managers";
 
@@ -33,12 +35,12 @@ type ControllerContext = {
 
 import { createMachine } from "xstate";
 
-const serialize = (b: Block[] | false) => {
+const serializeBlocksOrFalse = (b: Block[] | false) => {
   if (b === false) return false;
   return b.map((v) => v.serialize());
 };
 
-const serializeS = (b: Block | false) => {
+const serializeBlockOrFalse = (b: Block | false) => {
   if (b === false) return false;
   return b.serialize();
 };
@@ -54,6 +56,16 @@ const serializeCandidate = (
       shanten: c.shanten,
     };
   });
+};
+
+const serializeWinResult = (ret: WinResult) => {
+  const v = JSON.parse(JSON.stringify(ret)) as SerializedWinResult;
+  return v;
+};
+
+const serializeWinResultOrFalse = (ret: WinResult | false) => {
+  if (ret === false) return false;
+  return serializeWinResult(ret);
 };
 
 export const createControllerMachine = (c: Controller) => {
@@ -390,15 +402,17 @@ export const createControllerMachine = (c: Controller) => {
             wind: w,
             drawerInfo: { wind: w, tile: drawn!.toString() },
             choices: {
-              TSUMO: context.controller.doWin(w, drawn, {
-                oneShot: context.oneShotMap[w],
-                replacementWin: (
-                  params as { replacementWin: boolean } | undefined
-                )?.replacementWin,
-              }),
+              TSUMO: serializeWinResultOrFalse(
+                context.controller.doWin(w, drawn, {
+                  oneShot: context.oneShotMap[w],
+                  replacementWin: (
+                    params as { replacementWin: boolean } | undefined
+                  )?.replacementWin,
+                })
+              ),
               REACH: serializeCandidate(context.controller.doReach(w)),
-              AN_KAN: serialize(context.controller.doAnKan(w)),
-              SHO_KAN: serialize(context.controller.doShoKan(w)),
+              AN_KAN: serializeBlocksOrFalse(context.controller.doAnKan(w)),
+              SHO_KAN: serializeBlocksOrFalse(context.controller.doShoKan(w)),
               DISCARD: context.controller.doDiscard(w).map((v) => v.toString()),
               DRAWN_GAME_BY_NINE_TILES: context.controller.canDrawnGame(w),
             },
@@ -420,14 +434,20 @@ export const createControllerMachine = (c: Controller) => {
                 tile: discarded.t.toString(),
               },
               choices: {
-                RON: context.controller.doWin(w, ltile, {
-                  whoDiscarded: discarded.w,
-                  oneShot: context.oneShotMap[w],
-                  missingRon: context.missingMap[w],
-                }),
-                PON: serialize(context.controller.doPon(w, discarded.w, ltile)),
-                CHI: serialize(context.controller.doChi(w, discarded.w, ltile)),
-                DAI_KAN: serializeS(
+                RON: serializeWinResultOrFalse(
+                  context.controller.doWin(w, ltile, {
+                    whoDiscarded: discarded.w,
+                    oneShot: context.oneShotMap[w],
+                    missingRon: context.missingMap[w],
+                  })
+                ),
+                PON: serializeBlocksOrFalse(
+                  context.controller.doPon(w, discarded.w, ltile)
+                ),
+                CHI: serializeBlocksOrFalse(
+                  context.controller.doChi(w, discarded.w, ltile)
+                ),
+                DAI_KAN: serializeBlockOrFalse(
                   context.controller.doDaiKan(w, discarded.w, ltile)
                 ),
               },
@@ -483,7 +503,10 @@ export const createControllerMachine = (c: Controller) => {
               wind: w,
               callerInfo: { wind: event.iam, tile: t.toString() },
               choices: {
-                RON: event.type == "SHO_KAN" ? ron : false,
+                RON:
+                  event.type == "SHO_KAN"
+                    ? serializeWinResultOrFalse(ron)
+                    : false,
               },
             };
             if (e.choices.RON) context.missingMap[w] = true; // ロン可能であればフリテンをtrueにする。次のツモ番で解除される想定
@@ -575,7 +598,7 @@ export const createControllerMachine = (c: Controller) => {
               ronWind == cur && context.oneShotMap[cur] == true;
             const iam = event.iam;
             for (let w of Object.values(WIND)) {
-              const e = {
+              const e: RonEvent = {
                 id: id,
                 type: event.type,
                 iam: iam,
@@ -584,7 +607,7 @@ export const createControllerMachine = (c: Controller) => {
                   wind: event.targetInfo.wind,
                   tile: event.targetInfo.tile.toString(),
                 },
-                ret: event.ret,
+                ret: serializeWinResult(event.ret),
                 pushBackReachStick: pushBackReachStick,
               };
               context.controller.emit(e);
@@ -604,7 +627,7 @@ export const createControllerMachine = (c: Controller) => {
               iam: iam,
               wind: w,
               lastTile: context.controller.hand(iam).drawn!.toString(),
-              ret: event.ret,
+              ret: serializeWinResult(event.ret),
             };
             context.controller.emit(e);
           }

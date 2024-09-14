@@ -5,7 +5,7 @@ import {
   Hand,
   HandData,
   DoubleCalculator,
-  BoardParams,
+  BoardContext,
 } from "../calculator";
 import { TYPE, OPERATOR } from "../core/constants";
 import { Block, Parser, Tile } from "../core/parser";
@@ -436,8 +436,8 @@ describe("double Calculator", () => {
     test(tt.input, () => {
       const h = new Hand(tt.input);
       const c = new BlockCalculator(h);
-      const cfg: BoardParams = {
-        doraMarkers: ["8m"],
+      const cfg: BoardContext = {
+        doraMarkers: [new Tile(TYPE.M, 8)],
         myWind: "1w",
         round: "1w1",
       };
@@ -457,8 +457,8 @@ describe("calc", () => {
   const input = "111333m11p,5-5-55s, -3333s";
   const h = new Hand(input);
   const c = new BlockCalculator(h);
-  const cfg: BoardParams = {
-    doraMarkers: ["8m"],
+  const cfg: BoardContext = {
+    doraMarkers: [new Tile(TYPE.M, 8)],
     myWind: "1w",
     round: "1w1",
     ronWind: "2w",
@@ -474,8 +474,8 @@ describe("calc", () => {
   const lastTile = new Tile(TYPE.M, 1, [OPERATOR.TSUMO]);
   const h = new Hand(input);
   const c = new BlockCalculator(h);
-  const cfg: BoardParams = {
-    doraMarkers: ["8m"],
+  const cfg: BoardContext = {
+    doraMarkers: [new Tile(TYPE.M, 8)],
     myWind: "1w",
     round: "1w1",
     ronWind: "2w",

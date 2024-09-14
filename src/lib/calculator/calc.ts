@@ -736,9 +736,34 @@ export class BlockCalculator {
 export const NZ: readonly number[] = [1, 2, 3, 4, 5, 6, 7];
 export const N19: readonly number[] = [1, 9];
 
-export interface BoardParams {
+export const deserializeWinResult = (ret: SerializedWinResult): WinResult => {
+  const bc = ret.boardContext;
+  return {
+    ...ret,
+    hand: ret.hand.map(Block.from),
+    boardContext: {
+      ...bc,
+      doraMarkers: bc.doraMarkers.map(Tile.from),
+      blindDoraMarkers: bc.blindDoraMarkers?.map(Tile.from),
+    },
+  };
+};
+
+type SerializedBoardContext = Omit<
+  BoardContext,
+  "doraMarkers" | "blindDoraMarkers"
+> & {
   doraMarkers: string[];
   blindDoraMarkers?: string[];
+};
+export type SerializedWinResult = Omit<WinResult, "hand" | "boardContext"> & {
+  hand: SerializedBlock[];
+  boardContext: SerializedBoardContext;
+};
+
+export interface BoardContext {
+  doraMarkers: Tile[];
+  blindDoraMarkers?: Tile[];
   round: Round;
   myWind: Wind;
   ronWind?: Wind;
@@ -760,8 +785,8 @@ export interface WinResult {
     double: number;
   }[];
   point: number;
-  blocks: SerializedBlock[];
-  params: BoardParams;
+  hand: Block[];
+  boardContext: BoardContext;
 }
 
 export class DoubleCalculator {
@@ -778,16 +803,16 @@ export class DoubleCalculator {
     finalWallWin: boolean;
     finalDiscardWin: boolean;
     oneShotWin: boolean;
-    orig: BoardParams;
+    orig: BoardContext;
   };
-  constructor(hand: Hand, params: BoardParams) {
+  constructor(hand: Hand, params: BoardContext) {
     this.hand = hand;
     this.cfg = {
-      doras: params.doraMarkers.map((v) => toDora(Tile.from(v))), // convert to dora
+      doras: params.doraMarkers.map((v) => toDora(v)), // convert to dora
       blindDoras:
         params.blindDoraMarkers == null
           ? []
-          : params.blindDoraMarkers.map((v) => toDora(Tile.from(v))),
+          : params.blindDoraMarkers.map((v) => toDora(v)),
       roundWind: Tile.from(params.round.substring(0, 2)),
       myWind: Tile.from(params.myWind),
       reached: params.reached ?? 0,
@@ -900,8 +925,8 @@ export class DoubleCalculator {
       fu: fu,
       points: patterns[idx].points,
       point: deltas[myWind],
-      blocks: patterns[idx].hand.map((b) => b.serialize()),
-      params: this.cfg.orig,
+      hand: patterns[idx].hand,
+      boardContext: this.cfg.orig,
     };
     return v;
   }

@@ -52,6 +52,10 @@ export class Tile {
     return `${this.ops.join("")}${this.n}${this.t}`;
   }
 
+  toJSON() {
+    return this.toString();
+  }
+
   clone(override?: {
     t?: Type;
     n?: number;
@@ -146,6 +150,10 @@ export abstract class Block {
       tiles: this.toString(),
       type: this.type,
     };
+  }
+
+  toJSON() {
+    return this.serialize();
   }
 
   get type() {

@@ -2,7 +2,7 @@ import assert from "assert";
 import { createActor } from "xstate";
 import { TYPE, OPERATOR, Wind, Round, WIND } from "../core/";
 import {
-  BoardParams,
+  BoardContext,
   Hand,
   ShantenCalculator,
   BlockCalculator,
@@ -11,6 +11,7 @@ import {
   Efficiency,
   Candidate,
   createWindMap,
+  deserializeWinResult,
 } from "../calculator";
 import {
   BlockAnKan,
@@ -103,10 +104,10 @@ export class Controller {
       [shuffled[3]]: "4w",
     });
   }
-  boardParams(w: Wind): BoardParams {
+  boardParams(w: Wind): BoardContext {
     const hand = this.hand(w);
     return {
-      doraMarkers: this.observer.doraMarkers.map((v) => v.toString()),
+      doraMarkers: this.observer.doraMarkers,
       round: this.placeManager.round,
       myWind: w,
       sticks: this.observer.placeManager.sticks,
@@ -183,7 +184,7 @@ export class Controller {
           this.actor.send({
             type: selected.type,
             iam: e.wind,
-            ret: e.choices.RON,
+            ret: deserializeWinResult(e.choices.RON),
             targetInfo: {
               wind: e.discarterInfo.wind,
               tile: Tile.from(e.discarterInfo.tile),
@@ -225,7 +226,7 @@ export class Controller {
           assert(e.choices.TSUMO, "tsumo choice is none");
           this.actor.send({
             type: selected.type,
-            ret: e.choices.TSUMO,
+            ret: deserializeWinResult(e.choices.TSUMO),
             lastTile: Tile.from(e.drawerInfo.tile),
             iam: w,
           });
@@ -300,7 +301,7 @@ export class Controller {
       this.actor.send({
         type: "RON",
         iam: e.wind,
-        ret: e.choices.RON,
+        ret: deserializeWinResult(e.choices.RON),
         quadWin: true,
         targetInfo: {
           wind: e.callerInfo.wind,
@@ -374,10 +375,10 @@ export class Controller {
       ? this.wall.blindDoraMarkers
       : undefined;
     const final = new DoubleCalculator(hand, {
-      ...ret.params,
+      ...ret.boardContext,
       sticks: this.placeManager.sticks,
-      blindDoraMarkers: blindDoraMarkers?.map((v) => v.toString()),
-    }).calc([ret.blocks.map(Block.from)]);
+      blindDoraMarkers: blindDoraMarkers,
+    }).calc([ret.hand]);
     assert(final);
     return final;
   }

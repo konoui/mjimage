@@ -1,7 +1,7 @@
 import { eventmit } from "eventmit";
 import { Wind, Round } from "../core/constants";
 import { SerializedBlock } from "../core/parser";
-import { WinResult, SerializedCandidate } from "../calculator";
+import { SerializedCandidate, SerializedWinResult } from "../calculator";
 
 type Event =
   | CallEvent
@@ -64,7 +64,7 @@ export interface RonEvent {
   type: Extract<ChoiceEvent, "RON">;
   iam: Wind;
   wind: Wind;
-  ret: WinResult;
+  ret: SerializedWinResult;
   victimInfo: { wind: Wind; tile: string };
   pushBackReachStick: boolean;
 }
@@ -75,7 +75,7 @@ export interface TsumoEvent {
   iam: Wind;
   wind: Wind;
   lastTile: string;
-  ret: WinResult;
+  ret: SerializedWinResult;
 }
 
 export interface DiscardEvent {
@@ -157,14 +157,14 @@ export type PlayerEvent =
   | ChoiceForChanKan;
 
 interface DiscardedChoice {
-  RON: false | WinResult;
+  RON: false | SerializedWinResult;
   PON: false | SerializedBlock[];
   CHI: false | SerializedBlock[];
   DAI_KAN: false | SerializedBlock;
 }
 
 interface DrawnChoice {
-  TSUMO: false | WinResult;
+  TSUMO: false | SerializedWinResult;
   REACH: false | SerializedCandidate[];
   AN_KAN: false | SerializedBlock[];
   SHO_KAN: false | SerializedBlock[];
