@@ -87,7 +87,7 @@
         "@svgdotjs/svg.js": "^3.2.4",
         "eventmit": "^2.0.4",
         "js-yaml": "^4.1.0",
-        "valibot": "^0.40.0",
+        "valibot": "^0.42.0",
         "xstate": "^5.7.0"
     }
 }
