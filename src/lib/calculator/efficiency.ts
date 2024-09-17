@@ -3,14 +3,14 @@ import { Hand, ShantenCalculator } from "./calc";
 
 export interface SerializedCandidate {
   tile: string;
-  candidates: string[];
+  candidates: readonly string[];
   shanten: number;
 }
 
 // Controller tell candidates to players
 export interface Candidate {
   tile: Tile;
-  candidates: Tile[];
+  candidates: readonly Tile[];
   shanten: number;
 }
 
