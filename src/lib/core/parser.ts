@@ -164,20 +164,7 @@ export abstract class Block {
     return this._tiles;
   }
 
-  toString(): string {
-    const sameType = this.tiles.every((v) => v.t == this.tiles[0].t);
-
-    let ret = "";
-    if (sameType) {
-      if (this.tiles[0].t == TYPE.BACK) return this.tiles.join("");
-      for (let v of this.tiles) {
-        ret += v.toString().slice(0, -1);
-      }
-      return `${ret}${this.tiles[0].t}`;
-    }
-    for (const t of this.tiles) ret += t.toString();
-    return ret;
-  }
+  abstract toString(): string;
 
   is(type: BLOCK): boolean {
     return this._type == type;
@@ -223,15 +210,50 @@ export abstract class Block {
   }
 }
 
+const toStringForSame = (tiles: readonly Tile[]) => {
+  let ret = "";
+  for (let v of tiles) {
+    if (v.t == TYPE.BACK) return tiles.join("");
+    ret += v.toString().slice(0, -1);
+  }
+  return `${ret}${tiles[0].t}`;
+};
+
+const toStringForHand = (tiles: readonly Tile[]) => {
+  let preType: Type = tiles[0].t;
+  let ret = "";
+  for (let i = 0; i < tiles.length; i++) {
+    const tile = tiles[i];
+    const type = tile.t;
+    const nop =
+      type == TYPE.BACK ? tile.toString() : tile.toString().slice(0, -1);
+
+    if (type != preType) if (preType != TYPE.BACK) ret += preType;
+
+    preType = type;
+    ret += nop;
+  }
+
+  const last = tiles.at(-1)!;
+  if (last.t != TYPE.BACK) ret += last.t;
+  return ret;
+};
+
 export class BlockChi extends Block {
   constructor(tiles: readonly [Tile, Tile, Tile]) {
     super(tiles, BLOCK.CHI);
+  }
+  toString(): string {
+    return toStringForSame(this.tiles);
   }
 }
 
 export class BlockPon extends Block {
   constructor(tiles: readonly [Tile, Tile, Tile]) {
     super(tiles, BLOCK.PON);
+  }
+  toString(): string {
+    return toStringForSame(this.tiles);
   }
 }
 
@@ -270,11 +292,8 @@ export class BlockAnKan extends Block {
     return super.from(v) as BlockAnKan;
   }
 
-  toString() {
-    const tiles = this.tilesWithBack;
-    return tiles.reduce((s: string, t: Tile) => {
-      return `${s}${t.toString()}`;
-    }, "");
+  toString(): string {
+    return toStringForHand(this.tilesWithBack);
   }
 }
 
@@ -282,11 +301,17 @@ export class BlockDaiKan extends Block {
   constructor(tiles: readonly Tile[]) {
     super(tiles, BLOCK.DAI_KAN);
   }
+  toString(): string {
+    return toStringForSame(this.tiles);
+  }
 }
 
 export class BlockShoKan extends Block {
   constructor(tiles: readonly Tile[]) {
     super(tiles, BLOCK.SHO_KAN);
+  }
+  toString(): string {
+    return toStringForSame(this.tiles);
   }
 }
 
@@ -294,11 +319,17 @@ export class BlockPair extends Block {
   constructor(tile1: Tile, tile2: Tile) {
     super([tile1, tile2], BLOCK.PAIR);
   }
+  toString(): string {
+    return toStringForSame(this.tiles);
+  }
 }
 
 export class BlockThree extends Block {
   constructor(tiles: readonly [Tile, Tile, Tile]) {
     super(tiles, BLOCK.THREE);
+  }
+  toString(): string {
+    return toStringForSame(this.tiles);
   }
 }
 
@@ -306,11 +337,17 @@ export class BlockRun extends Block {
   constructor(tiles: readonly [Tile, Tile, Tile]) {
     super(tiles, BLOCK.RUN);
   }
+  toString(): string {
+    return toStringForSame(this.tiles);
+  }
 }
 
 export class BlockIsolated extends Block {
   constructor(tile: Tile) {
     super([tile], BLOCK.ISOLATED);
+  }
+  toString(): string {
+    return this.tiles[0].toString();
   }
 }
 
@@ -318,12 +355,20 @@ export class BlockHand extends Block {
   constructor(tiles: readonly Tile[]) {
     super(tiles, BLOCK.HAND);
   }
+  toString(): string {
+    return toStringForHand(this.tiles);
+  }
 }
 
 // block other means tsumo/dora etc...
 export class BlockOther extends Block {
   constructor(tiles: readonly Tile[], type: BLOCK) {
     super(tiles, type);
+  }
+
+  toString(): string {
+    if (this.is(BLOCK.IMAGE_DISCARD)) return this.tiles.join("");
+    return toStringForHand(this.tiles);
   }
 }
 

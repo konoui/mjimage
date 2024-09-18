@@ -6,7 +6,7 @@ import {
   Efficiency,
 } from "../calculator";
 import { TYPE, OPERATOR } from "../core/constants";
-import { Block, Parser, Tile } from "../core/parser";
+import { Block, BlockAnKan, BlockHand, Parser, Tile } from "../core/parser";
 import { handsToString } from "./utils/helper";
 
 describe("block", () => {
@@ -60,5 +60,20 @@ describe("block", () => {
 
     candidates = Efficiency.partialCandidateTiles("23456s");
     expect(candidates.candidates.toString()).toBe("1s,4s,7s");
+  });
+});
+
+describe("toString", () => {
+  test("anakn", () => {
+    const t = new Tile(TYPE.M, 1);
+    const b = new BlockAnKan([t, t, t, t]);
+    expect(b.toString()).toEqual("_11m_");
+  });
+  test("hand", () => {
+    const t1 = new Tile(TYPE.M, 1);
+    const t2 = new Tile(TYPE.S, 1);
+    const t3 = new Tile(TYPE.BACK, 0);
+    const b = new BlockHand([t1, t2, t2, t3, t1, t2, t3]);
+    expect(b.toString()).toEqual("11m111s__");
   });
 });
