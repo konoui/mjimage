@@ -1,5 +1,5 @@
-import assert from "assert";
 import { createActor } from "xstate";
+import { assert } from "../myassert";
 import { TYPE, OPERATOR, Wind, Round, WIND } from "../core/";
 import {
   BoardContext,

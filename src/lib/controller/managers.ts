@@ -1,4 +1,4 @@
-import assert from "assert";
+import { assert } from "../myassert";
 import { Wind, Round, TYPE } from "../core/constants";
 import { TupleOfSize, createWindMap } from "../calculator";
 import { Type, Tile, isNum0 } from "../core/parser";

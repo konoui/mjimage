@@ -1,4 +1,4 @@
-import assert from "assert";
+import { assert } from "../myassert";
 import { Controller, History } from "./";
 
 export class Replayer {

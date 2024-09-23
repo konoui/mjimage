@@ -20,6 +20,7 @@ import {
   isNum0,
   SerializedBlock,
 } from "../core/parser";
+import { assert } from "../myassert";
 
 export type TupleOfSize<
   T,
@@ -100,20 +101,19 @@ export class Hand {
     if (this.drawn != null) {
       const drawn = this.drawn;
       const idx = tiles.findIndex((t) => t.equals(drawn));
-      if (idx < 0)
-        throw new Error(
-          `[debug] hand has drawn: ${
-            this.drawn
-          } but no tile in hands: ${tiles.join("")}`
-        );
-      else tiles[idx] = tiles[idx].clone({ add: OPERATOR.TSUMO });
-    }
-    if (tiles.length < 1)
-      throw new Error(
-        `[debug] no tiles in hand ${tiles.length}, called: ${
-          this.called
-        }, data: ${JSON.stringify(this.data, null, 2)}`
+      assert(
+        idx >= 0,
+        `hand has drawn: ${this.drawn} but no tile in hands: ${tiles.join("")}`
       );
+
+      tiles[idx] = tiles[idx].clone({ add: OPERATOR.TSUMO });
+    }
+    assert(
+      tiles.length > 0,
+      `no tiles in hand ${tiles.length}, called: ${
+        this.called
+      }, data: ${JSON.stringify(this.data, null, 2)}`
+    );
     return tiles;
   }
   toString() {

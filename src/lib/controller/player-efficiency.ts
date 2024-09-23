@@ -1,4 +1,4 @@
-import assert from "assert";
+import { assert } from "../myassert";
 import { TYPE, Wind } from "../core/constants";
 import { Tile } from "../core/parser";
 import { Candidate } from "../calculator";

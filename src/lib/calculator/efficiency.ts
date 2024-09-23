@@ -1,4 +1,5 @@
 import { TYPE, Tile } from "../core";
+import { assert } from "../myassert";
 import { Hand, ShantenCalculator } from "./calc";
 
 export interface SerializedCandidate {
@@ -18,8 +19,7 @@ export class Efficiency {
   // ツモった後の17枚の手配から、牌効率に従って捨てるべき牌を返す。
   // choices は、通常なら hand.hand を指定する。ただし、リーチしている場合は捨てる牌が限られているので choices で制限する。
   static calcCandidates(hand: Hand, choices: Tile[]) {
-    if (choices.length == 0)
-      throw new Error(`[debug] choices to discard is zero`);
+    assert(choices.length > 0, `choices to discard is zero`);
     let ret: Candidate[] = [];
     for (let t of choices) {
       const tiles = hand.dec([t]);

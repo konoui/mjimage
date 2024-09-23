@@ -1,6 +1,6 @@
 {
     "name": "@konoui/mjimage",
-    "version": "0.0.30",
+    "version": "0.0.31",
     "description": "Generates Mahjong tiles in SVG format.",
     "author": "konoui",
     "license": "MIT",
@@ -30,14 +30,10 @@
         "./table": "./dist/mjs/lib/table/index.js",
         "./calculator": "./dist/mjs/lib/calculator/index.js"
     },
-    "targets": {
-        "module": {}
-    },
     "devDependencies": {
         "@types/jest": "^29.5.5",
         "@types/js-yaml": "^4.0.9",
         "@types/svgdom": "^0.1.0",
-        "assert": "^2.1.0",
         "buffer": "^6.0.3",
         "process": "^0.11.10",
         "svg-sprite": "^2.0.2",
