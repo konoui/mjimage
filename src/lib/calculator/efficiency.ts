@@ -1,4 +1,4 @@
-import { TYPE, Tile } from "../core";
+import { Tile, TYPE } from "../core";
 import { assert } from "../myassert";
 import { Hand, ShantenCalculator } from "./calc";
 

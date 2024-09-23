@@ -1,4 +1,4 @@
-import { BLOCK, TYPE, OPERATOR, Round, Wind, WIND } from "../core/constants";
+import { BLOCK, TYPE, OPERATOR, Round, Wind, WIND } from "../core";
 import { createWindMap } from "./helper";
 import {
   Tile,

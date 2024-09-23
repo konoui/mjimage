@@ -13,34 +13,42 @@
         "access": "public"
     },
     "scripts": {
-        "test": "jest",
+        "build": "vite build",
+        "test": "vitest run",
         "cmd": "ts-node ./src/cmd/index.ts",
-        "tsc": "tsc --declaration --outDir ./dist/mjs",
         "prepublishOnly": "rm -rf ./dist && npm run tsc"
     },
-    "types": "dist/mjs/index.d.ts",
+    "type": "module",
     "files": [
         "dist/",
         "!**/__tests__/"
     ],
     "exports": {
-        ".": "./dist/mjs/index.js",
-        "./core": "./dist/mjs/lib/core/index.js",
-        "./image": "./dist/mjs/lib/image/index.js",
-        "./table": "./dist/mjs/lib/table/index.js",
-        "./calculator": "./dist/mjs/lib/calculator/index.js"
+        ".": {
+            "import": {
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
+            },
+            "require": {
+                "types": "./dist/index.d.cts",
+                "default": "./dist/index.cjs"
+            }
+        }
     },
     "devDependencies": {
-        "@types/jest": "^29.5.5",
         "@types/js-yaml": "^4.0.9",
+        "@types/node": "^22.6.1",
         "@types/svgdom": "^0.1.0",
         "buffer": "^6.0.3",
         "process": "^0.11.10",
         "svg-sprite": "^2.0.2",
         "svgdom": "0.1.14",
         "svgo": "^3.0.2",
-        "ts-jest": "^29.1.1",
-        "typescript": "^5.5.4"
+        "typescript": "^5.5.4",
+        "vite": "^5.4.7",
+        "vite-plugin-dts": "^4.2.2",
+        "vite-tsconfig-paths": "^5.0.1",
+        "vitest": "^2.1.1"
     },
     "dependencies": {
         "@svgdotjs/svg.js": "^3.2.4",

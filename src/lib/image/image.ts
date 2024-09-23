@@ -1,4 +1,4 @@
-import { Tile, Block, BlockAnKan } from "../core";
+import { Tile, Block, BlockAnKan } from "../core/parser";
 import { Svg, G, Image, Text, Use, Symbol } from "@svgdotjs/svg.js";
 import { FONT_FAMILY, TILE_CONTEXT, TYPE, OPERATOR, BLOCK } from "../core";
 

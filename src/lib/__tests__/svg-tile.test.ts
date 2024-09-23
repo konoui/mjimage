@@ -1,4 +1,3 @@
-import { describe, test, expect } from "@jest/globals";
 import { SVG, Use } from "@svgdotjs/svg.js";
 import { optimizeSVG } from "../image/image";
 import fs from "fs";

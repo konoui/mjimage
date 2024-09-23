@@ -1,4 +1,3 @@
-import { describe, test, expect } from "@jest/globals";
 import { SVG } from "@svgdotjs/svg.js";
 import { Parser } from "../core/parser";
 import { drawBlocks } from "../image/image";

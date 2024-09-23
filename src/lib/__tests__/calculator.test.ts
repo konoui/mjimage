@@ -1,4 +1,3 @@
-import { describe, test, expect } from "@jest/globals";
 import {
   ShantenCalculator,
   BlockCalculator,
@@ -454,34 +453,42 @@ describe("double Calculator", () => {
 });
 
 describe("calc", () => {
-  const input = "111333m11p,5-5-55s, -3333s";
-  const h = new Hand(input);
-  const c = new BlockCalculator(h);
-  const cfg: BoardContext = {
-    doraMarkers: [new Tile(TYPE.M, 8)],
-    myWind: "1w",
-    round: "1w1",
-    ronWind: "2w",
-  };
-  const dc = new DoubleCalculator(h, cfg);
-  const hands = c.calc(new Tile(TYPE.M, 3, [OPERATOR.RON]));
-  const got = dc.calc(hands);
-  // console.log(got);
-});
+  test("1", () => {
+    const input = "111333m11p,5-5-55s, -3333s";
+    const h = new Hand(input);
+    const c = new BlockCalculator(h);
+    const cfg: BoardContext = {
+      doraMarkers: [new Tile(TYPE.M, 8)],
+      myWind: "1w",
+      round: "1w1",
+      ronWind: "2w",
+    };
+    const dc = new DoubleCalculator(h, cfg);
+    const hands = c.calc(new Tile(TYPE.M, 3, [OPERATOR.RON]));
+    const got = dc.calc(hands);
 
-describe("calc", () => {
-  const input = "-123s,-234s,-456m, -567m, 11m";
-  const lastTile = new Tile(TYPE.M, 1, [OPERATOR.TSUMO]);
-  const h = new Hand(input);
-  const c = new BlockCalculator(h);
-  const cfg: BoardContext = {
-    doraMarkers: [new Tile(TYPE.M, 8)],
-    myWind: "1w",
-    round: "1w1",
-    ronWind: "2w",
-  };
-  const dc = new DoubleCalculator(h, cfg);
-  const hands = c.calc(lastTile);
-  const got = dc.calc(hands);
-  // console.log(got);
+    // TODO
+    expect(!!got).toEqual(true);
+
+    // console.log(got);
+  });
+  test("2", () => {
+    const input = "-123s,-234s,-456m, -567m, 11m";
+    const lastTile = new Tile(TYPE.M, 1, [OPERATOR.TSUMO]);
+    const h = new Hand(input);
+    const c = new BlockCalculator(h);
+    const cfg: BoardContext = {
+      doraMarkers: [new Tile(TYPE.M, 8)],
+      myWind: "1w",
+      round: "1w1",
+      ronWind: "2w",
+    };
+    const dc = new DoubleCalculator(h, cfg);
+    const hands = c.calc(lastTile);
+    const got = dc.calc(hands);
+
+    // TODO
+    expect(!!got).toEqual(true);
+    // console.log(got);
+  });
 });

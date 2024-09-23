@@ -1,5 +1,3 @@
-import { describe, test, expect } from "@jest/globals";
-
 import { Lexer } from "../core/lexer";
 
 describe("lexer", () => {
