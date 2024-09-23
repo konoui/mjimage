@@ -1,10 +1,12 @@
-import { Parser, TILE_CONTEXT } from "./core";
-import { drawBlocks, ImageHelperConfig } from "./image";
-import { MeasureText } from "./measure-text";
-import { drawTable } from "./table";
+import {
+  Parser,
+  TILE_CONTEXT,
+  MeasureText,
+  drawTable,
+  drawBlocks,
+  ImageHelperConfig,
+} from "@konoui/mjimage/src";
 import { SVG } from "@svgdotjs/svg.js";
-// https://parceljs.org/languages/svg/#inlining-as-a-string
-// import tilesSvg from "./tiles.svg";
 
 interface InitializeConfig extends Omit<ImageHelperConfig, "scale"> {
   querySelector?: string | string[];
@@ -28,10 +30,6 @@ const calculateScale = (scale: number, textHeight: number) => {
 };
 
 export class mjimage {
-  // static svgURL = () => {
-  //   return tilesSvg;
-  // };
-
   static initialize = (props: InitializeConfig = {}) => {
     console.debug("initializing....");
     let querySelector = props.querySelector ?? defaultQuerySelector;

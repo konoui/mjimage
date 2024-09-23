@@ -1,4 +1,3 @@
-export * from "./lib/mjimage";
 export * from "./lib/measure-text/";
 export * from "./lib/core/";
 export * from "./lib/table/";

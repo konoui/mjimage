@@ -1,0 +1,51 @@
+{
+    "author": "konoui",
+    "license": "MIT",
+    "sideEffects": [
+        "./src/global.ts"
+    ],
+    "scripts": {
+        "start": "parcel",
+        "build": "parcel build",
+        "dev": "parcel src/index.html",
+        "svg-sprite": "svg-sprite -C svg-sprite.config.json -shape-transform-svgo  svg-sprite.config.json static/svg/*.svg",
+        "deploy": "./scripts/sync.sh personal",
+        "analyze": "parcel build --reporter @parcel/reporter-bundle-analyzer"
+    },
+    "targets": {
+        "global": {
+            "source": "src/global.ts",
+            "context": "browser",
+            "includeNodeModules": true,
+            "isLibrary": false,
+            "optimize": true,
+            "distDir": "./dist/browser/",
+            "engines": {
+                "browsers": "> 0.5%, last 2 versions, not dead"
+            }
+        }
+    },
+    "staticFiles": [
+        {
+            "staticPath": "static/svg",
+            "staticOutPath": "svg"
+        },
+        {
+            "staticPath": "static/webp",
+            "staticOutPath": "webp"
+        }
+    ],
+    "devDependencies": {
+        "@parcel/reporter-bundle-analyzer": "^2.12.0",
+        "@parcel/transformer-inline-string": "^2.9.3",
+        "@parcel/transformer-typescript-tsc": "^2.9.3",
+        "@parcel/validator-typescript": "^2.9.3",
+        "parcel": "^2.12.0",
+        "parcel-reporter-static-files-copy": "^1.5.2",
+        "process": "^0.11.10",
+        "typescript": "^5.5.4"
+    },
+    "dependencies": {
+        "@konoui/mjimage": "file:.."
+    }
+}

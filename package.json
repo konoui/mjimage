@@ -5,9 +5,7 @@
     "author": "konoui",
     "license": "MIT",
     "repository": "github.com/konoui/mjimage",
-    "sideEffects": [
-        "./src/global.ts"
-    ],
+    "sideEffects": false,
     "keywords": [
         "mahjong"
     ],
@@ -15,22 +13,15 @@
         "access": "public"
     },
     "scripts": {
-        "start": "parcel",
-        "build": "parcel build",
-        "dev": "parcel src/index.html",
         "test": "jest",
         "cmd": "ts-node ./src/cmd/index.ts",
-        "svg-sprite": "svg-sprite -C svg-sprite.config.json -shape-transform-svgo  svg-sprite.config.json static/svg/*.svg",
         "tsc": "tsc --declaration --outDir ./dist/mjs",
-        "prepublishOnly": "rm -rf ./dist && npm run tsc && cp -rf ./static/svg ./dist/mjs/svg/",
-        "deploy": "./scripts/sync.sh personal",
-        "analyze": "parcel build --reporter @parcel/reporter-bundle-analyzer"
+        "prepublishOnly": "rm -rf ./dist && npm run tsc"
     },
     "types": "dist/mjs/index.d.ts",
     "files": [
         "dist/",
-        "!**/__tests__/",
-        "!dist/mjs/global.*"
+        "!**/__tests__/"
     ],
     "exports": {
         ".": "./dist/mjs/index.js",
@@ -40,42 +31,14 @@
         "./calculator": "./dist/mjs/lib/calculator/index.js"
     },
     "targets": {
-        "global": {
-            "source": "src/global.ts",
-            "context": "browser",
-            "includeNodeModules": true,
-            "isLibrary": false,
-            "optimize": true,
-            "distDir": "./dist/browser/",
-            "engines": {
-                "browsers": "> 0.5%, last 2 versions, not dead"
-            }
-        },
         "module": {}
     },
-    "alias": {},
-    "staticFiles": [
-        {
-            "staticPath": "static/svg",
-            "staticOutPath": "svg"
-        },
-        {
-            "staticPath": "static/webp",
-            "staticOutPath": "webp"
-        }
-    ],
     "devDependencies": {
-        "@parcel/reporter-bundle-analyzer": "^2.12.0",
-        "@parcel/transformer-inline-string": "^2.9.3",
-        "@parcel/transformer-typescript-tsc": "^2.9.3",
-        "@parcel/validator-typescript": "^2.9.3",
         "@types/jest": "^29.5.5",
         "@types/js-yaml": "^4.0.9",
         "@types/svgdom": "^0.1.0",
         "assert": "^2.1.0",
         "buffer": "^6.0.3",
-        "parcel": "^2.12.0",
-        "parcel-reporter-static-files-copy": "^1.5.2",
         "process": "^0.11.10",
         "svg-sprite": "^2.0.2",
         "svgdom": "0.1.14",
