@@ -7,10 +7,11 @@ import { loadTestData, initSvgDOM } from "./utils/helper";
 const { window, document } = initSvgDOM();
 
 const update = false;
+const spritePath = "browser-mjimage/static/svg/tiles.svg";
 
 describe("use", () => {
   test("import existing", () => {
-    const img = fs.readFileSync("src/lib/tiles.svg").toString();
+    const img = fs.readFileSync(spritePath).toString();
     const draw = SVG().svg(img);
     const use = new Use().use("m1");
     draw.add(use);
@@ -20,7 +21,7 @@ describe("use", () => {
   });
 
   test("remove unused tile", () => {
-    const img = fs.readFileSync("src/lib/tiles.svg").toString();
+    const img = fs.readFileSync(spritePath).toString();
     let draw = SVG().svg(img);
     const use = new Use().use("m1");
     draw.add(use);
