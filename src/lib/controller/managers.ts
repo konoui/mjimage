@@ -1,5 +1,5 @@
 import { assert } from "../myassert";
-import { Wind, Round, TYPE } from "../core/constants";
+import { Wind, Round, TYPE, WIND } from "../core/constants";
 import { TupleOfSize, createWindMap } from "../calculator";
 import { Type, Tile, isNum0 } from "../core/parser";
 
@@ -23,10 +23,10 @@ export class ScoreManager {
   }
   update(
     result: {
-      "1w": number;
-      "2w": number;
-      "3w": number;
-      "4w": number;
+      [WIND.E]: number;
+      [WIND.S]: number;
+      [WIND.W]: number;
+      [WIND.N]: number;
     },
     windMap: { [key: string]: Wind }
   ) {

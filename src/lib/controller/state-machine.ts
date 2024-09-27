@@ -74,7 +74,7 @@ export const createControllerMachine = (c: Controller) => {
       id: "Untitled",
       initial: "distribute",
       context: {
-        currentWind: "1w",
+        currentWind: WIND.E,
         oneShotMap: createWindMap(false),
         missingMap: createWindMap(false),
         controller: c,
@@ -694,7 +694,7 @@ export const createControllerMachine = (c: Controller) => {
               context.controller.emit(e);
             }
           } else if (event.type == "RON" || event.type == "TSUMO") {
-            const shouldContinue = event.iam == "1w";
+            const shouldContinue = event.iam == WIND.E;
             const finalResults = context.controller.finalResult(
               event.ret,
               event.iam
@@ -755,7 +755,7 @@ export const createControllerMachine = (c: Controller) => {
               else deltas[w] -= nothing ? 0 : 3000 / (4 - wind.length);
             }
 
-            const shouldContinue = wind.length == 4 || deltas["1w"] > 0;
+            const shouldContinue = wind.length == 4 || deltas[WIND.E] > 0;
             for (let w of Object.values(WIND)) {
               const e = {
                 id: id,

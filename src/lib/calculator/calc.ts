@@ -887,7 +887,7 @@ export class DoubleCalculator {
       b.tiles.some((t) => t.has(OPERATOR.TSUMO))
     );
     const myWind = this.cfg.orig.myWind;
-    const isParent = myWind == WIND.EAST;
+    const isParent = myWind == WIND.E;
 
     const deltas = createWindMap(0);
     if (!isTsumo) {
@@ -909,7 +909,7 @@ export class DoubleCalculator {
       } else {
         for (let key of Object.values(WIND)) {
           if (key == myWind) continue;
-          const coefficient = key == WIND.EAST ? 2 : 1;
+          const coefficient = key == WIND.E ? 2 : 1;
           const point = ceil(base * coefficient) + deadPoint;
           deltas[key] -= point;
           deltas[myWind] += point;

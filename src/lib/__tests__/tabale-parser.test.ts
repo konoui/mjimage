@@ -1,5 +1,5 @@
 import { parseTableInput, TableInput } from "../table/table-parser";
-
+import { WIND } from "../core";
 describe("parse-table", () => {
   test("simple", () => {
     const input = `
@@ -29,22 +29,22 @@ describe("parse-table", () => {
       round: 1w1
     `;
     const want: TableInput = {
-      "1w": {
+      [WIND.E]: {
         discard: "1m",
         hand: "1m",
         score: 0,
       },
-      "2w": {
+      [WIND.S]: {
         discard: "2m",
         hand: "2m",
         score: 3000,
       },
-      "3w": {
+      [WIND.W]: {
         discard: "3m",
         hand: "3m",
         score: 25000,
       },
-      "4w": {
+      [WIND.N]: {
         discard: "4m",
         hand: "4m",
         score: 12000,

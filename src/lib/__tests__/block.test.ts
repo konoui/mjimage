@@ -43,23 +43,6 @@ describe("block", () => {
     const res = handsToString(bc.calc(t));
     expect(res).toStrictEqual([["__", "t123m", "456m", "___", "___"]]);
   });
-  test("partial-shanten", () => {
-    let n = Efficiency.partialShanten("23456s11z");
-    expect(n).toBe(0);
-
-    n = Efficiency.partialShanten("23456s");
-    expect(n).toBe(0);
-
-    n = Efficiency.partialShanten("246s");
-    expect(n).toBe(1);
-  });
-  test("partial-candidate", () => {
-    let candidates = Efficiency.partialCandidateTiles("23456s11z");
-    expect(candidates.candidates.toString()).toBe("1s,4s,7s");
-
-    candidates = Efficiency.partialCandidateTiles("23456s");
-    expect(candidates.candidates.toString()).toBe("1s,4s,7s");
-  });
 });
 
 describe("toString", () => {

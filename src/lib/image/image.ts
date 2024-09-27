@@ -235,14 +235,18 @@ const getBlockCreators = (h: ImageHelper) => {
       return { ...size, e: g };
     },
     [BLOCK.AN_KAN]: function (block: Block) {
-      if (!(block instanceof BlockAnKan))
-        throw new Error(`block type is not ankan: ${block.type}`);
+      assert(
+        block instanceof BlockAnKan,
+        `block type is not ankan: ${block.type}`
+      );
       const size = block.imageSize(scale);
       const zp = block.tilesWithBack.filter((v) => {
         return v.t !== TYPE.BACK;
       });
-      if (!(zp != null && zp.length == 2))
-        throw new Error(`[debug] back tile must be two but ${block}`);
+      assert(
+        zp != null && zp.length == 2,
+        `back tile must be two but ${block}`
+      );
       const g = h.createBlockHandDiscard(
         new BlockAnKan([zp[0], zp[1], zp[0], zp[1]])
       );

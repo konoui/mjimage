@@ -5,8 +5,8 @@ export const TILE_CONTEXT = {
   HEIGHT: 90,
   TEXT_SCALE: 0.8,
   BLOCK_MARGIN_SCALE: 0.3,
-};
-export const TABLE_CONTEXT = { BASE: 40 };
+} as const;
+export const TABLE_CONTEXT = { BASE: 40 } as const;
 export const INPUT_SEPARATOR = ",";
 export const TYPE = {
   M: "m",
@@ -42,37 +42,56 @@ export const BLOCK = {
 } as const;
 
 export const WIND = {
-  EAST: "1w",
-  SOUTH: "2w",
-  WEST: "3w",
-  NORTH: "4w",
+  E: "1w",
+  S: "2w",
+  W: "3w",
+  N: "4w",
 } as const;
 
-export const ROUND_MAP = {
-  "1w1": "東１局",
-  "1w2": "東２局",
-  "1w3": "東３局",
-  "1w4": "東４局",
-  "2w1": "南１局",
-  "2w2": "南２局",
-  "2w3": "南３局",
-  "2w4": "南４局",
-  "3w1": "西1局",
-  "3w2": "西2局",
-  "3w3": "西3局",
-  "3w4": "西4局",
-  "4w1": "北1局",
-  "4w2": "北2局",
-  "4w3": "北3局",
-  "4w4": "北４局",
+export const ROUND = {
+  E1: WIND.E + "1",
+  E2: WIND.E + "2",
+  E3: WIND.E + "3",
+  E4: WIND.E + "4",
+  S1: WIND.S + "1",
+  S2: WIND.S + "2",
+  S3: WIND.S + "3",
+  S4: WIND.S + "4",
+  W1: WIND.W + "1",
+  W2: WIND.W + "2",
+  W3: WIND.W + "3",
+  W4: WIND.W + "4",
+  N1: WIND.N + "1",
+  N2: WIND.N + "2",
+  N3: WIND.N + "3",
+  N4: WIND.N + "4",
 } as const;
 
 export const WIND_MAP = {
-  [WIND.EAST]: "東",
-  [WIND.SOUTH]: "南",
-  [WIND.WEST]: "西",
-  [WIND.NORTH]: "北",
+  [WIND.E]: "東",
+  [WIND.S]: "南",
+  [WIND.W]: "西",
+  [WIND.N]: "北",
 } as const;
 
-export type Wind = keyof typeof WIND_MAP;
-export type Round = keyof typeof ROUND_MAP;
+export const ROUND_MAP = {
+  [ROUND.E1]: "東１局",
+  [ROUND.E2]: "東２局",
+  [ROUND.E3]: "東３局",
+  [ROUND.E4]: "東４局",
+  [ROUND.N1]: "南１局",
+  [ROUND.N2]: "南２局",
+  [ROUND.N3]: "南３局",
+  [ROUND.N4]: "南４局",
+  [ROUND.W1]: "西1局",
+  [ROUND.W2]: "西2局",
+  [ROUND.W3]: "西3局",
+  [ROUND.W4]: "西4局",
+  [ROUND.N1]: "北1局",
+  [ROUND.N2]: "北2局",
+  [ROUND.N3]: "北3局",
+  [ROUND.N4]: "北４局",
+} as const;
+
+export type Wind = (typeof WIND)[keyof typeof WIND];
+export type Round = (typeof ROUND)[keyof typeof ROUND];

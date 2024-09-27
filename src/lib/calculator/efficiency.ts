@@ -79,13 +79,4 @@ export class Efficiency {
       .map(() => h.inc([new Tile(TYPE.BACK, 0)]));
     return Efficiency.candidateTiles(h);
   }
-
-  static partialShanten(input: string) {
-    const h = new Hand(input, true);
-    Array(13 - h.hands.length)
-      .fill(undefined)
-      .map(() => h.inc([new Tile(TYPE.BACK, 0)]));
-    const sc = new ShantenCalculator(h);
-    return sc.calc();
-  }
 }

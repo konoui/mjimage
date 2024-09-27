@@ -13,7 +13,7 @@ import {
   strictObject,
 } from "valibot";
 import { Tile, Parser, Block } from "../core/parser";
-import { WIND_MAP, ROUND_MAP, WIND } from "../core/constants";
+import { WIND_MAP, ROUND_MAP, WIND, ROUND } from "../core/constants";
 
 // windInputSchema の定義
 const windInputSchema = optional(
@@ -27,15 +27,15 @@ const windInputSchema = optional(
 
 // windInputsSchema の定義
 const windInputsSchema = strictObject({
-  [WIND.EAST]: windInputSchema,
-  [WIND.SOUTH]: windInputSchema,
-  [WIND.WEST]: windInputSchema,
-  [WIND.NORTH]: windInputSchema,
+  [WIND.E]: windInputSchema,
+  [WIND.S]: windInputSchema,
+  [WIND.W]: windInputSchema,
+  [WIND.N]: windInputSchema,
 });
 
 // boardInputSchema の定義
 const boardInputSchema = strictObject({
-  round: optional(picklist(Object.keys(ROUND_MAP) as TableRound[]), "1w1"),
+  round: optional(picklist(Object.keys(ROUND_MAP) as TableRound[]), ROUND.E1),
   sticks: optional(
     strictObject({
       reach: optional(pipe(number(), minValue(0, ""), maxValue(9, "")), 0),
@@ -43,8 +43,8 @@ const boardInputSchema = strictObject({
     }),
     { reach: 0, dead: 0 }
   ),
-  doras: optional(array(string()), ["3w"]),
-  front: optional(picklist(Object.keys(WIND_MAP) as TableWind[]), "1w"),
+  doras: optional(array(string()), [WIND.S]),
+  front: optional(picklist(Object.keys(WIND_MAP) as TableWind[]), WIND.E),
 });
 
 // tableInputSchema の定義

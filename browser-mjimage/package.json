@@ -6,7 +6,7 @@
     ],
     "scripts": {
         "start": "parcel",
-        "build": "parcel build",
+        "build": "rm -rf .parcel-cache && parcel build",
         "dev": "parcel src/index.html",
         "svg-sprite": "svg-sprite -C svg-sprite.config.json -shape-transform-svgo  svg-sprite.config.json static/svg/*.svg",
         "deploy": "./scripts/sync.sh personal",

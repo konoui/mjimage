@@ -1,6 +1,6 @@
 import { createActor } from "xstate";
 import { assert } from "../myassert";
-import { TYPE, OPERATOR, Wind, Round, WIND } from "../core/";
+import { TYPE, OPERATOR, Wind, Round, WIND, ROUND } from "../core/";
 import {
   BoardContext,
   Hand,
@@ -98,10 +98,10 @@ export class Controller {
 
     const shuffled = shuffle(this.playerIDs.concat());
     this.observer.placeManager = new PlaceManager({
-      [shuffled[0]]: "1w",
-      [shuffled[1]]: "2w",
-      [shuffled[2]]: "3w",
-      [shuffled[3]]: "4w",
+      [shuffled[0]]: WIND.E,
+      [shuffled[1]]: WIND.S,
+      [shuffled[2]]: WIND.W,
+      [shuffled[3]]: WIND.N,
     });
   }
   boardParams(w: Wind): BoardContext {
@@ -366,7 +366,7 @@ export class Controller {
       this.mailBox = {};
       this.actor = createActor(createControllerMachine(this));
 
-      if (this.placeManager.is("3w1")) break;
+      if (this.placeManager.is(ROUND.W1)) break;
     }
   }
   finalResult(ret: WinResult, iam: Wind) {
