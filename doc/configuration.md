@@ -42,11 +42,11 @@ $ cat layouts/_default/baseof.html
         {{ partial "footer.html" . }}
 
         {{ if or (.HasShortcode "use-mjimage") (.Page.Store.Get "hasMjimage") }}
-        <script src="https://d257lmna3z6el8.cloudfront.net/mjimage/global.js"></script>
+        <script src="https://static.konoui.dev/mjimage/global.js"></script>
         <script>
           window.onload = function () {
             mjimage.initialize({
-              imageHostUrl: "https://d257lmna3z6el8.cloudfront.net/mjimage/svg/",
+              imageHostUrl: "https://static.konoui.dev/mjimage/svg/",
               querySelector: ["code", ".mjimage"],
               scale: 2,
               tableScale: 3
