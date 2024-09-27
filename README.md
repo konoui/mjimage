@@ -63,8 +63,7 @@ table:
     discard: 12345m12345s12345p1234w
     score: 12000
   board:
-    doras:
-      - 1m
+    doras: 1m
     sticks:
       reach: 1
       dead: 3
@@ -80,4 +79,4 @@ table:
 
 [設定例](doc/configuration.md)
 
-[html の例](example/index.html)
+[html の例](browser-mjimage/example/index.html)

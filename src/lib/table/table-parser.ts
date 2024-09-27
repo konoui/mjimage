@@ -3,7 +3,6 @@ import {
   string,
   number,
   optional,
-  array,
   maxValue,
   minValue,
   pipe,
@@ -13,7 +12,15 @@ import {
   strictObject,
 } from "valibot";
 import { Tile, Parser, Block } from "../core/parser";
-import { WIND_MAP, ROUND_MAP, WIND, ROUND } from "../core/constants";
+import {
+  WIND_MAP,
+  ROUND_MAP,
+  WIND,
+  ROUND,
+  Wind,
+  Round,
+} from "../core/constants";
+import { nextWind, prevWind } from "../core";
 
 // windInputSchema の定義
 const windInputSchema = optional(
@@ -43,7 +50,7 @@ const boardInputSchema = strictObject({
     }),
     { reach: 0, dead: 0 }
   ),
-  doras: optional(array(string()), [WIND.S]),
+  doras: optional(string(), WIND.S),
   front: optional(picklist(Object.keys(WIND_MAP) as TableWind[]), WIND.E),
 });
 
@@ -60,6 +67,8 @@ type BoardInput = InferOutput<typeof boardInputSchema>;
 
 export type TableInput = InferOutput<typeof tableInputSchema>;
 
+// 変換後の型
+// TableInput => {DiscardsInput, HandsInput, ScoreBoardInput}
 export interface DiscardsInput {
   front: Tile[];
   right: Tile[];
@@ -87,8 +96,8 @@ export interface ScoreBoardInput {
   frontPlace: BoardWind;
 }
 
-export type TableWind = keyof typeof WIND_MAP;
-export type TableRound = keyof typeof ROUND_MAP;
+export type TableWind = Wind;
+export type TableRound = Round;
 type BoardRound = (typeof ROUND_MAP)[keyof typeof ROUND_MAP];
 type BoardWind = (typeof WIND_MAP)[keyof typeof WIND_MAP];
 
@@ -130,9 +139,7 @@ export const convertInput = (i: TableInput) => {
     round: ROUND_MAP[i.board.round],
     frontPlace: WIND_MAP[frontPlace],
     sticks: i.board.sticks,
-    doras: i.board!.doras.map((v) => {
-      return Tile.from(v);
-    }),
+    doras: new Parser(i.board.doras).tiles(),
     scores: {
       front: i[m.front].score,
       right: i[m.right].score,
@@ -151,18 +158,10 @@ const createPlaceMap = (
   opposite: TableWind;
   left: TableWind;
 } => {
-  const f = (start: number, v: number): TableWind => {
-    let ret = `${v}w`;
-    if (v > 4) ret = `${v - start}w`;
-    return ret as TableWind;
-  };
-
-  const start = Number(front[0]);
-  const m = {
+  return {
     front: front,
-    right: f(start, start + 1),
-    opposite: f(start, start + 2),
-    left: f(start, start + 3),
+    right: nextWind(front),
+    opposite: nextWind(nextWind(front)),
+    left: prevWind(front),
   };
-  return m;
 };

@@ -21,8 +21,7 @@ describe("parse-table", () => {
       hand: 4m
       score: 12000
     board:
-      doras:
-        - 1m
+      doras: 1m
       sticks:
         reach: 1
         dead: 3
@@ -55,7 +54,7 @@ describe("parse-table", () => {
           reach: 1,
           dead: 3,
         },
-        doras: ["1m"],
+        doras: "1m",
         front: "1w",
       },
     };

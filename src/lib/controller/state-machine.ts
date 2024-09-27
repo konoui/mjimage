@@ -23,7 +23,7 @@ import {
   createWindMap,
   SerializedWinResult,
 } from "./../calculator";
-import { nextWind } from "./managers";
+import { nextWind } from "../core";
 
 type ControllerContext = {
   currentWind: Wind;

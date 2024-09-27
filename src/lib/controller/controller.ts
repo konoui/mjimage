@@ -43,10 +43,10 @@ import {
   River,
   PlaceManager,
   ScoreManager,
-  nextWind,
   shuffle,
   Counter,
 } from ".";
+import { nextWind } from "../core/";
 
 export interface History {
   round: Round;

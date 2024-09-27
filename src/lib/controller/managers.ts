@@ -2,7 +2,7 @@ import { assert } from "../myassert";
 import { Wind, Round, TYPE, WIND } from "../core/constants";
 import { TupleOfSize, createWindMap } from "../calculator";
 import { Type, Tile, isNum0 } from "../core/parser";
-
+import { nextWind, nextRound } from "../core";
 export class ScoreManager {
   private reachValue = 1000;
   private m: { [key: string]: number };
@@ -94,31 +94,6 @@ export class PlaceManager {
     return structuredClone(this.pToW);
   }
 }
-
-export const nextRound = (r: Round) => {
-  let w = r.substring(0, 2) as Wind;
-  let n = Number(r.substring(2, 3));
-  if (n == 4) {
-    n = 1;
-    w = nextWind(w);
-  } else n++;
-  return `${w}${n}` as Round;
-};
-
-export const prevRound = (r: Round) => {
-  return nextRound(nextRound(nextRound(r)));
-};
-
-export const nextWind = (w: Wind): Wind => {
-  let n = Number(w.toString()[0]);
-  if (n == 4) n = 1;
-  else n++;
-  return `${n}w` as Wind;
-};
-
-export const prevWind = (w: Wind): Wind => {
-  return nextWind(nextWind(nextWind(w)));
-};
 
 export function shuffle<T>(array: T[]) {
   for (let i = array.length - 1; i > 0; i--) {
