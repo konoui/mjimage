@@ -41,7 +41,6 @@ const windInputsSchema = strictObject({
 });
 
 // boardInputSchema の定義
-
 const defaultBoard = {
   round: ROUND.E1,
   sticks: { reach: 0, dead: 0 },

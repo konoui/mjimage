@@ -5,7 +5,6 @@
     "author": "konoui",
     "license": "MIT",
     "repository": "github.com/konoui/mjimage",
-    "sideEffects": false,
     "keywords": [
         "mahjong"
     ],
@@ -18,7 +17,10 @@
         "cmd": "tsx src/cmd/index.ts",
         "prepublishOnly": "npm run build"
     },
+    "sideEffects": false,
     "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
     "files": [
         "dist/",
         "!**/__tests__/"
@@ -36,7 +38,6 @@
         }
     },
     "devDependencies": {
-        "@types/js-yaml": "^4.0.9",
         "@types/node": "^22.6.1",
         "@types/svgdom": "^0.1.0",
         "buffer": "^6.0.3",
