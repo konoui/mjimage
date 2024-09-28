@@ -52,7 +52,7 @@ const defaultBoard = {
 const boardInputSchema = optional(
   strictObject({
     round: optional(
-      picklist(Object.keys(ROUND_MAP) as TableRound[]),
+      picklist(Object.keys(ROUND_MAP) as Round[]),
       defaultBoard.round
     ),
     sticks: optional(
@@ -70,7 +70,7 @@ const boardInputSchema = optional(
     ),
     doras: optional(string(), defaultBoard.doras),
     front: optional(
-      picklist(Object.keys(WIND_MAP) as TableWind[]),
+      picklist(Object.keys(WIND_MAP) as Wind[]),
       defaultBoard.front
     ),
   }),
@@ -120,8 +120,6 @@ export interface ScoreBoardInput {
   frontPlace: BoardWind;
 }
 
-export type TableWind = Wind;
-export type TableRound = Round;
 type BoardRound = (typeof ROUND_MAP)[keyof typeof ROUND_MAP];
 type BoardWind = (typeof WIND_MAP)[keyof typeof WIND_MAP];
 
@@ -143,18 +141,20 @@ export const parseTableInput = (s: string) => {
 // ====
 
 const parseStringInput = (input: string): RawTableInput => {
+  const table = "table";
+  const board = "board";
   const lines = input
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line != "");
   if (lines.length == 0) throw new Error("empty input");
   const tableLabel = lines.shift()!;
-  if (!tableLabel.startsWith("table"))
+  if (!tableLabel.startsWith(table))
     throw new Error(`input does not start with table: ${tableLabel}`);
 
   const i: RawTableInput = {};
 
-  let labels = [WIND.E, WIND.S, WIND.W, WIND.N, "board"];
+  let labels = [WIND.E, WIND.S, WIND.W, WIND.N, board];
   for (;;) {
     const line = lines.shift();
     if (line == undefined) break;
@@ -164,7 +164,7 @@ const parseStringInput = (input: string): RawTableInput => {
 
     // update
     labels = labels.filter((l) => !line.startsWith(l));
-    if (label == "board") {
+    if (label == board) {
       const [bi, count] = handleBoard([...lines]);
       i.board = bi;
       for (let i = 0; i < count; i++) lines.shift();
@@ -182,41 +182,50 @@ const trim = (s: string, label: string) => {
 };
 
 const handleWind = (lines: string[]) => {
+  const hand = "hand";
+  const discard = "discard";
+  const score = "score";
   let r: RawWindInput = {};
   let i = 0;
   for (; i < lines.length; i++) {
     const line = lines[i];
-    if (line.startsWith("hand")) r.hand = trim(line, "hand");
-    else if (line.startsWith("discard")) r.discard = trim(line, "discard");
-    else if (line.startsWith("score")) r.score = Number(trim(line, "score"));
+    if (line.startsWith(hand)) r.hand = trim(line, hand);
+    else if (line.startsWith(discard)) r.discard = trim(line, discard);
+    else if (line.startsWith(score)) r.score = Number(trim(line, score));
     else break;
   }
   return [r, i] as const;
 };
 
 const handleBoard = (lines: string[]) => {
+  const doras = "doras";
+  const round = "round";
+  const front = "front";
+  const sticks = "sticks";
+  const reach = "reach";
+  const dead = "dead";
+
   let r: RawBoardInput = {};
 
   let i = 0;
   for (; i < lines.length; i++) {
     const line = lines[i];
-    if (line.startsWith("doras")) {
-      r.doras = trim(line, "doras");
-    } else if (line.startsWith("round")) {
-      r.round = trim(line, "round") as Round;
-    } else if (line.startsWith("front")) {
-      r.front = trim(line, "front") as Wind;
-    } else if (line.startsWith("sticks")) {
+    if (line.startsWith(doras)) {
+      r.doras = trim(line, doras);
+    } else if (line.startsWith(round)) {
+      r.round = trim(line, round) as Round;
+    } else if (line.startsWith(front)) {
+      r.front = trim(line, front) as Wind;
+    } else if (line.startsWith(sticks)) {
       r.sticks = {};
       const next = lines[i + 1] ?? "";
       const nextNext = lines[i + 2] ?? "";
-      if (next.startsWith("reach"))
-        r.sticks.reach = Number(trim(next, "reach"));
-      if (next.startsWith("dead")) r.sticks.dead = Number(trim(next, "dead"));
-      if (nextNext.startsWith("reach"))
-        r.sticks.reach = Number(trim(nextNext, "reach"));
-      if (nextNext.startsWith("dead"))
-        r.sticks.dead = Number(trim(nextNext, "dead"));
+      if (next.startsWith(reach)) r.sticks.reach = Number(trim(next, reach));
+      if (next.startsWith(dead)) r.sticks.dead = Number(trim(next, dead));
+      if (nextNext.startsWith(reach))
+        r.sticks.reach = Number(trim(nextNext, reach));
+      if (nextNext.startsWith(dead))
+        r.sticks.dead = Number(trim(nextNext, dead));
       if (r.sticks.dead != null) i++;
       if (r.sticks.reach != null) i++;
     } else break;
@@ -229,7 +238,7 @@ const handleBoard = (lines: string[]) => {
 export const convertInput = (i: TableInput) => {
   const frontPlace = i.board.front;
   const m = createPlaceMap(frontPlace);
-  const f = (w: TableWind) => {
+  const f = (w: Wind) => {
     return i[w].discard.replace(/\r?\n/g, "");
   };
   const discards: DiscardsInput = {
@@ -238,6 +247,7 @@ export const convertInput = (i: TableInput) => {
     opposite: new Parser(f(m.opposite)).tiles(),
     left: new Parser(f(m.left)).tiles(),
   };
+
   const hands: HandsInput = {
     front: new Parser(i[m.front].hand).parse(),
     right: new Parser(i[m.right].hand).parse(),
@@ -260,14 +270,7 @@ export const convertInput = (i: TableInput) => {
   return { discards, hands, scoreBoard };
 };
 
-const createPlaceMap = (
-  front: TableWind
-): {
-  front: TableWind;
-  right: TableWind;
-  opposite: TableWind;
-  left: TableWind;
-} => {
+const createPlaceMap = (front: Wind) => {
   return {
     front: front,
     right: nextWind(front),

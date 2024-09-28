@@ -196,7 +196,7 @@ export class Controller {
           this.actor.send({
             type: selected.type,
             iam: e.wind,
-            block: Block.from(e.choices.DAI_KAN),
+            block: BlockDaiKan.from(e.choices.DAI_KAN.tiles),
           });
           break;
         case "CHI":
@@ -207,10 +207,11 @@ export class Controller {
             selected.events.length == 1,
             `found more than one selected: ${JSON.stringify(selected, null, 2)}`
           );
+          const block = Block.deserialize(c[0]);
           this.actor.send({
             type: selected.type,
             iam: e.wind,
-            block: Block.from(c[0]),
+            block: block,
           });
       }
     } else if (sample.type == "CHOICE_AFTER_DRAWN") {
@@ -254,7 +255,7 @@ export class Controller {
           assert(choices, `${selected.type} choice is none`);
           this.actor.send({
             type: selected.type,
-            block: BlockAnKan.from(choices[0]),
+            block: BlockAnKan.from(choices[0].tiles),
             iam: w,
           });
           break;
@@ -264,7 +265,7 @@ export class Controller {
           assert(choices, `${selected.type} choice is none`);
           this.actor.send({
             type: selected.type,
-            block: Block.from(choices[0]),
+            block: BlockShoKan.from(choices[0].tiles),
             iam: w,
           });
           break;
@@ -794,7 +795,7 @@ export abstract class BaseActor {
         case "PON":
         case "CHI":
         case "DAI_KAN": {
-          const block = Block.from(e.block);
+          const block = Block.deserialize(e.block);
           this.hands[e.iam].call(block);
           this.river.markCalled();
           if (e.iam != e.wind)
@@ -804,7 +805,7 @@ export abstract class BaseActor {
           break;
         }
         case "SHO_KAN": {
-          const block = Block.from(e.block);
+          const block = BlockShoKan.from(e.block.tiles);
           this.hands[e.iam].kan(block);
           if (e.iam != e.wind)
             this.counter.dec(
@@ -813,7 +814,7 @@ export abstract class BaseActor {
           break;
         }
         case "AN_KAN": {
-          const block = Block.from(e.block);
+          const block = BlockAnKan.from(e.block.tiles);
           this.hands[e.iam].kan(block);
           if (e.iam != e.wind)
             this.counter.dec(

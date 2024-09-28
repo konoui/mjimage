@@ -1,4 +1,4 @@
-import { Tile, Block, BLOCK, BlockOther } from "../core/";
+import { Tile, Block, BLOCK, BlockOther, WIND_MAP } from "../core/";
 import { ImageHelper, createHand, ImageHelperConfig } from "../image/image";
 import { Svg, Element, Text, G, Rect } from "@svgdotjs/svg.js";
 import { FontContext } from "../measure-text/";
@@ -182,10 +182,9 @@ const createHands = (
 };
 
 const getPlaces = (front: "東" | "南" | "西" | "北") => {
-  if (front == "東") return ["東", "南", "西", "北"];
-  if (front == "南") return ["南", "西", "北", "東"];
-  if (front == "西") return ["西", "北", "東", "南"];
-  return ["北", "東", "南", "西"];
+  const places = Object.values(WIND_MAP);
+  const index = places.indexOf(front);
+  return [...places.slice(index), ...places.slice(0, index)];
 };
 
 const createScoreBoard = (

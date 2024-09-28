@@ -740,7 +740,7 @@ export const deserializeWinResult = (ret: SerializedWinResult): WinResult => {
   const bc = ret.boardContext;
   return {
     ...ret,
-    hand: ret.hand.map(Block.from),
+    hand: ret.hand.map(Block.deserialize),
     boardContext: {
       ...bc,
       doraMarkers: bc.doraMarkers.map(Tile.from),

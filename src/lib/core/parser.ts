@@ -140,9 +140,25 @@ export abstract class Block {
     }
   }
 
-  static from(v: SerializedBlock) {
-    const tiles = new Parser(v.tiles).tiles();
-    return blockWrapper(tiles, v.type);
+  // deserialize json object. it validates the input type by comparing to parsed block type.
+  static deserialize(v: SerializedBlock) {
+    const blocks = new Parser(v.tiles).parse();
+    if (blocks.length != 1) throw new Error(`block must be 1: ${v.tiles}`);
+    const gotType = blocks[0].type;
+    // TODO parse detect followings as hand
+    if (
+      !(
+        v.type == BLOCK.PAIR ||
+        v.type == BLOCK.ISOLATED ||
+        v.type == BLOCK.THREE ||
+        v.type == BLOCK.RUN
+      )
+    )
+      if (gotType != v.type)
+        throw new Error(
+          `input type is ${v.type} but got is ${gotType}: ${v.tiles}`
+        );
+    return blockWrapper(blocks[0].tiles, v.type);
   }
 
   serialize() {
@@ -243,6 +259,11 @@ export class BlockChi extends Block {
   constructor(tiles: readonly [Tile, Tile, Tile]) {
     super(tiles, BLOCK.CHI);
   }
+
+  static from(s: string) {
+    return Block.deserialize({ tiles: s, type: BLOCK.CHI }) as BlockChi;
+  }
+
   toString(): string {
     return toStringForSame(this.tiles);
   }
@@ -252,6 +273,11 @@ export class BlockPon extends Block {
   constructor(tiles: readonly [Tile, Tile, Tile]) {
     super(tiles, BLOCK.PON);
   }
+
+  static from(s: string) {
+    return Block.deserialize({ tiles: s, type: BLOCK.PON }) as BlockPon;
+  }
+
   toString(): string {
     return toStringForSame(this.tiles);
   }
@@ -288,8 +314,8 @@ export class BlockAnKan extends Block {
     return [new Tile(TYPE.BACK, 0), sample, sample, new Tile(TYPE.BACK, 0)];
   }
 
-  static override from(v: SerializedBlock) {
-    return super.from(v) as BlockAnKan;
+  static from(s: string) {
+    return Block.deserialize({ tiles: s, type: BLOCK.AN_KAN }) as BlockAnKan;
   }
 
   toString(): string {
@@ -301,6 +327,11 @@ export class BlockDaiKan extends Block {
   constructor(tiles: readonly Tile[]) {
     super(tiles, BLOCK.DAI_KAN);
   }
+
+  static from(s: string) {
+    return Block.deserialize({ tiles: s, type: BLOCK.DAI_KAN }) as BlockDaiKan;
+  }
+
   toString(): string {
     return toStringForSame(this.tiles);
   }
@@ -310,6 +341,11 @@ export class BlockShoKan extends Block {
   constructor(tiles: readonly Tile[]) {
     super(tiles, BLOCK.SHO_KAN);
   }
+
+  static from(s: string) {
+    return Block.deserialize({ tiles: s, type: BLOCK.SHO_KAN }) as BlockShoKan;
+  }
+
   toString(): string {
     return toStringForSame(this.tiles);
   }
@@ -328,6 +364,11 @@ export class BlockThree extends Block {
   constructor(tiles: readonly [Tile, Tile, Tile]) {
     super(tiles, BLOCK.THREE);
   }
+
+  static from(s: string) {
+    return Block.deserialize({ tiles: s, type: BLOCK.THREE }) as BlockThree;
+  }
+
   toString(): string {
     return toStringForSame(this.tiles);
   }
@@ -337,6 +378,11 @@ export class BlockRun extends Block {
   constructor(tiles: readonly [Tile, Tile, Tile]) {
     super(tiles, BLOCK.RUN);
   }
+
+  static from(s: string) {
+    return Block.deserialize({ tiles: s, type: BLOCK.RUN }) as BlockRun;
+  }
+
   toString(): string {
     return toStringForSame(this.tiles);
   }
@@ -351,6 +397,7 @@ export class BlockIsolated extends Block {
   }
 }
 
+// block hand means menzen hand
 export class BlockHand extends Block {
   constructor(tiles: readonly Tile[]) {
     super(tiles, BLOCK.HAND);
@@ -373,7 +420,7 @@ export class BlockOther extends Block {
 }
 
 const blockWrapper = (
-  tiles: Tile[],
+  tiles: readonly Tile[],
   type: BLOCK
 ):
   | Block
