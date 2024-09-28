@@ -66,7 +66,7 @@ const boardInputSchema = optional(
           defaultBoard.sticks.dead
         ),
       }),
-      { reach: 0, dead: 0 }
+      defaultBoard.sticks
     ),
     doras: optional(string(), defaultBoard.doras),
     front: optional(
