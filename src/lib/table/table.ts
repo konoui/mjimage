@@ -4,7 +4,7 @@ import { Svg, Element, Text, G, Rect } from "@svgdotjs/svg.js";
 import { FontContext } from "../measure-text/";
 import { parse, ScoreBoardInput, DiscardsInput, HandsInput } from "./";
 
-const splitTiles = (input: Tile[]) => {
+const splitTiles = (input: readonly Tile[]) => {
   const chunkSize = 6;
   const result: Tile[][] = [];
   for (let i = 0; i < input.length; i += chunkSize) {
@@ -45,7 +45,7 @@ const simpleRotate = (
   return g;
 };
 
-const handleDiscard = (tiles: Tile[], helper: ImageHelper) => {
+const handleDiscard = (tiles: readonly Tile[], helper: ImageHelper) => {
   const g = new G();
   const chunks = splitTiles(tiles);
 

@@ -76,8 +76,8 @@ describe("parseInput", () => {
 
 describe("sortTiles", () => {
   test("13p5s786m1z", () => {
-    const got = new Parser("13p5s786m1z").tiles();
-    got.sort(tileSortFunc);
+    const parsed = new Parser("13p5s786m1z").tiles();
+    const got = [...parsed].sort(tileSortFunc);
     const want: Tile[] = [
       new Tile(TYPE.M, 6),
       new Tile(TYPE.M, 7),

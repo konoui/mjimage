@@ -93,10 +93,10 @@ export type TableInput = InferOutput<typeof tableInputSchema>;
 // 変換後の型
 // TableInput => {DiscardsInput, HandsInput, ScoreBoardInput}
 export interface DiscardsInput {
-  front: Tile[];
-  right: Tile[];
-  opposite: Tile[];
-  left: Tile[];
+  front: readonly Tile[];
+  right: readonly Tile[];
+  opposite: readonly Tile[];
+  left: readonly Tile[];
 }
 
 export interface HandsInput {
@@ -107,7 +107,7 @@ export interface HandsInput {
 }
 
 export interface ScoreBoardInput {
-  doras: Tile[];
+  doras: readonly Tile[];
   round: BoardRound;
   sticks: { reach: number; dead: number };
   scores: {

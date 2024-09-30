@@ -472,11 +472,11 @@ export class Parser {
     return this.makeBlocks(parsed);
   }
 
-  tiles(): Tile[] {
+  tiles(): readonly Tile[] {
     return this.tileSeparators().filter((v) => v != INPUT_SEPARATOR) as Tile[];
   }
 
-  tileSeparators(): (Tile | Separator)[] {
+  tileSeparators(): readonly (Tile | Separator)[] {
     const l = new Lexer(this.input);
     const res: (Tile | Separator)[] = [];
     let cluster: Tile[] = [];
@@ -528,7 +528,7 @@ export class Parser {
     return res;
   }
 
-  private makeBlocks(tiles: (Tile | Separator)[]) {
+  private makeBlocks(tiles: readonly (Tile | Separator)[]) {
     let cluster: Tile[] = [];
     const res: (
       | BlockHand
@@ -577,7 +577,7 @@ export class Parser {
   }
 }
 
-function detectBlockType(tiles: Tile[]): BLOCK {
+function detectBlockType(tiles: readonly Tile[]): BLOCK {
   if (tiles.length === 0) return BLOCK.UNKNOWN;
   if (tiles.length === 1) {
     if (tiles[0].has(OPERATOR.DORA)) return BLOCK.IMAGE_DORA;
@@ -615,7 +615,7 @@ function detectBlockType(tiles: Tile[]): BLOCK {
   return BLOCK.UNKNOWN;
 }
 
-function areConsecutiveTiles(tiles: Tile[]): boolean {
+function areConsecutiveTiles(tiles: readonly Tile[]): boolean {
   tiles = [...tiles].sort(tileSortFunc);
   for (let i = 0; i < tiles.length - 1; i++) {
     let n = tiles[i].n,
@@ -630,7 +630,7 @@ function areConsecutiveTiles(tiles: Tile[]): boolean {
   return true;
 }
 
-function makeTiles(cluster: Tile[], k: Type): Tile[] {
+function makeTiles(cluster: readonly Tile[], k: Type): readonly Tile[] {
   return cluster.map((v) => {
     return new Tile(k, v.n, v.ops);
   });
