@@ -13,6 +13,8 @@
     "moduleDetection": "force",
     "noEmit": true,
     "removeComments": true,
+    "declaration": true,
+    "declarationMap": true,
 
     /* Linting */
     "strict": true,
