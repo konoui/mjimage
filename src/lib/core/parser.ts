@@ -5,12 +5,12 @@ type Separator = typeof INPUT_SEPARATOR;
 
 export const tileSortFunc = (i: Tile, j: Tile) => {
   if (i.t == j.t) {
-    if (i.n == 0) return 5 - j.n;
-    if (j.n == 0) return i.n - 5;
+    if (isNum0(i)) return 5 - j.n;
+    if (isNum0(j)) return i.n - 5;
     return i.n - j.n;
   }
 
-  const lookup: Record<Type, number> = {
+  const lookup = {
     [TYPE.M]: 1,
     [TYPE.P]: 2,
     [TYPE.S]: 3,
@@ -33,7 +33,6 @@ function isType(v: string): [Type, boolean] {
 
 type Operator = (typeof OPERATOR)[keyof typeof OPERATOR];
 
-// Tile is a immutable object
 export class Tile {
   constructor(
     public readonly t: Type,
@@ -117,7 +116,6 @@ type BLOCK = (typeof BLOCK)[keyof typeof BLOCK];
 
 export type SerializedBlock = ReturnType<Block["serialize"]>;
 
-// Block is a immutable object
 export abstract class Block {
   private readonly _tiles: readonly Tile[];
   private readonly _type;
@@ -493,7 +491,7 @@ export class Parser {
         continue;
       }
 
-      let [type, isType] = isTypeAlias(char, cluster);
+      let [type, isType] = convertTypeAliasIfHas(char, cluster);
       if (isType) {
         if (type == TYPE.BACK) {
           res.push(new Tile(type, 0));
@@ -571,7 +569,9 @@ export class Parser {
       throw new Error(`exceeded maximum input length(${input.length})`);
     const lastChar = input.charAt(input.length - 1);
     // Note: dummy tile for validation
-    const [_, isKind] = isTypeAlias(lastChar, [new Tile(TYPE.BACK, 1)]);
+    const [_, isKind] = convertTypeAliasIfHas(lastChar, [
+      new Tile(TYPE.BACK, 1),
+    ]);
     if (!isKind)
       throw new Error(`last character(${lastChar}) is not type value`);
   }
@@ -615,17 +615,15 @@ function detectBlockType(tiles: readonly Tile[]): BLOCK {
   return BLOCK.UNKNOWN;
 }
 
-function areConsecutiveTiles(tiles: readonly Tile[]): boolean {
-  tiles = [...tiles].sort(tileSortFunc);
-  for (let i = 0; i < tiles.length - 1; i++) {
-    let n = tiles[i].n,
-      np = tiles[i + 1].n;
-    const type = tiles[i].t,
-      kp = tiles[i + 1].t;
-    if (n == 0) n = 5;
-    if (np == 0) np = 5;
-    if (type !== kp) return false;
-    if (n + 1 !== np) return false;
+function areConsecutiveTiles(rtiles: readonly Tile[]): boolean {
+  const tiles = [...rtiles].sort(tileSortFunc);
+  if (!tiles.every((t) => tiles[0].t == t.t)) return false;
+  const numbers = tiles.map((t) => {
+    if (isNum0(t)) return 5;
+    return t.n;
+  });
+  for (let i = 0; i < numbers.length - 1; i++) {
+    if (numbers[i] != numbers[i + 1] - 1) return false;
   }
   return true;
 }
@@ -636,7 +634,7 @@ function makeTiles(cluster: readonly Tile[], k: Type): readonly Tile[] {
   });
 }
 
-function isTypeAlias(s: string, cluster: Tile[]): [Type, boolean] {
+function convertTypeAliasIfHas(s: string, cluster: Tile[]): [Type, boolean] {
   const [k, ok] = isType(s);
   if (ok) return [k, true];
 

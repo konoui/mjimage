@@ -1,6 +1,14 @@
 import { createActor } from "xstate";
 import { assert } from "../myassert";
-import { TYPE, OPERATOR, Wind, Round, WIND, ROUND } from "../core/";
+import {
+  TYPE,
+  OPERATOR,
+  Wind,
+  Round,
+  WIND,
+  ROUND,
+  createWindMap,
+} from "../core/";
 import {
   BoardContext,
   Hand,
@@ -10,7 +18,6 @@ import {
   WinResult,
   Efficiency,
   Candidate,
-  createWindMap,
   deserializeWinResult,
 } from "../calculator";
 import {

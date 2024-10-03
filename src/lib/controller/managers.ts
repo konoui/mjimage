@@ -1,6 +1,6 @@
 import { assert } from "../myassert";
-import { Wind, Round, TYPE, WIND } from "../core/constants";
-import { TupleOfSize, createWindMap } from "../calculator";
+import { Wind, Round, TYPE, WIND, createWindMap } from "../core/";
+import { TupleOfSize } from "../calculator";
 import { Type, Tile, isNum0 } from "../core/parser";
 import { nextWind, nextRound } from "../core";
 export class ScoreManager {

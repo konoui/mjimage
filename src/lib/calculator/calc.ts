@@ -1,5 +1,12 @@
-import { BLOCK, TYPE, OPERATOR, Round, Wind, WIND } from "../core";
-import { createWindMap } from "./helper";
+import {
+  BLOCK,
+  TYPE,
+  OPERATOR,
+  Round,
+  Wind,
+  WIND,
+  createWindMap,
+} from "../core";
 import {
   Tile,
   Parser,
@@ -902,10 +909,10 @@ export class DoubleCalculator {
       const deadPoint = this.cfg.sticks.dead * 100;
       if (isParent) {
         const point = ceil(base * 2);
-        deltas["1w"] += point * 3 + deadPoint * 3;
-        deltas["2w"] -= point + deadPoint;
-        deltas["3w"] -= point + deadPoint;
-        deltas["4w"] -= point + deadPoint;
+        deltas[WIND.E] += point * 3 + deadPoint * 3;
+        deltas[WIND.S] -= point + deadPoint;
+        deltas[WIND.W] -= point + deadPoint;
+        deltas[WIND.N] -= point + deadPoint;
       } else {
         for (let key of Object.values(WIND)) {
           if (key == myWind) continue;

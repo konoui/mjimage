@@ -20,10 +20,9 @@ import {
   SerializedCandidate,
   ShantenCalculator,
   WinResult,
-  createWindMap,
   SerializedWinResult,
 } from "./../calculator";
-import { nextWind } from "../core";
+import { nextWind, createWindMap } from "../core";
 
 type ControllerContext = {
   currentWind: Wind;

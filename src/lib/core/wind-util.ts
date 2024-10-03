@@ -1,4 +1,18 @@
-import { Round, Wind } from ".";
+import { Round, Wind, WIND } from ".";
+
+export function createWindMap<T>(initial: T, clone = false) {
+  const m: { [key in Wind]: T } = {
+    [WIND.E]: initial,
+    [WIND.S]: initial,
+    [WIND.W]: initial,
+    [WIND.N]: initial,
+  };
+  if (clone) {
+    for (let w of Object.values(WIND)) m[w] = structuredClone(initial);
+  }
+
+  return m;
+}
 
 export const nextRound = (r: Round) => {
   let w = r.substring(0, 2) as Wind;
