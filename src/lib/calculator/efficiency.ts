@@ -1,4 +1,4 @@
-import { Tile, TYPE } from "../core";
+import { isNum0, Tile, TYPE } from "../core";
 import { assert } from "../myassert";
 import { Hand, ShantenCalculator } from "./calc";
 
@@ -18,30 +18,41 @@ export interface Candidate {
 export class Efficiency {
   // ツモった後の14枚の手配から、牌効率に従って捨てるべき牌を返す。
   // choices は、通常なら hand.hand を指定する。ただし、リーチしている場合は捨てる牌が限られているので choices で制限する。
-  static calcCandidates(hand: Hand, choices: Tile[]) {
+  static calcCandidates(
+    hand: Hand,
+    choices: Tile[],
+    arrangeRed = false
+  ): Candidate[] {
     assert(choices.length > 0, `choices to discard is zero`);
-    let ret: Candidate[] = [];
+    const map = new Map<string, Candidate>();
+    let minShanten = Number.POSITIVE_INFINITY;
     for (let t of choices) {
       const tiles = hand.dec([t]);
       const c = Efficiency.candidateTiles(hand);
       hand.inc(tiles);
-      if (ret.length == 0 || c.shanten < ret[0].shanten) {
-        ret = [
-          {
-            shanten: c.shanten,
-            candidates: c.candidates,
-            tile: t,
-          },
-        ];
-      } else if (c.shanten == ret[0].shanten) {
-        ret.push({
-          candidates: c.candidates,
+      // convert 0 and remove operators
+      const key =
+        isNum0(t) && arrangeRed
+          ? new Tile(t.t, 5).toString()
+          : new Tile(t.t, t.n).toString();
+      if (c.shanten < minShanten) {
+        map.clear();
+        map.set(key, {
           shanten: c.shanten,
+          candidates: c.candidates,
+          tile: t,
+        });
+        // update
+        minShanten = c.shanten;
+      } else if (c.shanten == minShanten) {
+        map.set(key, {
+          shanten: c.shanten,
+          candidates: c.candidates,
           tile: t,
         });
       }
     }
-    return ret;
+    return Array.from(map.values());
   }
 
   // 積もる前の13枚の手配から、有効牌の一覧を返す

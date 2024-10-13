@@ -8,6 +8,14 @@ import { TYPE, OPERATOR } from "../core/constants";
 import { Block, BlockAnKan, BlockHand, Parser, Tile } from "../core/parser";
 import { handsToString } from "./utils/helper";
 
+describe("efficiency", () => {
+  test("duplicated da tile", () => {
+    const h = new Hand("5678m05p4567p055s,t6s");
+    const ret = Efficiency.calcCandidates(h, h.hands, true);
+    expect(ret.length).toBe(6);
+  });
+});
+
 describe("block", () => {
   test("mixed-back-block", () => {
     const h = new Hand("23456m11z123s___", true);
