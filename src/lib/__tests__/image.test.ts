@@ -98,6 +98,15 @@ describe("generate svg", () => {
     expect(want.toString()).toBe(got);
   });
 
+  test("back tile block", () => {
+    const blocks = new Parser("123s___________").parse();
+    const draw = SVG();
+    drawBlocks(draw, blocks, helperConfig, params);
+    const got = draw.svg();
+    const want = loadTestData("back-tile-hand-discard-block-1.svg", got, true);
+    expect(want.toString()).toBe(got);
+  });
+
   test("unknown block", () => {
     const blocks = new Parser("1s-1st1s").parse();
 

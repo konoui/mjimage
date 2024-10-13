@@ -611,6 +611,7 @@ function detectBlockType(tiles: readonly Tile[]): BLOCK {
   }
 
   if (numOfHorizontals == 1) return BLOCK.IMAGE_DISCARD;
+  if (numOfTsumoDoraTiles == 0) return BLOCK.IMAGE_DISCARD;
 
   return BLOCK.UNKNOWN;
 }
