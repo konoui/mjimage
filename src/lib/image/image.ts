@@ -277,19 +277,19 @@ const getBlockCreators = (h: ImageHelper) => {
       return { ...size, e: g };
     },
     [BLOCK.THREE]: function (block: Block) {
-      throw new Error("found unknown block");
+      throw new Error("three is unsupported");
     },
     [BLOCK.RUN]: function (block: Block) {
-      throw new Error("found unknown block");
+      throw new Error("run is unsupported");
     },
     [BLOCK.UNKNOWN]: function (block: Block) {
       throw new Error("found unknown block");
     },
     [BLOCK.PAIR]: function (block: Block) {
-      throw new Error("unsupported");
+      throw new Error("pair is unsupported");
     },
     [BLOCK.ISOLATED]: function (block: Block) {
-      throw new Error("unsupported");
+      throw new Error("isolated is unsupported");
     },
   };
 
