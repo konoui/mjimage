@@ -103,7 +103,11 @@ describe("generate svg", () => {
     const draw = SVG();
     drawBlocks(draw, blocks, helperConfig, params);
     const got = draw.svg();
-    const want = loadTestData("back-tile-hand-discard-block-1.svg", got, true);
+    const want = loadTestData(
+      "back-tile-hand-discard-block-1.svg",
+      got,
+      update
+    );
     expect(want.toString()).toBe(got);
   });
 
@@ -113,6 +117,6 @@ describe("generate svg", () => {
     const draw = SVG();
     expect(() => {
       drawBlocks(draw, blocks, helperConfig, params);
-    }).toThrow(/found unknown block/);
+    }).toThrow(/found an unknown block with operator tiles/);
   });
 });

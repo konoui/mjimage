@@ -31,24 +31,24 @@ export class Efficiency {
       const c = Efficiency.candidateTiles(hand);
       hand.inc(tiles);
       // convert 0 and remove operators
-      const key =
-        isNum0(t) && arrangeRed
-          ? new Tile(t.t, 5).toString()
-          : new Tile(t.t, t.n).toString();
+      const da =
+        arrangeRed && isNum0(t)
+          ? t.clone({ n: 5, removeAll: true })
+          : t.clone({ removeAll: true });
       if (c.shanten < minShanten) {
         map.clear();
-        map.set(key, {
+        map.set(da.toString(), {
           shanten: c.shanten,
           candidates: c.candidates,
-          tile: t,
+          tile: da,
         });
         // update
         minShanten = c.shanten;
       } else if (c.shanten == minShanten) {
-        map.set(key, {
+        map.set(da.toString(), {
           shanten: c.shanten,
           candidates: c.candidates,
-          tile: t,
+          tile: da,
         });
       }
     }

@@ -283,7 +283,14 @@ const getBlockCreators = (h: ImageHelper) => {
       throw new Error("run is unsupported");
     },
     [BLOCK.UNKNOWN]: function (block: Block) {
-      throw new Error("found unknown block");
+      // unable to draw tsumo/dora
+      if (
+        block.tiles.some((t) => t.has(OPERATOR.TSUMO) || t.has(OPERATOR.DORA))
+      )
+        throw new Error("found an unknown block with operator tiles");
+      const size = block.imageSize(scale);
+      const g = h.createBlockHandDiscard(block);
+      return { ...size, e: g };
     },
     [BLOCK.PAIR]: function (block: Block) {
       throw new Error("pair is unsupported");

@@ -60,10 +60,14 @@ export class Tile {
     n?: number;
     remove?: Operator;
     add?: Operator;
+    removeAll?: boolean;
   }) {
     const t = override?.t ?? this.t;
     const n = override?.n ?? this.n;
-    const ops = this.ops.filter((v) => override?.remove != v);
+
+    const ops = override?.removeAll
+      ? []
+      : this.ops.filter((v) => override?.remove != v);
     const s = new Set([...ops]);
     if (override?.add) s.add(override.add);
     return new Tile(t, n, Array.from(s));
