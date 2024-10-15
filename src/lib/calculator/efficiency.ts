@@ -93,8 +93,8 @@ export class Efficiency {
   // allow a partial input such as 23456s11z => 1,4,7s
   static partialCandidateTiles(
     input: string,
-    options: {
-      fourSetsOnePair: boolean;
+    options?: {
+      fourSetsOnePair?: boolean;
     }
   ) {
     const h = new Hand(input, true);
