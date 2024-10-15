@@ -17,6 +17,9 @@ describe("efficiency", () => {
 
   test("four sets one pair", () => {
     const h = new Hand("115588s116699p11z");
+    const ss = new ShantenCalculator(h).fourSetsOnePair();
+    expect(ss).toBe(3);
+
     const ret = Efficiency.calcCandidates(h, h.hands, {
       fourSetsOnePair: true,
     });
