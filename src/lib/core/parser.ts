@@ -675,7 +675,16 @@ function isOperator(l: Lexer): [Tile, boolean] {
       const [n, ok] = isNumber(c);
       if (!ok) break;
       for (let i = 0; i < found.length; i++) l.readChar();
-      return [new Tile(TYPE.BACK, n, found), true];
+      let tile = new Tile(TYPE.BACK, n, found);
+      // convert red operator to native red(0)
+      if (tile.has(OPERATOR.RED)) {
+        if (tile.n != 5)
+          throw new Error(
+            `${OPERATOR.RED} is specified for an invalid number: ${tile.n}`
+          );
+        tile = tile.clone({ n: 0, remove: OPERATOR.RED });
+      }
+      return [tile, true];
     }
   }
   return [new Tile(TYPE.BACK, 0), false];

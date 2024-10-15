@@ -9,7 +9,6 @@ import {
   BlockHand,
 } from "../core/parser";
 import { TYPE, OPERATOR, BLOCK, INPUT_SEPARATOR } from "../core/constants";
-import { Lexer } from "../core/lexer";
 
 describe("parse", () => {
   test("12s34m1z2d,t1s,_05s_,-123s", () => {
@@ -71,6 +70,22 @@ describe("parseInput", () => {
       new Tile(TYPE.S, 1, [OPERATOR.HORIZONTAL]),
     ];
     expect(got).toStrictEqual(want);
+  });
+});
+
+describe("red operator", () => {
+  test("r5s", () => {
+    const got = new Parser("r5s").tiles();
+    expect(got).toStrictEqual([new Tile(TYPE.S, 0)]);
+  });
+
+  test("123s, tr5s", () => {
+    const got = new Parser("12s, tr5s").tiles();
+    expect(got).toStrictEqual([
+      new Tile(TYPE.S, 1),
+      new Tile(TYPE.S, 2),
+      new Tile(TYPE.S, 0, [OPERATOR.TSUMO]),
+    ]);
   });
 });
 

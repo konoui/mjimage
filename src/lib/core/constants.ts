@@ -17,9 +17,10 @@ export const TYPE = {
 } as const;
 export const OPERATOR = {
   TSUMO: "t",
-  RON: "r",
+  RON: "v",
   DORA: "d",
   HORIZONTAL: "-",
+  RED: "r",
   COLOR_GRAYSCALE: "^",
 } as const;
 
