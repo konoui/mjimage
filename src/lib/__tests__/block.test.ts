@@ -11,8 +11,16 @@ import { handsToString } from "./utils/helper";
 describe("efficiency", () => {
   test("duplicated da tile", () => {
     const h = new Hand("5678m05p4567p055s,t6s");
-    const ret = Efficiency.calcCandidates(h, h.hands, true);
+    const ret = Efficiency.calcCandidates(h, h.hands, { arrangeRed: true });
     expect(ret.length).toBe(6);
+  });
+
+  test("four sets one pair", () => {
+    const h = new Hand("115588s116699p11z");
+    const ret = Efficiency.calcCandidates(h, h.hands, {
+      fourSetsOnePair: true,
+    });
+    expect(ret[0].shanten).toBe(2);
   });
 });
 

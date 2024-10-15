@@ -21,18 +21,21 @@ export class Efficiency {
   static calcCandidates(
     hand: Hand,
     choices: Tile[],
-    arrangeRed = false
+    options?: {
+      arrangeRed?: boolean;
+      fourSetsOnePair?: boolean;
+    }
   ): Candidate[] {
     assert(choices.length > 0, `choices to discard is zero`);
     const map = new Map<string, Candidate>();
     let minShanten = Number.POSITIVE_INFINITY;
     for (let t of choices) {
       const tiles = hand.dec([t]);
-      const c = Efficiency.candidateTiles(hand);
+      const c = Efficiency.candidateTiles(hand, options);
       hand.inc(tiles);
       // convert 0 and remove operators
       const da =
-        arrangeRed && isNum0(t)
+        options?.arrangeRed && isNum0(t)
           ? t.clone({ n: 5, removeAll: true })
           : t.clone({ removeAll: true });
       if (c.shanten < minShanten) {
@@ -56,7 +59,12 @@ export class Efficiency {
   }
 
   // 積もる前の13枚の手配から、有効牌の一覧を返す
-  static candidateTiles(hand: Hand) {
+  static candidateTiles(
+    hand: Hand,
+    options?: {
+      fourSetsOnePair?: boolean;
+    }
+  ) {
     let r = Number.POSITIVE_INFINITY;
     let candidates: Tile[] = [];
 
@@ -67,7 +75,7 @@ export class Efficiency {
         if (hand.get(t, n) >= 4) continue;
         const tile = new Tile(t, n);
         const tiles = hand.inc([tile]);
-        const s = sc.calc();
+        const s = !options?.fourSetsOnePair ? sc.calc() : sc.fourSetsOnePair();
         hand.dec(tiles);
 
         if (s < r) {
@@ -83,11 +91,16 @@ export class Efficiency {
   }
 
   // allow a partial input such as 23456s11z => 1,4,7s
-  static partialCandidateTiles(input: string) {
+  static partialCandidateTiles(
+    input: string,
+    options: {
+      fourSetsOnePair: boolean;
+    }
+  ) {
     const h = new Hand(input, true);
     Array(13 - h.hands.length)
       .fill(undefined)
       .map(() => h.inc([new Tile(TYPE.BACK, 0)]));
-    return Efficiency.candidateTiles(h);
+    return Efficiency.candidateTiles(h, options);
   }
 }
