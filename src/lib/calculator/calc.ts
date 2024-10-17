@@ -264,6 +264,11 @@ export class Hand {
       );
       if (idx == -1) throw new Error(`unable to find ${b.tiles[0]}`);
       let t = b.tiles[0];
+      // 追加する牌（手配に残っている）が red かどうか
+      t =
+        isNum5(t) && this.get(t.t, 0) > 0
+          ? t.clone({ add: OPERATOR.RED })
+          : t.clone({ remove: OPERATOR.RED });
       this.dec([t]);
       // remove an existing pon block and add kakan block
       this.data.called = [

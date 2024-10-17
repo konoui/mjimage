@@ -21,7 +21,7 @@ export interface PlayerCandidate {
 const weight = (t: Tile, doras: Tile[]) => {
   const base = 1;
   let v = base;
-  for (let d of doras) if (d.equals(t, true)) v *= 2;
+  for (let d of doras) if (d.equals(t)) v *= 2;
   return v;
 };
 

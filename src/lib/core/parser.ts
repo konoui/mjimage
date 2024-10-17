@@ -34,6 +34,24 @@ const operatorSortFunc = (i: Operator, j: Operator) => {
   return lookup[i] - lookup[j];
 };
 
+const sortCalledTiles = (arr: readonly Tile[]) => {
+  const indexes: number[] = [];
+  arr.forEach((t, index) => {
+    if (t.has(OPERATOR.HORIZONTAL)) {
+      indexes.push(index);
+    }
+  });
+
+  const sorted = arr
+    .filter((v) => !v.has(OPERATOR.HORIZONTAL))
+    .sort(tileSortFunc);
+
+  indexes.forEach((index) => {
+    sorted.splice(index, 0, arr[index]);
+  });
+  return sorted;
+};
+
 export type Type = (typeof TYPE)[keyof typeof TYPE];
 
 export function isNum5(t: Tile) {
@@ -138,10 +156,14 @@ export abstract class Block {
       });
       return;
     }
-    if (this.isCalled()) return;
+    if (this.type != BLOCK.AN_KAN && this.isCalled()) {
+      this._tiles = sortCalledTiles(this._tiles);
+      return;
+    }
 
     if (this._type != BLOCK.IMAGE_DISCARD) {
       this._tiles = [...this._tiles].sort(tileSortFunc);
+      return;
     }
   }
 
@@ -288,7 +310,7 @@ export class BlockPon extends Block {
   }
 }
 
-// BlockAnkan store tiles for number tiles
+// BlockAnkan store tiles as number tiles
 // if getting tiles with back tile, to use tilesWithBack
 export class BlockAnKan extends Block {
   constructor(tiles: readonly Tile[]) {

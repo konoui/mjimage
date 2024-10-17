@@ -450,13 +450,14 @@ export class Controller {
     if (idx == 1) idx = 2;
 
     const blocks: BlockPon[] = [];
-    let block = new BlockPon([sample, sample, sample]).clone({
+    const base = new BlockPon([sample, sample, sample]).clone({
       replace: { idx, tile: t.clone({ add: OPERATOR.HORIZONTAL }) },
     });
+    let block = base;
 
     // if discarded tile is RED
     if (isNum5(t) && t.has(OPERATOR.RED))
-      block = block.clone({
+      block = base.clone({
         replace: {
           idx: idx,
           tile: new Tile(sample.t, sample.n, [
@@ -468,7 +469,7 @@ export class Controller {
     // if hand has red
     const ridx = (idx % 2) + 1;
     if (isNum5(t) && hand.get(t.t, 0) > 0) {
-      block = block.clone({
+      block = base.clone({
         replace: { idx: ridx, tile: sample.clone({ add: OPERATOR.RED }) },
       });
     }
@@ -478,7 +479,7 @@ export class Controller {
 
     // if hand has red and 3 tiles, two cases including red and non red
     if (isNum5(sample) && hand.get(sample.t, 5) == 3) {
-      const nonRed = block.clone({
+      const nonRed = base.clone({
         replace: { idx: ridx, tile: sample },
       });
       blocks.push(nonRed);
@@ -497,12 +498,12 @@ export class Controller {
     let called = t.has(OPERATOR.RED)
       ? new Tile(t.t, t.n, [OPERATOR.HORIZONTAL, OPERATOR.RED])
       : t.clone({ removeAll: true, add: OPERATOR.HORIZONTAL });
+
     const blocks: BlockChi[] = [];
     const left =
       called.n - 2 >= 1 &&
       hand.get(t.t, called.n - 2) > 0 &&
       hand.get(t.t, called.n - 1) > 0;
-
     if (left)
       blocks.push(
         new BlockChi([

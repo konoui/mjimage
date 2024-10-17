@@ -1,6 +1,7 @@
 import { Tile, Block, BlockAnKan } from "../core/parser";
 import { Svg, G, Image, Text, Use, Symbol } from "@svgdotjs/svg.js";
 import { FONT_FAMILY, TILE_CONTEXT, TYPE, OPERATOR, BLOCK } from "../core";
+import { assert } from "../myassert";
 
 export interface ImageHelperConfig {
   scale?: number;
@@ -124,9 +125,11 @@ export class ImageHelper extends BaseHelper {
   readonly blockMargin =
     TILE_CONTEXT.WIDTH * TILE_CONTEXT.BLOCK_MARGIN_SCALE * this.scale;
   createBlockHandDiscard(block: Block) {
+    const tiles =
+      block instanceof BlockAnKan ? block.tilesWithBack : block.tiles;
     const g = new G();
     let pos = 0;
-    for (let t of block.tiles) {
+    for (let t of tiles) {
       const size = t.imageSize(this.scale);
       const f = t.has(OPERATOR.HORIZONTAL)
         ? this.createRotate90Image.bind(this)
@@ -241,16 +244,7 @@ const getBlockCreators = (h: ImageHelper) => {
         `block type is not ankan: ${block.type}`
       );
       const size = block.imageSize(scale);
-      const zp = block.tilesWithBack.filter((v) => {
-        return v.t !== TYPE.BACK;
-      });
-      assert(
-        zp != null && zp.length == 2,
-        `back tile must be two but ${block}`
-      );
-      const g = h.createBlockHandDiscard(
-        new BlockAnKan([zp[0], zp[1], zp[0], zp[1]])
-      );
+      const g = h.createBlockHandDiscard(block);
       return { ...size, e: g };
     },
     [BLOCK.IMAGE_DORA]: function (block: Block) {

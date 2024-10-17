@@ -33,13 +33,13 @@ describe("callable", () => {
     const c = createLocalGame();
     c.observer.hands["1w"] = new ActorHand("50m333444z");
     const got = c.doPon("1w", "2w", new Tile(TYPE.M, 5));
-    expect(got.toString()).toBe("5r5-5m");
+    expect(got.toString()).toBe("r55-5m");
   });
   test("can-pon", () => {
     const c = createLocalGame();
     c.observer.hands["1w"] = new ActorHand("505m333444z");
     const got = c.doPon("1w", "2w", new Tile(TYPE.M, 5));
-    expect(got.toString()).toBe("5r5-5m,55-5m");
+    expect(got.toString()).toBe("r55-5m,55-5m");
   });
   test("can-dai-kan", () => {
     const c = createLocalGame();
