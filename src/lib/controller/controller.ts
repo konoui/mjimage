@@ -28,7 +28,6 @@ import {
   BlockPon,
   BlockShoKan,
   Tile,
-  isNum0,
   isNum5,
 } from "../core/parser";
 import { createControllerMachine } from "./state-machine";
@@ -430,7 +429,7 @@ export class Controller {
     if (hand.draw == null) {
       const c = Efficiency.candidateTiles(this.hand(w)).candidates;
       const tiles = this.river.discards(w).map((v) => v.t);
-      if (tiles.some((t) => c.some((ct) => ct.equals(t, true)))) return false;
+      if (tiles.some((t) => c.some((ct) => ct.equals(t)))) return false;
     }
     return ret;
   }
@@ -441,29 +440,48 @@ export class Controller {
     if (hand.reached) return false;
     if (hand.hands.length < 3) return false;
 
-    let fake = t.clone({ remove: OPERATOR.HORIZONTAL });
-    if (isNum0(t)) fake = fake.clone({ n: 5 });
-    if (hand.get(t.t, fake.n) < 2) return false;
+    let sample = t.clone({ removeAll: true });
+    if (hand.get(t.t, sample.n) < 2) return false;
 
-    const blocks: BlockPon[] = [];
+    // FIXME arrange as function
     let idx = Math.abs(Number(w[0]) - Number(whoDiscarded[0]));
     if (idx == 3) idx = 0;
     if (idx == 2) idx = 1;
     if (idx == 1) idx = 2;
 
-    let b = new BlockPon([fake, fake, fake]);
-    b = b.clone({
+    const blocks: BlockPon[] = [];
+    let block = new BlockPon([sample, sample, sample]).clone({
       replace: { idx, tile: t.clone({ add: OPERATOR.HORIZONTAL }) },
     });
-    const ridx = (idx % 2) + 1;
-    const rt = b.tiles[ridx];
-    if (isNum5(t) && hand.get(t.t, 0) > 0)
-      b = b.clone({ replace: { idx: ridx, tile: rt.clone({ n: 0 }) } });
-    blocks.push(b);
 
-    if (isNum5(t) && hand.get(t.t, fake.n) == 3) {
-      const red = b.clone({ replace: { idx: ridx, tile: rt.clone({ n: 5 }) } });
-      blocks.push(red);
+    // if discarded tile is RED
+    if (isNum5(t) && t.has(OPERATOR.RED))
+      block = block.clone({
+        replace: {
+          idx: idx,
+          tile: new Tile(sample.t, sample.n, [
+            OPERATOR.RED,
+            OPERATOR.HORIZONTAL,
+          ]),
+        },
+      });
+    // if hand has red
+    const ridx = (idx % 2) + 1;
+    if (isNum5(t) && hand.get(t.t, 0) > 0) {
+      block = block.clone({
+        replace: { idx: ridx, tile: sample.clone({ add: OPERATOR.RED }) },
+      });
+    }
+
+    // add
+    blocks.push(block);
+
+    // if hand has red and 3 tiles, two cases including red and non red
+    if (isNum5(sample) && hand.get(sample.t, 5) == 3) {
+      const nonRed = block.clone({
+        replace: { idx: ridx, tile: sample },
+      });
+      blocks.push(nonRed);
     }
 
     return blocks;
@@ -476,49 +494,48 @@ export class Controller {
     if (hand.reached) return false;
     if (hand.hands.length < 3) return false;
 
-    let fake = t;
-    if (isNum0(fake)) fake = t.clone({ n: 5 });
-
+    let called = t.has(OPERATOR.RED)
+      ? new Tile(t.t, t.n, [OPERATOR.HORIZONTAL, OPERATOR.RED])
+      : t.clone({ removeAll: true, add: OPERATOR.HORIZONTAL });
     const blocks: BlockChi[] = [];
     const left =
-      fake.n - 2 >= 1 &&
-      hand.get(t.t, fake.n - 2) > 0 &&
-      hand.get(t.t, fake.n - 1) > 0;
-    const cloned = t.clone({
-      add: OPERATOR.HORIZONTAL,
-      remove: OPERATOR.TSUMO,
-    });
+      called.n - 2 >= 1 &&
+      hand.get(t.t, called.n - 2) > 0 &&
+      hand.get(t.t, called.n - 1) > 0;
+
     if (left)
       blocks.push(
         new BlockChi([
-          cloned,
-          new Tile(t.t, fake.n - 1),
-          new Tile(t.t, fake.n - 2),
+          called,
+          new Tile(t.t, called.n - 1),
+          new Tile(t.t, called.n - 2),
         ])
       );
+
     const right =
-      fake.n + 2 <= 9 &&
-      hand.get(t.t, fake.n + 1) > 0 &&
-      hand.get(t.t, fake.n + 2) > 0;
+      called.n + 2 <= 9 &&
+      hand.get(t.t, called.n + 1) > 0 &&
+      hand.get(t.t, called.n + 2) > 0;
     if (right)
       blocks.push(
         new BlockChi([
-          cloned,
-          new Tile(t.t, fake.n + 1),
-          new Tile(t.t, fake.n + 2),
+          called,
+          new Tile(t.t, called.n + 1),
+          new Tile(t.t, called.n + 2),
         ])
       );
+
     const center =
-      fake.n - 1 >= 1 &&
-      fake.n + 1 <= 9 &&
-      hand.get(t.t, fake.n - 1) > 0 &&
-      hand.get(t.t, fake.n + 1) > 0;
+      called.n - 1 >= 1 &&
+      called.n + 1 <= 9 &&
+      hand.get(t.t, called.n - 1) > 0 &&
+      hand.get(t.t, called.n + 1) > 0;
     if (center)
       blocks.push(
         new BlockChi([
-          cloned,
-          new Tile(t.t, fake.n - 1),
-          new Tile(t.t, fake.n + 1),
+          called,
+          new Tile(t.t, called.n - 1),
+          new Tile(t.t, called.n + 1),
         ])
       );
 
@@ -540,29 +557,28 @@ export class Controller {
     // 2. get red patterns if having red
     // 3. if not having normal 5, return only red pattern, else if concat red and normal patterns
     const hasRed = hand.get(t.t, 0) > 0;
-    const reds = this.redPattern(blocks, hasRed);
+    const reds = hasRed ? this.redPattern(blocks) : [];
     if (reds.length > 0 && hand.get(t.t, 5) == 1) return reds;
-    return blocks.concat(reds);
+    return [...blocks, ...reds];
   }
-  redPattern(blocks: BlockChi[], hasRed: boolean): BlockChi[] {
+  redPattern(blocks: BlockChi[]): BlockChi[] {
     if (blocks.length == 0) return [];
-    if (!hasRed) return [];
     const filtered = blocks.filter(
       (b) => isNum5(b.tiles[1]) || isNum5(b.tiles[2])
     );
     return filtered
       .map((b) => {
         if (isNum5(b.tiles[1])) {
-          const rt = b.tiles[1].clone({ n: 0 });
+          const rt = b.tiles[1].clone({ add: OPERATOR.RED });
           const n = b.clone({ replace: { idx: 1, tile: rt } });
           return n;
         } else if (isNum5(b.tiles[2])) {
-          const rt = b.tiles[2].clone({ n: 0 });
+          const rt = b.tiles[2].clone({ add: OPERATOR.RED });
           const n = b.clone({ replace: { idx: 2, tile: rt } });
           return n;
         }
       })
-      .filter((b) => b != null) as BlockChi[];
+      .filter((b) => b != null);
   }
   doReach(w: Wind): Candidate[] | false {
     const hand = this.hand(w);
@@ -579,10 +595,10 @@ export class Controller {
     if (called == null) return hand;
 
     if (called instanceof BlockPon) {
-      return hand.filter((v) => !v.equals(called.tiles[0], true));
+      return hand.filter((v) => !v.equals(called.tiles[0]));
     }
     const tiles = this.cannotDiscardTile(called);
-    const ret = hand.filter((v) => !tiles.some((t) => v.equals(t, true)));
+    const ret = hand.filter((v) => !tiles.some((t) => v.equals(t)));
     assert(
       ret.length > 0,
       `no tiles to discard. hand: ${this.hand(
@@ -610,14 +626,9 @@ export class Controller {
     for (let t of Object.values(TYPE)) {
       for (let n = 1; n < hand.getArrayLen(t); n++) {
         if (hand.get(t, n) == 4) {
-          const tiles = [
-            new Tile(t, n),
-            new Tile(t, n),
-            new Tile(t, n),
-            new Tile(t, n),
-          ];
-          // NOTE： red にする index は関係ない
-          if (t != TYPE.Z && n == 5) tiles[0] = tiles[0].clone({ n: 0 });
+          const tile = new Tile(t, n);
+          const tiles = [tile, tile, tile, tile];
+          if (isNum5(tile)) tiles[1] = tile.clone({ add: OPERATOR.RED });
           blocks.push(new BlockAnKan(tiles));
         }
       }
@@ -637,15 +648,17 @@ export class Controller {
     if (called.length == 0) return false;
     const blocks: BlockShoKan[] = [];
     for (let cb of called) {
-      const pick = cb.tiles[0];
+      const pick = cb.tiles[0].clone({
+        removeAll: true,
+        add: OPERATOR.HORIZONTAL,
+      });
       if (hand.get(pick.t, pick.n) == 1) {
+        const tile =
+          isNum5(pick) && hand.get(pick.t, 0) > 0
+            ? pick.clone({ add: OPERATOR.RED })
+            : pick;
         // FIXME 追加の HORIZONTAL は最後でいいのか
-        const tiles = [
-          ...cb.tiles,
-          new Tile(pick.t, pick.n, [OPERATOR.HORIZONTAL]),
-        ];
-        if (isNum5(pick) && hand.get(pick.t, 0) == 1) tiles[3].n == 0; // FIXME
-        blocks.push(new BlockShoKan(tiles));
+        blocks.push(new BlockShoKan([...cb.tiles, tile]));
       }
     }
     if (blocks.length == 0) return false;
@@ -661,29 +674,47 @@ export class Controller {
     const hand = this.hand(w);
     if (hand.reached) return false;
     if (w == whoDiscarded) return false;
-    let fake = t.clone({ remove: OPERATOR.HORIZONTAL });
-    if (isNum0(fake)) fake = fake.clone({ n: 5 });
-    if (hand.get(fake.t, fake.n) != 3) return false;
-    let base = new BlockDaiKan([fake, fake, fake, fake]);
+
+    const sample = t.clone({ removeAll: true });
+    if (hand.get(sample.t, sample.n) != 3) return false;
 
     let idx = Math.abs(Number(w[0]) - Number(whoDiscarded[0]));
     if (idx == 3) idx = 0;
     if (idx == 1) idx = 3;
-    let b = base.clone({
-      replace: { idx, tile: t.clone({ add: OPERATOR.HORIZONTAL }) },
+
+    let block = new BlockDaiKan([sample, sample, sample, sample]).clone({
+      replace: { idx, tile: sample.clone({ add: OPERATOR.HORIZONTAL }) },
     });
-    // 捨て牌が 5 なら鳴いた位置からずらして red にする
-    // TODO t.n == 0 の場合、horizontal tile を 0 にする必要がありそう。
-    if (isNum5(fake) && isNum5(t)) {
-      const ridx = (idx % 3) + 1;
-      const rt = b.tiles[ridx].clone({ n: 0 });
-      b = b.clone({ replace: { idx: ridx, tile: rt } });
+
+    // 捨て牌が red ならその idx を red にする
+    if (isNum5(t) && t.has(OPERATOR.RED)) {
+      block = block.clone({
+        replace: {
+          idx: idx,
+          tile: new Tile(sample.t, sample.n, [
+            OPERATOR.HORIZONTAL,
+            OPERATOR.RED,
+          ]),
+        },
+      });
     }
+    // 捨て牌が non red なら鳴いた位置からずらして red にする
+    else if (isNum5(t) && !t.has(OPERATOR.RED)) {
+      assert(
+        hand.get(t.t, 0) > 0,
+        `hand does not have red tile: ${hand.toString()}`
+      );
+      const ridx = (idx % 3) + 1;
+      block = block.clone({
+        replace: { idx: ridx, tile: sample.clone({ add: OPERATOR.RED }) },
+      });
+    }
+
     assert(
-      b.tiles.filter((t) => t.has(OPERATOR.HORIZONTAL)).length == 1,
-      `h op ${b.toString()}`
+      block.tiles.filter((t) => t.has(OPERATOR.HORIZONTAL)).length == 1,
+      `h op ${block.toString()}`
     );
-    return b;
+    return block;
   }
   canDrawnGame(w: Wind) {
     if (this.river.discards(w).length != 0) return false;
@@ -753,140 +784,136 @@ export abstract class BaseActor {
   protected abstract setHands(e: DistributeEvent): void;
   // handle event expect for choice events
   handleEvent(e: PlayerEvent) {
-    try {
-      switch (e.type) {
-        case "CHOICE_AFTER_CALLED":
-        case "CHOICE_AFTER_DISCARDED":
-        case "CHOICE_AFTER_DRAWN":
-        case "CHOICE_FOR_CHAN_KAN":
-          break;
-        case "DISTRIBUTE":
-          // reset
-          this.counter.reset();
+    switch (e.type) {
+      case "CHOICE_AFTER_CALLED":
+      case "CHOICE_AFTER_DISCARDED":
+      case "CHOICE_AFTER_DRAWN":
+      case "CHOICE_FOR_CHAN_KAN":
+        break;
+      case "DISTRIBUTE":
+        // reset
+        this.counter.reset();
 
-          const doraMarker = Tile.from(e.doraMarker);
+        const doraMarker = Tile.from(e.doraMarker);
 
-          this.setHands(e);
-          this.placeManager = new PlaceManager(structuredClone(e.places), {
-            round: structuredClone(e.round),
-            sticks: structuredClone(e.sticks),
-          });
-          this.scoreManager = new ScoreManager(structuredClone(e.scores));
-          this.doraMarkers = [doraMarker];
+        this.setHands(e);
+        this.placeManager = new PlaceManager(structuredClone(e.places), {
+          round: structuredClone(e.round),
+          sticks: structuredClone(e.sticks),
+        });
+        this.scoreManager = new ScoreManager(structuredClone(e.scores));
+        this.doraMarkers = [doraMarker];
 
-          this.counter.dec(doraMarker);
-          for (let w of Object.values(WIND)) {
-            if (w != e.wind) continue;
-            this.counter.dec(...this.hand(w).hands);
-          }
-          break;
-        case "DRAW": {
-          const t = Tile.from(e.tile);
-          this.hands[e.iam].draw(t);
-          this.counter.dec(t);
-          break;
+        this.counter.dec(doraMarker);
+        for (let w of Object.values(WIND)) {
+          if (w != e.wind) continue;
+          this.counter.dec(...this.hand(w).hands);
         }
-        case "DISCARD": {
-          const t = Tile.from(e.tile);
-          this.river.discard(t, e.iam);
-          this.hands[e.iam].discard(t); // FIXME
-          if (e.iam != e.wind) {
-            this.counter.dec(t); // own tile is recorded by DRAW event
-            this.counter.addTileToSafeMap(t, e.iam); // そのユーザの捨て牌を現物に追加
-            // 立直されている場合、捨て牌は立直ユーザの現物になる
-            for (let w of Object.values(WIND))
-              if (this.hand(w).reached) this.counter.addTileToSafeMap(t, w);
-          }
-          break;
-        }
-        case "PON":
-        case "CHI":
-        case "DAI_KAN": {
-          const block = Block.deserialize(e.block);
-          this.hands[e.iam].call(block);
-          this.river.markCalled();
-          if (e.iam != e.wind)
-            this.counter.dec(
-              ...block.tiles.filter((t) => !t.has(OPERATOR.HORIZONTAL))
-            );
-          break;
-        }
-        case "SHO_KAN": {
-          const block = BlockShoKan.from(e.block.tiles);
-          this.hands[e.iam].kan(block);
-          if (e.iam != e.wind)
-            this.counter.dec(
-              block.tiles.filter((t) => t.has(OPERATOR.HORIZONTAL))[0]
-            );
-          break;
-        }
-        case "AN_KAN": {
-          const block = BlockAnKan.from(e.block.tiles);
-          this.hands[e.iam].kan(block);
-          if (e.iam != e.wind)
-            this.counter.dec(
-              ...block.tiles.filter((t) => !t.has(OPERATOR.HORIZONTAL))
-            );
-          break;
-        }
-        case "REACH":
-          const pid = this.placeManager.playerID(e.iam);
-          this.hands[e.iam].reach();
-          this.scoreManager.reach(pid);
-          this.placeManager.incrementReachStick();
-
-          // Note: discarded tile is handled by discard event
-          // this.hands[e.iam].discard(e.tile);
-          // this.river.discard(e.tile, e.iam);
-          break;
-        case "NEW_DORA": {
-          const doraMarker = Tile.from(e.doraMarker);
-          this.doraMarkers.push(doraMarker);
-          this.counter.dec(doraMarker);
-          break;
-        }
-        case "TSUMO":
-          break;
-        case "RON":
-          if (e.pushBackReachStick) {
-            const w = e.victimInfo.wind;
-            const id = this.placeManager.playerID(w);
-            this.scoreManager.restoreReachStick(id);
-            this.placeManager.decrementReachStick();
-          }
-          break;
-        case "END_GAME":
-          switch (e.subType) {
-            case "NINE_TILES":
-            case "FOUR_KAN":
-            case "FOUR_WIND":
-              this.placeManager.incrementDeadStick();
-              break;
-            case "DRAWN_GAME": {
-              const pm = this.placeManager.playerMap;
-              this.scoreManager.update(e.deltas, pm);
-              this.placeManager.incrementDeadStick();
-              if (!e.shouldContinue) this.placeManager.nextRound();
-              break;
-            }
-            case "WIN_GAME": {
-              const pm = this.placeManager.playerMap;
-              this.scoreManager.update(e.deltas, pm);
-              if (e.shouldContinue) this.placeManager.incrementDeadStick();
-              else {
-                this.placeManager.nextRound();
-                this.placeManager.resetDeadStick();
-              }
-              this.placeManager.resetReachStick();
-              break;
-            }
-          }
-          break;
-        default:
-          throw new Error(`unexpected event ${JSON.stringify(e, null, 2)}`);
+        break;
+      case "DRAW": {
+        const t = Tile.from(e.tile);
+        this.hands[e.iam].draw(t);
+        this.counter.dec(t);
+        break;
       }
-    } catch (error) {
-      throw new Error(`${this.id} ${e.type} ${error}`);
+      case "DISCARD": {
+        const t = Tile.from(e.tile);
+        this.river.discard(t, e.iam);
+        this.hands[e.iam].discard(t); // FIXME
+        if (e.iam != e.wind) {
+          this.counter.dec(t); // own tile is recorded by DRAW event
+          this.counter.addTileToSafeMap(t, e.iam); // そのユーザの捨て牌を現物に追加
+          // 立直されている場合、捨て牌は立直ユーザの現物になる
+          for (let w of Object.values(WIND))
+            if (this.hand(w).reached) this.counter.addTileToSafeMap(t, w);
+        }
+        break;
+      }
+      case "PON":
+      case "CHI":
+      case "DAI_KAN": {
+        const block = Block.deserialize(e.block);
+        this.hands[e.iam].call(block);
+        this.river.markCalled();
+        if (e.iam != e.wind)
+          this.counter.dec(
+            ...block.tiles.filter((t) => !t.has(OPERATOR.HORIZONTAL))
+          );
+        break;
+      }
+      case "SHO_KAN": {
+        const block = BlockShoKan.from(e.block.tiles);
+        this.hands[e.iam].kan(block);
+        if (e.iam != e.wind)
+          this.counter.dec(
+            block.tiles.filter((t) => t.has(OPERATOR.HORIZONTAL))[0]
+          );
+        break;
+      }
+      case "AN_KAN": {
+        const block = BlockAnKan.from(e.block.tiles);
+        this.hands[e.iam].kan(block);
+        if (e.iam != e.wind)
+          this.counter.dec(
+            ...block.tiles.filter((t) => !t.has(OPERATOR.HORIZONTAL))
+          );
+        break;
+      }
+      case "REACH":
+        const pid = this.placeManager.playerID(e.iam);
+        this.hands[e.iam].reach();
+        this.scoreManager.reach(pid);
+        this.placeManager.incrementReachStick();
+
+        // Note: discarded tile is handled by discard event
+        // this.hands[e.iam].discard(e.tile);
+        // this.river.discard(e.tile, e.iam);
+        break;
+      case "NEW_DORA": {
+        const doraMarker = Tile.from(e.doraMarker);
+        this.doraMarkers.push(doraMarker);
+        this.counter.dec(doraMarker);
+        break;
+      }
+      case "TSUMO":
+        break;
+      case "RON":
+        if (e.pushBackReachStick) {
+          const w = e.victimInfo.wind;
+          const id = this.placeManager.playerID(w);
+          this.scoreManager.restoreReachStick(id);
+          this.placeManager.decrementReachStick();
+        }
+        break;
+      case "END_GAME":
+        switch (e.subType) {
+          case "NINE_TILES":
+          case "FOUR_KAN":
+          case "FOUR_WIND":
+            this.placeManager.incrementDeadStick();
+            break;
+          case "DRAWN_GAME": {
+            const pm = this.placeManager.playerMap;
+            this.scoreManager.update(e.deltas, pm);
+            this.placeManager.incrementDeadStick();
+            if (!e.shouldContinue) this.placeManager.nextRound();
+            break;
+          }
+          case "WIN_GAME": {
+            const pm = this.placeManager.playerMap;
+            this.scoreManager.update(e.deltas, pm);
+            if (e.shouldContinue) this.placeManager.incrementDeadStick();
+            else {
+              this.placeManager.nextRound();
+              this.placeManager.resetDeadStick();
+            }
+            this.placeManager.resetReachStick();
+            break;
+          }
+        }
+        break;
+      default:
+        throw new Error(`unexpected event ${JSON.stringify(e, null, 2)}`);
     }
   }
 }

@@ -5,8 +5,10 @@ type Separator = typeof INPUT_SEPARATOR;
 
 export const tileSortFunc = (i: Tile, j: Tile) => {
   if (i.t == j.t) {
-    if (isNum0(i)) return 5 - j.n;
-    if (isNum0(j)) return i.n - 5;
+    if (isNum5(i) && isNum5(j)) {
+      if (i.has(OPERATOR.RED)) return -1;
+      if (j.has(OPERATOR.RED)) return 1;
+    }
     return i.n - j.n;
   }
 
@@ -20,7 +22,23 @@ export const tileSortFunc = (i: Tile, j: Tile) => {
   return lookup[i.t] - lookup[j.t];
 };
 
+const operatorSortFunc = (i: Operator, j: Operator) => {
+  const lookup = {
+    [OPERATOR.HORIZONTAL]: 1,
+    [OPERATOR.TSUMO]: 2,
+    [OPERATOR.RON]: 3,
+    [OPERATOR.DORA]: 4,
+    [OPERATOR.COLOR_GRAYSCALE]: 5,
+    [OPERATOR.RED]: 6,
+  };
+  return lookup[i] - lookup[j];
+};
+
 export type Type = (typeof TYPE)[keyof typeof TYPE];
+
+export function isNum5(t: Tile) {
+  return t.isNum() && t.n == 5;
+}
 
 function isType(v: string): [Type, boolean] {
   for (let t of Object.values(TYPE)) {
@@ -48,7 +66,7 @@ export class Tile {
 
   toString(): string {
     if (this.t === TYPE.BACK) return this.t;
-    return `${this.ops.join("")}${this.n}${this.t}`;
+    return `${this.ops.sort(operatorSortFunc).join("")}${this.n}${this.t}`;
   }
 
   toJSON() {
@@ -81,10 +99,8 @@ export class Tile {
     return this.t == TYPE.M || this.t == TYPE.P || this.t == TYPE.S;
   }
 
-  equals(t: Tile, ignoreRed: boolean = false): boolean {
-    let ok = this.n == t.n;
-    if (ignoreRed) ok ||= isNum5or0(this) && isNum5or0(t);
-    return this.t == t.t && ok;
+  equals(t: Tile): boolean {
+    return this.t == t.t && this.n == t.n;
   }
 
   imageSize(scale: number): {
@@ -102,18 +118,6 @@ export class Tile {
       size.width += w * TILE_CONTEXT.TEXT_SCALE; // note not contains text height
     return size;
   }
-}
-
-export function isNum5or0(t: Tile) {
-  return isNum0(t) || isNum5(t);
-}
-
-export function isNum5(t: Tile) {
-  return t.isNum() && t.n == 5;
-}
-
-export function isNum0(t: Tile) {
-  return t.isNum() && t.n == 0;
 }
 
 type BLOCK = (typeof BLOCK)[keyof typeof BLOCK];
@@ -134,9 +138,8 @@ export abstract class Block {
       });
       return;
     }
-    if (this._type == BLOCK.SHO_KAN) {
-      return;
-    }
+    if (this.isCalled()) return;
+
     if (this._type != BLOCK.IMAGE_DISCARD) {
       this._tiles = [...this._tiles].sort(tileSortFunc);
     }
@@ -292,9 +295,9 @@ export class BlockAnKan extends Block {
     const ftiles = tiles.filter((v) => v.t != TYPE.BACK);
     const sample = ftiles[0];
     if (ftiles.length < tiles.length) {
-      if (isNum5or0(sample)) {
+      if (isNum5(sample)) {
         const t = new Tile(sample.t, 5);
-        super([new Tile(sample.t, 0), t, t, t], BLOCK.AN_KAN);
+        super([t.clone({ add: OPERATOR.RED }), t, t, t], BLOCK.AN_KAN);
         return;
       }
       super([sample, sample, sample, sample], BLOCK.AN_KAN);
@@ -304,16 +307,9 @@ export class BlockAnKan extends Block {
   }
 
   get tilesWithBack() {
-    const sample = this.tiles[0];
-    if (isNum5or0(sample)) {
-      return [
-        new Tile(TYPE.BACK, 0),
-        new Tile(sample.t, 0),
-        new Tile(sample.t, 5),
-        new Tile(TYPE.BACK, 0),
-      ];
-    }
-    return [new Tile(TYPE.BACK, 0), sample, sample, new Tile(TYPE.BACK, 0)];
+    const pick = this.tiles[0].clone({ remove: OPERATOR.RED });
+    const sample = isNum5(pick) ? pick.clone({ add: OPERATOR.RED }) : pick;
+    return [new Tile(TYPE.BACK, 0), sample, pick, new Tile(TYPE.BACK, 0)];
   }
 
   static from(s: string) {
@@ -589,7 +585,7 @@ function detectBlockType(tiles: readonly Tile[]): BLOCK {
     return BLOCK.HAND; // 単騎
   }
 
-  const sameAll = tiles.every((v) => v.equals(tiles[0], true));
+  const sameAll = tiles.every((v) => v.equals(tiles[0]));
   const numOfHorizontals = tiles.filter((v) =>
     v.has(OPERATOR.HORIZONTAL)
   ).length;
@@ -624,7 +620,6 @@ function areConsecutiveTiles(rtiles: readonly Tile[]): boolean {
   const tiles = [...rtiles].sort(tileSortFunc);
   if (!tiles.every((t) => tiles[0].t == t.t)) return false;
   const numbers = tiles.map((t) => {
-    if (isNum0(t)) return 5;
     return t.n;
   });
   for (let i = 0; i < numbers.length - 1; i++) {
@@ -635,7 +630,11 @@ function areConsecutiveTiles(rtiles: readonly Tile[]): boolean {
 
 function makeTiles(cluster: readonly Tile[], k: Type): readonly Tile[] {
   return cluster.map((v) => {
-    return new Tile(k, v.n, v.ops);
+    const tile = new Tile(k, v.n, v.ops);
+    // convert 0 alias to red operator
+    if (tile.isNum() && tile.n == 0)
+      return tile.clone({ n: 5, add: OPERATOR.RED });
+    return tile;
   });
 }
 
@@ -675,15 +674,9 @@ function isOperator(l: Lexer): [Tile, boolean] {
       const [n, ok] = isNumber(c);
       if (!ok) break;
       for (let i = 0; i < found.length; i++) l.readChar();
+      if (found.some((v) => v == OPERATOR.RED) && n != 5)
+        throw new Error(`found ${OPERATOR.RED} but number is not 5: ${n}`);
       let tile = new Tile(TYPE.BACK, n, found);
-      // convert red operator to native red(0)
-      if (tile.has(OPERATOR.RED)) {
-        if (tile.n != 5)
-          throw new Error(
-            `${OPERATOR.RED} is specified for an invalid number: ${tile.n}`
-          );
-        tile = tile.clone({ n: 0, remove: OPERATOR.RED });
-      }
       return [tile, true];
     }
   }

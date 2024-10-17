@@ -106,7 +106,8 @@ class BaseHelper {
     if (tile == 100 || tile == 1000) {
       return tile == 100 ? "stick100" : "stick1000";
     }
-    const n = tile.t == TYPE.BACK ? 0 : tile.n;
+    // FIXME original file must be r5s/r5m/r5p instead of 0s/m/p
+    const n = tile.t == TYPE.BACK || tile.has(OPERATOR.RED) ? 0 : tile.n;
     return `${tile.t}${n}`;
   }
 

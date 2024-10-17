@@ -72,19 +72,19 @@ describe("Hand", () => {
     const h = new Hand("406m");
     const dtiles = h.dec([new Tile(TYPE.M, 5)]);
     h.inc(dtiles);
-    expect("406m").toStrictEqual(h.toString());
+    expect(h.toString()).toStrictEqual("4r56m");
   });
   test("inc/dec", () => {
     const h = new Hand("405556m");
-    const dtiles = h.dec([new Tile(TYPE.M, 0)]);
+    const dtiles = h.dec([new Tile(TYPE.M, 5, [OPERATOR.RED])]);
     h.inc(dtiles);
-    expect("405556m").toStrictEqual(h.toString());
+    expect(h.toString()).toStrictEqual("4r55556m");
   });
   test("inc/dec", () => {
     const h = new Hand("4556m");
-    const itiles = h.inc([new Tile(TYPE.M, 0)]);
+    const itiles = h.inc([new Tile(TYPE.M, 5, [OPERATOR.RED])]);
     h.dec(itiles);
-    expect("4556m").toStrictEqual(h.toString());
+    expect(h.toString()).toStrictEqual("4556m");
   });
 });
 
@@ -222,7 +222,7 @@ describe("Block Calculator", () => {
     {
       name: "nine gates",
       input: "11123456789990m",
-      want: [["11123405678999m"]],
+      want: [["111234r55678999m"]],
       handler: "Nine",
     },
     {

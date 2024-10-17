@@ -1,4 +1,4 @@
-import { isNum0, Tile, TYPE } from "../core";
+import { isNum5, OPERATOR, Tile, TYPE } from "../core";
 import { assert } from "../myassert";
 import { Hand, ShantenCalculator } from "./calc";
 
@@ -35,8 +35,10 @@ export class Efficiency {
       hand.inc(tiles);
       // convert 0 and remove operators
       const da =
-        options?.arrangeRed && isNum0(t)
-          ? t.clone({ n: 5, removeAll: true })
+        options?.arrangeRed && t.has(OPERATOR.RED)
+          ? t.clone({ removeAll: true })
+          : t.has(OPERATOR.RED)
+          ? t.clone({ removeAll: true, add: OPERATOR.RED })
           : t.clone({ removeAll: true });
       if (c.shanten < minShanten) {
         map.clear();

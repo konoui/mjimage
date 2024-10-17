@@ -21,7 +21,7 @@ describe("callable", () => {
     const c = createLocalGame();
     c.observer.hands["1w"] = new ActorHand("406m1345p333z111z");
     const got = c.doChi("1w", "4w", new Tile(TYPE.M, 7));
-    expect(got.toString()).toBe("-706m");
+    expect(got.toString()).toBe("-7r56m");
   });
   test("can-ron", () => {
     const c = createLocalGame();
@@ -33,24 +33,24 @@ describe("callable", () => {
     const c = createLocalGame();
     c.observer.hands["1w"] = new ActorHand("50m333444z");
     const got = c.doPon("1w", "2w", new Tile(TYPE.M, 5));
-    expect(got.toString()).toBe("50-5m");
+    expect(got.toString()).toBe("5r5-5m");
   });
   test("can-pon", () => {
     const c = createLocalGame();
     c.observer.hands["1w"] = new ActorHand("505m333444z");
     const got = c.doPon("1w", "2w", new Tile(TYPE.M, 5));
-    expect(got.toString()).toBe("50-5m,55-5m");
+    expect(got.toString()).toBe("5r5-5m,55-5m");
   });
   test("can-dai-kan", () => {
     const c = createLocalGame();
     c.observer.hands["1w"] = new ActorHand("505m");
     const got = c.doDaiKan("1w", "4w", new Tile(TYPE.M, 5));
-    expect(got.toString()).toBe("-5055m");
+    expect(got.toString()).toBe("-5r555m");
   });
   test("can-dai-kan", () => {
     const c = createLocalGame();
     c.observer.hands["1w"] = new ActorHand("555m");
-    const got = c.doDaiKan("1w", "2w", new Tile(TYPE.M, 0));
-    expect(got.toString()).toBe("555-0m");
+    const got = c.doDaiKan("1w", "2w", new Tile(TYPE.M, 5, [OPERATOR.RED]));
+    expect(got.toString()).toBe("555-r5m");
   });
 });

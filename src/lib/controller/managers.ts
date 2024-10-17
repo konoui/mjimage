@@ -1,7 +1,7 @@
 import { assert } from "../myassert";
-import { Wind, Round, TYPE, WIND, createWindMap } from "../core/";
+import { Wind, Round, TYPE, WIND, createWindMap, OPERATOR } from "../core/";
 import { TupleOfSize } from "../calculator";
-import { Type, Tile, isNum0 } from "../core/parser";
+import { Type, Tile } from "../core/parser";
 import { nextWind, nextRound } from "../core";
 export class ScoreManager {
   private reachValue = 1000;
@@ -120,7 +120,6 @@ export class Counter {
   // FIXME get red
   get(t: Tile) {
     if (t.t == TYPE.BACK) return 0;
-    if (isNum0(t)) return this.c[t.t][5];
     return this.c[t.t][t.n];
   }
   dec(...tiles: Tile[]) {
@@ -128,9 +127,12 @@ export class Counter {
     for (let t of tiles) {
       if (t.t == TYPE.BACK) continue;
       if (this.get(t) <= 0)
-        throw new Error(`cannot decrease ${t.toString()} due to zero`);
+        throw new Error(
+          `[counter] cannot decrease ${t.toString()} due to zero`
+        );
       this.c[t.t][t.n] -= 1;
-      if (isNum0(t)) this.c[t.t][5] -= 1;
+      // FIXME validate red has more than 0
+      if (t.has(OPERATOR.RED)) this.c[t.t][0] -= 1;
     }
   }
   addTileToSafeMap(t: Tile, targetUser: Wind) {

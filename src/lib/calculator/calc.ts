@@ -23,9 +23,8 @@ import {
   BlockRun,
   BlockHand,
   tileSortFunc,
-  isNum5,
-  isNum0,
   SerializedBlock,
+  isNum5,
 } from "../core/parser";
 import { assert } from "../myassert";
 
@@ -98,7 +97,7 @@ export class Hand {
         let count = this.get(t, n);
         if (t != TYPE.Z && n == 5 && this.get(t, 0) > 0) {
           count -= this.get(t, 0); // for red
-          tiles.push(new Tile(t, 0));
+          tiles.push(new Tile(t, 5, [OPERATOR.RED]));
         }
         for (let i = 0; i < count; i++) {
           tiles.push(new Tile(t, n));
@@ -161,22 +160,25 @@ export class Hand {
   inc(tiles: readonly Tile[]): Tile[] {
     const backup: Tile[] = [];
     for (let t of tiles) {
-      if (t.t != TYPE.BACK && this.get(t.t, t.n) >= 4) {
+      assert(!(t.isNum() && t.n == 0), `found 0s/0p/0m ${t.toString()}`);
+      if (
+        (t.t != TYPE.BACK && this.get(t.t, t.n) >= 4) ||
+        (t.has(OPERATOR.RED) && this.get(t.t, 0) > 0)
+      ) {
         this.dec(backup);
         throw new Error(`unable to increase ${t} in ${this.toString()}`);
       }
+
       backup.push(t);
-      if (isNum0(t)) {
-        this.data[t.t][5]! += 1;
-      }
 
       if (t.t == TYPE.BACK) this.data[t.t][1] += 1;
-      else this.data[t.t][t.n] += 1;
+      else {
+        this.data[t.t][t.n] += 1;
+        if (t.has(OPERATOR.RED)) this.data[t.t][0] += 1;
+      }
 
-      if (isNum5(t) && this.get(t.t, 5) == 4 && this.get(t.t, 0) == 0) {
-        this.data[t.t][0] = 1;
-        const c = backup.pop()!.clone({ n: 0 });
-        backup.push(c);
+      if (isNum5(t) && this.get(t.t, t.n) == 0 && this.get(t.t, 0) == 1) {
+        throw new Error("dec encountered");
       }
     }
     return backup;
@@ -184,26 +186,32 @@ export class Hand {
   dec(tiles: readonly Tile[]): Tile[] {
     const backup: Tile[] = [];
     for (let t of tiles) {
-      if (this.get(t.t, t.n) < 1) {
+      assert(!(t.isNum() && t.n == 0), `found 0s/0p/0m ${t.toString()}`);
+      if (
+        this.get(t.t, t.n) < 1 ||
+        (t.has(OPERATOR.RED) && this.get(t.t, 0) <= 0)
+      ) {
         this.inc(backup);
         throw new Error(
           `unable to decrease ${t.toString()} in ${this.toString()}`
         );
       }
-
       backup.push(t);
-      if (isNum0(t)) {
-        this.data[t.t][5]! -= 1;
-      }
-      if (t.t == TYPE.BACK) this.data[t.t][1] -= 1;
-      else this.data[t.t][t.n] -= 1;
 
+      if (t.t == TYPE.BACK) this.data[t.t][1] -= 1;
+      else {
+        this.data[t.t][t.n] -= 1;
+        if (t.has(OPERATOR.RED)) this.data[t.t][0] -= 1;
+      }
+
+      // TODO commonByType does not add red op for dec
       if (isNum5(t) && this.get(t.t, 5) == 0 && this.get(t.t, 0) > 0) {
         this.data[t.t][0] = 0;
-        const c = backup.pop()!.clone({ n: 0 });
+        const c = backup.pop()!.clone({ add: OPERATOR.RED });
         backup.push(c);
       }
     }
+
     return backup;
   }
   draw(t: Tile) {
@@ -244,9 +252,7 @@ export class Hand {
   kan(b: BlockAnKan | BlockShoKan) {
     if (b instanceof BlockAnKan) {
       // Note: there is a case that t.len == 1
-      let t = b.tiles[0];
-      if (isNum0(t)) t = new Tile(t.t, 5);
-      this.dec([t, t, t, t]);
+      this.dec(b.tiles);
       this.data.called = [...this.called, b];
       this.data.tsumo = null;
       return;
@@ -254,12 +260,10 @@ export class Hand {
 
     if (b instanceof BlockShoKan) {
       const idx = this.data.called.findIndex(
-        (v) => v.is(BLOCK.PON) && v.tiles[0].equals(b.tiles[0], true) // FIXME handle which tile is called
+        (v) => v.is(BLOCK.PON) && v.tiles[0].equals(b.tiles[0]) // FIXME handle which tile is called
       );
       if (idx == -1) throw new Error(`unable to find ${b.tiles[0]}`);
       let t = b.tiles[0];
-      if (isNum0(t)) t = new Tile(t.t, 5);
-
       this.dec([t]);
       // remove an existing pon block and add kakan block
       this.data.called = [
@@ -533,7 +537,7 @@ export class BlockCalculator {
       for (let j = 0; j < hand.length; j++) {
         const block = hand[j];
         if (block.isCalled()) continue;
-        const k = block.tiles.findIndex((t) => t.equals(lastTile, true));
+        const k = block.tiles.findIndex((t) => t.equals(lastTile));
         if (k < 0) continue;
         const key = buildKey(block);
         if (m[key]) continue;
@@ -1085,9 +1089,9 @@ export class DoubleCalculator {
     let bcount = 0;
     for (let b of h) {
       for (let t of b.tiles) {
-        for (let d of this.cfg.doras) if (t.equals(d, true)) dcount++;
-        for (let d of this.cfg.blindDoras) if (t.equals(d, true)) bcount++;
-        if (isNum0(t)) rcount++;
+        for (let d of this.cfg.doras) if (t.equals(d)) dcount++;
+        for (let d of this.cfg.blindDoras) if (t.equals(d)) bcount++;
+        if (t.has(OPERATOR.RED)) rcount++;
       }
     }
 
@@ -1113,11 +1117,11 @@ export class DoubleCalculator {
       const filteredTypes = [TYPE.M, TYPE.P, TYPE.S].filter((v) => v != tile.t);
       const cond1 = h.some((b) => {
         const newTile = new Tile(filteredTypes[0], tile.n);
-        return check(b) && newTile.equals(minTile(b), true);
+        return check(b) && newTile.equals(minTile(b));
       });
       const cond2 = h.some((b) => {
         const newTile = new Tile(filteredTypes[1], tile.n);
-        return check(b) && newTile.equals(minTile(b), true);
+        return check(b) && newTile.equals(minTile(b));
       });
       if (cond1 && cond2)
         return [{ name: "三色同順", double: 2 - this.minus() }];
@@ -1173,11 +1177,11 @@ export class DoubleCalculator {
       const filteredTypes = [TYPE.M, TYPE.P, TYPE.S].filter((v) => v != tile.t);
       const cond1 = h.some((b) => {
         const newTile = new Tile(filteredTypes[0], tile.n);
-        return check(b) && newTile.equals(minTile(b), true);
+        return check(b) && newTile.equals(minTile(b));
       });
       const cond2 = h.some((b) => {
         const newTile = new Tile(filteredTypes[1], tile.n);
-        return check(b) && newTile.equals(minTile(b), true);
+        return check(b) && newTile.equals(minTile(b));
       });
       if (cond1 && cond2) return [{ name: "三色同刻", double: 2 }];
     }
@@ -1477,7 +1481,7 @@ const minTile = (b: Block) => {
 };
 
 const toDora = (doraMarker: Tile) => {
-  let n = isNum0(doraMarker) ? 5 : doraMarker.n;
+  let n = doraMarker.n;
   let t = doraMarker.t;
   return new Tile(t, (n % 9) + 1);
 };

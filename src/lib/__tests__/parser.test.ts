@@ -25,7 +25,7 @@ describe("parse", () => {
       new BlockOther([new Tile(TYPE.S, 1, [OPERATOR.TSUMO])], BLOCK.TSUMO),
       new BlockAnKan([
         new Tile(TYPE.BACK, 0),
-        new Tile(TYPE.S, 0),
+        new Tile(TYPE.S, 5, [OPERATOR.RED]),
         new Tile(TYPE.S, 5),
         new Tile(TYPE.BACK, 0),
       ]),
@@ -76,15 +76,15 @@ describe("parseInput", () => {
 describe("red operator", () => {
   test("r5s", () => {
     const got = new Parser("r5s").tiles();
-    expect(got).toStrictEqual([new Tile(TYPE.S, 0)]);
+    expect(got).toStrictEqual([new Tile(TYPE.S, 5, [OPERATOR.RED])]);
   });
 
   test("123s, tr5s", () => {
-    const got = new Parser("12s, tr5s").tiles();
+    const got = new Parser("12s, t0s").tiles();
     expect(got).toStrictEqual([
       new Tile(TYPE.S, 1),
       new Tile(TYPE.S, 2),
-      new Tile(TYPE.S, 0, [OPERATOR.TSUMO]),
+      new Tile(TYPE.S, 5, [OPERATOR.TSUMO, OPERATOR.RED]),
     ]);
   });
 });
@@ -101,6 +101,16 @@ describe("sortTiles", () => {
       new Tile(TYPE.P, 3),
       new Tile(TYPE.S, 5),
       new Tile(TYPE.Z, 1),
+    ];
+    expect(got).toStrictEqual(want);
+  });
+  test("505p", () => {
+    const parsed = new Parser("505p").tiles();
+    const got = [...parsed].sort(tileSortFunc);
+    const want: Tile[] = [
+      new Tile(TYPE.P, 5, [OPERATOR.RED]),
+      new Tile(TYPE.P, 5),
+      new Tile(TYPE.P, 5),
     ];
     expect(got).toStrictEqual(want);
   });
