@@ -728,14 +728,14 @@ export class Controller {
   canDrawnGame(w: Wind) {
     if (this.river.discards(w).length != 0) return false;
     const h = this.hand(w);
-    let num =
-      h.get(TYPE.M, 1) +
-      h.get(TYPE.M, 9) +
-      h.get(TYPE.S, 1) +
-      h.get(TYPE.S, 9) +
-      h.get(TYPE.P, 1) +
-      h.get(TYPE.P, 9);
-    for (let i = 0; i < h.getArrayLen(TYPE.Z); i++) num += h.get(TYPE.Z, i);
+    let num = 0;
+    for (let t of Object.values(TYPE)) {
+      if (t == TYPE.BACK) continue;
+      const arr = t == TYPE.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 9];
+      for (let n of arr) {
+        if (h.get(t, n) > 0) num++;
+      }
+    }
     return num >= 9;
   }
   initialHands() {
