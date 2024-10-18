@@ -23,6 +23,18 @@ describe("callable", () => {
     const got = c.doChi("1w", "4w", new Tile(TYPE.M, 7));
     expect(got.toString()).toBe("-7r56m");
   });
+  test("can-chi", () => {
+    const c = createLocalGame();
+    c.observer.hands["1w"] = new ActorHand("56m");
+    const got = c.doChi("1w", "4w", new Tile(TYPE.M, 7));
+    expect(got).toBe(false);
+  });
+  test("can-chi", () => {
+    const c = createLocalGame();
+    c.observer.hands["1w"] = new ActorHand("333345666m");
+    const got = c.doChi("1w", "4w", new Tile(TYPE.M, 6));
+    expect(got).toBe(false);
+  });
   test("can-ron", () => {
     const c = createLocalGame();
     c.observer.hands["1w"] = new ActorHand("406m123456p1123s");

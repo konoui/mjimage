@@ -474,7 +474,6 @@ export class Controller {
       });
     }
 
-    // add
     blocks.push(block);
 
     // if hand has red and 3 tiles, two cases including red and non red
@@ -540,19 +539,28 @@ export class Controller {
         ])
       );
 
-    if (blocks.length == 0) return false;
+    // 鳴いた後の手配が全て食い替え対象だとチーできない。
+    // 打6 で 333345666 はチーできない。
+    // 鳴く牌とスジの牌を削除し、手配が0になればそのブロックでは鳴けない。
+    for (let i = 0; i < blocks.length; i++) {
+      const b = blocks[i];
+      const tiles = this.cannotDiscardTile(b);
+      const toDec: Tile[] = [];
+      for (let t of tiles) {
+        const n = hand.get(t.t, t.n);
+        for (let j = 0; j < n; j++)
+          // FIXME dec が red じゃなくても red を dec してくれる仕様に依存している。
+          toDec.push(t.clone({ remove: OPERATOR.RED }));
+      }
 
-    // 手配が4枚でのチーは、鳴いた後の手配が全て食い替え対象だとできない
-    if (hand.hands.length == 4) {
-      const b = blocks[0];
-      const tiles = this.cannotDiscardTile(blocks[0]);
-      const ltiles = hand.dec([b.tiles[1], b.tiles[2]]);
-      const cannotCall =
-        tiles.reduce((acc: number, e: Tile) => acc + hand.get(e.t, e.n), 0) ==
-        2;
+      const ltiles = hand.dec([...toDec, b.tiles[1], b.tiles[2]]);
+      const cannotCall = hand.hands.length == 0;
       hand.inc(ltiles);
-      if (cannotCall) return false;
+
+      if (cannotCall) blocks.splice(i, 1);
     }
+
+    if (blocks.length == 0) return false;
 
     // 1. check whether can-chi or not with ignoredRed pattern
     // 2. get red patterns if having red
@@ -608,17 +616,17 @@ export class Controller {
     );
     return ret;
   }
-  cannotDiscardTile(called: BlockChi) {
-    let h = called.tiles[0].n;
-    let h1 = called.tiles[1].n;
-    const t = called.tiles[0].t;
-    if (h == 0) h = 5;
-    if (h1 == 0) h1 = 5;
-    // -423, -645
-    if (h - 2 == h1) return [new Tile(t, h - 3), new Tile(t, h)];
-    // -123, -789
-    if (h + 1 == h1) return [new Tile(t, h + 3), new Tile(t, h)];
-    return [];
+  cannotDiscardTile(b: BlockChi) {
+    const called = b.tiles[0];
+    let h1 = b.tiles[1].n;
+    // -423, -978
+    if (h1 != 1 && called.n - 2 == h1)
+      return [new Tile(called.t, called.n - 3), called];
+    // -123,
+    if (h1 != 8 && called.n + 1 == h1)
+      return [new Tile(called.t, called.n + 3), called];
+    // -324 -789 -312
+    return [called];
   }
   doAnKan(w: Wind): BlockAnKan[] | false {
     const hand = this.hand(w);

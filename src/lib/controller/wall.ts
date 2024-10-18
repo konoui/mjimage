@@ -1,4 +1,4 @@
-import { TYPE } from "../core/constants";
+import { OPERATOR, TYPE } from "../core/constants";
 import { Tile } from "../core/parser";
 import { shuffle } from "./managers";
 
@@ -68,8 +68,10 @@ export class Wall {
           t == TYPE.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 2, 3, 4, 5, 6, 7, 8, 9];
         for (let i = 0; i < 4; i++) {
           for (let n of values) {
-            if (t != TYPE.Z && i == 3 && n == 5) n = 0;
-            this.walls.drawable.push(new Tile(t, n).toString());
+            let tile = new Tile(t, n);
+            if (t != TYPE.Z && i == 3 && n == 5)
+              tile = tile.clone({ add: OPERATOR.RED });
+            this.walls.drawable.push(tile.toString());
           }
         }
       }

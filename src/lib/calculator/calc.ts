@@ -114,12 +114,6 @@ export class Hand {
 
       tiles[idx] = tiles[idx].clone({ add: OPERATOR.TSUMO });
     }
-    assert(
-      tiles.length > 0,
-      `no tiles in hand ${tiles.length}, called: ${
-        this.called
-      }, data: ${JSON.stringify(this.data, null, 2)}`
-    );
     return tiles;
   }
   toString() {
@@ -175,10 +169,6 @@ export class Hand {
       else {
         this.data[t.t][t.n] += 1;
         if (t.has(OPERATOR.RED)) this.data[t.t][0] += 1;
-      }
-
-      if (isNum5(t) && this.get(t.t, t.n) == 0 && this.get(t.t, 0) == 1) {
-        throw new Error("dec encountered");
       }
     }
     return backup;
