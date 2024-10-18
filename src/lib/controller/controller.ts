@@ -444,10 +444,11 @@ export class Controller {
     if (hand.get(t.t, sample.n) < 2) return false;
 
     // FIXME arrange as function
-    let idx = Math.abs(Number(w[0]) - Number(whoDiscarded[0]));
-    if (idx == 3) idx = 0;
-    if (idx == 2) idx = 1;
-    if (idx == 1) idx = 2;
+    const distance = Math.abs(Number(w[0]) - Number(whoDiscarded[0]));
+    let idx = 0;
+    if (distance == 3) idx = 0;
+    else if (distance == 2) idx = 1;
+    else if (distance == 1) idx = 2;
 
     const blocks: BlockPon[] = [];
     const base = new BlockPon([sample, sample, sample]).clone({

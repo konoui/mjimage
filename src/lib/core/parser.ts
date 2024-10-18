@@ -34,7 +34,7 @@ const operatorSortFunc = (i: Operator, j: Operator) => {
   return lookup[i] - lookup[j];
 };
 
-const sortCalledTiles = (arr: readonly Tile[]) => {
+export const sortCalledTiles = (arr: readonly Tile[]) => {
   const indexes: number[] = [];
   arr.forEach((t, index) => {
     if (t.has(OPERATOR.HORIZONTAL)) {

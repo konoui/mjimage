@@ -53,6 +53,18 @@ describe("callable", () => {
     const got = c.doPon("1w", "2w", new Tile(TYPE.M, 5));
     expect(got.toString()).toBe("r55-5m,55-5m");
   });
+  test("can-pon", () => {
+    const c = createLocalGame();
+    c.observer.hands["1w"] = new ActorHand("433m");
+    const got = c.doPon("1w", "4w", new Tile(TYPE.M, 3));
+    expect(got.toString()).toBe("-333m");
+  });
+  test("can-pon", () => {
+    const c = createLocalGame();
+    c.observer.hands["1w"] = new ActorHand("433m");
+    const got = c.doPon("1w", "3w", new Tile(TYPE.M, 3));
+    expect(got.toString()).toBe("3-33m");
+  });
   test("can-dai-kan", () => {
     const c = createLocalGame();
     c.observer.hands["1w"] = new ActorHand("505m");

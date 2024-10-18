@@ -7,6 +7,7 @@ import {
   BlockChi,
   BlockOther,
   BlockHand,
+  sortCalledTiles,
 } from "../core/parser";
 import { TYPE, OPERATOR, BLOCK, INPUT_SEPARATOR } from "../core/constants";
 
@@ -113,5 +114,15 @@ describe("sortTiles", () => {
       new Tile(TYPE.P, 5),
     ];
     expect(got).toStrictEqual(want);
+  });
+});
+
+describe("sort called tiles", () => {
+  test("keep horizontal", () => {
+    const t = new Tile(TYPE.M, 3);
+    const want = [t, t.clone({ add: OPERATOR.HORIZONTAL }), t];
+    const got = sortCalledTiles([...want]);
+    expect(got).toStrictEqual(want);
+    expect(got[1].has(OPERATOR.HORIZONTAL)).toBe(true);
   });
 });
