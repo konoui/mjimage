@@ -12,6 +12,45 @@ export interface ImageHelperConfig {
   svgSprite?: boolean;
 }
 
+const blockImageSize = (
+  b: Block,
+  scale: number
+): { width: number; height: number } => {
+  const size = tileImageSize(b.tiles[0], scale);
+  const bh = size.baseHeight;
+  const bw = size.baseWidth;
+  if (b.is(BLOCK.SHO_KAN))
+    return { width: bw * 2 + bh, height: Math.max(bw * 2, bh) };
+
+  const maxHeight = b.tiles.reduce((max: number, t: Tile) => {
+    const h = tileImageSize(t, scale).height;
+    return h > max ? h : max;
+  }, 0);
+  const sumWidth = b.tiles.reduce((sum: number, t: Tile) => {
+    return sum + tileImageSize(t, scale).width;
+  }, 0);
+  return { width: sumWidth, height: maxHeight };
+};
+
+const tileImageSize = (
+  tile: Tile,
+  scale: number
+): {
+  width: number;
+  height: number;
+  baseWidth: number;
+  baseHeight: number;
+} => {
+  const h = parseFloat((TILE_CONTEXT.HEIGHT * scale).toPrecision(5));
+  const w = parseFloat((TILE_CONTEXT.WIDTH * scale).toPrecision(5));
+  const size = tile.has(OPERATOR.HORIZONTAL)
+    ? { width: h, height: w, baseWidth: w, baseHeight: h }
+    : { width: w, height: h, w, baseWidth: w, baseHeight: h };
+  if (tile.has(OPERATOR.TSUMO) || tile.has(OPERATOR.DORA))
+    size.width += w * TILE_CONTEXT.TEXT_SCALE; // note not contains text height
+  return size;
+};
+
 class BaseHelper {
   readonly tileWidth: number;
   readonly tileHeight: number;
@@ -31,7 +70,7 @@ class BaseHelper {
   }
 
   protected getDiffTileHeightWidth(t: Tile) {
-    const size = t.imageSize(this.scale);
+    const size = tileImageSize(t, this.scale);
     return (size.baseHeight - size.baseWidth) / 2;
   }
 
@@ -49,7 +88,7 @@ class BaseHelper {
   }
 
   createImage(tile: Tile, x: number, y: number) {
-    const size = tile.imageSize(this.scale);
+    const size = tileImageSize(tile, this.scale);
     const image = this.image(tile)
       .dx(x)
       .dy(y)
@@ -60,7 +99,7 @@ class BaseHelper {
   createTextImage(tile: Tile, x: number, y: number, t: string) {
     const image = this.createImage(tile, x, y);
 
-    const size = tile.imageSize(this.scale);
+    const size = tileImageSize(tile, this.scale);
     const fontSize = size.baseHeight * 0.2;
     const textX = size.baseWidth;
     const textY = size.baseHeight;
@@ -87,7 +126,7 @@ class BaseHelper {
   ) {
     const image = this.createImage(tile, 0, 0);
 
-    const size = tile.imageSize(this.scale);
+    const size = tileImageSize(tile, this.scale);
     const centerX = size.baseWidth / 2;
     const centerY = size.baseHeight / 2;
     const translatedX = x + this.getDiffTileHeightWidth(tile);
@@ -130,7 +169,7 @@ export class ImageHelper extends BaseHelper {
     const g = new G();
     let pos = 0;
     for (let t of tiles) {
-      const size = t.imageSize(this.scale);
+      const size = tileImageSize(t, this.scale);
       const f = t.has(OPERATOR.HORIZONTAL)
         ? this.createRotate90Image.bind(this)
         : this.createImage.bind(this);
@@ -154,13 +193,13 @@ export class ImageHelper extends BaseHelper {
         if (block.tiles[i].has(OPERATOR.HORIZONTAL)) lastIdx = i;
 
       for (let i = 0; i < block.tiles.length; i++) {
-        const size = block.tiles[i].imageSize(this.scale);
+        const size = tileImageSize(block.tiles[i], this.scale);
         if (i == lastIdx) continue;
         if (i == idx) {
           const baseTile = block.tiles[idx];
           const upperTile = block.tiles[lastIdx];
 
-          const size = baseTile.imageSize(this.scale);
+          const size = tileImageSize(baseTile, this.scale);
           const baseImg = this.createRotate90Image(baseTile, 0, 0, true);
           const upImg = this.createRotate90Image(
             upperTile,
@@ -182,18 +221,20 @@ export class ImageHelper extends BaseHelper {
     }
 
     if (block.type == BLOCK.CHI) {
+      const idxt = block.tiles[idx];
       const img = this.createRotate90Image(
-        block.tiles[idx],
+        idxt,
         pos,
-        this.getDiffTileHeightWidth(block.tiles[idx])
+        this.getDiffTileHeightWidth(idxt)
       );
-      pos += block.tiles[idx].imageSize(this.scale).width;
+      pos += tileImageSize(idxt, this.scale).width;
       g.add(img);
 
       for (let i = 0; i < block.tiles.length; i++) {
         if (i == idx) continue;
-        const size = block.tiles[i].imageSize(this.scale);
-        const img = this.createImage(block.tiles[i], pos, 0);
+        const t = block.tiles[i];
+        const size = tileImageSize(t, this.scale);
+        const img = this.createImage(t, pos, 0);
         pos += size.width;
         g.add(img);
       }
@@ -205,9 +246,10 @@ export class ImageHelper extends BaseHelper {
         i == idx
           ? this.createRotate90Image.bind(this)
           : this.createImage.bind(this);
-      const y = i == idx ? this.getDiffTileHeightWidth(block.tiles[i]) : 0;
-      const size = block.tiles[i].imageSize(this.scale);
-      const img = f(block.tiles[i], pos, y);
+      const t = block.tiles[i];
+      const y = i == idx ? this.getDiffTileHeightWidth(t) : 0;
+      const size = tileImageSize(t, this.scale);
+      const img = f(t, pos, y);
       pos += size.width;
       g.add(img);
     }
@@ -219,22 +261,22 @@ const getBlockCreators = (h: ImageHelper) => {
   const scale = h.scale;
   const lookup = {
     [BLOCK.CHI]: function (block: Block) {
-      const size = block.imageSize(scale);
+      const size = blockImageSize(block, scale);
       const g = h.createBlockPonChiKan(block);
       return { ...size, e: g };
     },
     [BLOCK.PON]: function (block: Block) {
-      const size = block.imageSize(scale);
+      const size = blockImageSize(block, scale);
       const g = h.createBlockPonChiKan(block);
       return { ...size, e: g };
     },
     [BLOCK.DAI_KAN]: function (block: Block) {
-      const size = block.imageSize(scale);
+      const size = blockImageSize(block, scale);
       const g = h.createBlockPonChiKan(block);
       return { ...size, e: g };
     },
     [BLOCK.SHO_KAN]: function (block: Block) {
-      const size = block.imageSize(scale);
+      const size = blockImageSize(block, scale);
       const g = h.createBlockPonChiKan(block);
       return { ...size, e: g };
     },
@@ -243,31 +285,31 @@ const getBlockCreators = (h: ImageHelper) => {
         block instanceof BlockAnKan,
         `block type is not ankan: ${block.type}`
       );
-      const size = block.imageSize(scale);
+      const size = blockImageSize(block, scale);
       const g = h.createBlockHandDiscard(block);
       return { ...size, e: g };
     },
     [BLOCK.IMAGE_DORA]: function (block: Block) {
-      const size = block.imageSize(scale);
+      const size = blockImageSize(block, scale);
       const g = new G();
       const img = h.createTextImage(block.tiles[0], 0, 0, "(ドラ)");
       g.add(img);
       return { ...size, e: g };
     },
     [BLOCK.TSUMO]: function (block: Block) {
-      const size = block.imageSize(scale);
+      const size = blockImageSize(block, scale);
       const g = new G();
       const img = h.createTextImage(block.tiles[0], 0, 0, "(ツモ)");
       g.add(img);
       return { ...size, e: g };
     },
     [BLOCK.HAND]: function (block: Block) {
-      const size = block.imageSize(scale);
+      const size = blockImageSize(block, scale);
       const g = h.createBlockHandDiscard(block);
       return { ...size, e: g };
     },
     [BLOCK.IMAGE_DISCARD]: function (block: Block) {
-      const size = block.imageSize(scale);
+      const size = blockImageSize(block, scale);
       const g = h.createBlockHandDiscard(block);
       return { ...size, e: g };
     },
@@ -289,7 +331,7 @@ const getBlockCreators = (h: ImageHelper) => {
         block.tiles.some((t) => t.has(OPERATOR.TSUMO) || t.has(OPERATOR.DORA))
       )
         throw new Error("found an unknown block with operator tiles");
-      const size = block.imageSize(scale);
+      const size = blockImageSize(block, scale);
       const g = h.createBlockHandDiscard(block);
       return { ...size, e: g };
     },
@@ -307,7 +349,7 @@ interface MySVGElement {
 export const createHand = (helper: ImageHelper, blocks: Block[]) => {
   const { maxHeight, sumWidth } = blocks.reduce(
     (acc: { maxHeight: number; sumWidth: number }, b: Block) => {
-      const size = b.imageSize(helper.scale);
+      const size = blockImageSize(b, helper.scale);
       const v = size.height > acc.maxHeight ? size.height : acc.maxHeight;
       return { maxHeight: v, sumWidth: acc.sumWidth + size.width };
     },

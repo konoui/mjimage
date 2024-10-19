@@ -120,22 +120,6 @@ export class Tile {
   equals(t: Tile): boolean {
     return this.t == t.t && this.n == t.n;
   }
-
-  imageSize(scale: number): {
-    width: number;
-    height: number;
-    baseWidth: number;
-    baseHeight: number;
-  } {
-    const h = parseFloat((TILE_CONTEXT.HEIGHT * scale).toPrecision(5));
-    const w = parseFloat((TILE_CONTEXT.WIDTH * scale).toPrecision(5));
-    const size = this.has(OPERATOR.HORIZONTAL)
-      ? { width: h, height: w, baseWidth: w, baseHeight: h }
-      : { width: w, height: h, w, baseWidth: w, baseHeight: h };
-    if (this.has(OPERATOR.TSUMO) || this.has(OPERATOR.DORA))
-      size.width += w * TILE_CONTEXT.TEXT_SCALE; // note not contains text height
-    return size;
-  }
 }
 
 type BLOCK = (typeof BLOCK)[keyof typeof BLOCK];
@@ -226,22 +210,6 @@ export abstract class Block {
     let tiles = [...this.tiles];
     if (rp) tiles[rp.idx] = rp.tile;
     return blockWrapper(tiles, this._type);
-  }
-
-  imageSize(scale: number): { width: number; height: number } {
-    const bh = this.tiles[0].imageSize(scale).baseHeight;
-    const bw = this.tiles[0].imageSize(scale).baseWidth;
-    if (this.is(BLOCK.SHO_KAN))
-      return { width: bw * 2 + bh, height: Math.max(bw * 2, bh) };
-
-    const maxHeight = this.tiles.reduce((max: number, t: Tile) => {
-      const h = t.imageSize(scale).height;
-      return h > max ? h : max;
-    }, 0);
-    const sumWidth = this.tiles.reduce((sum: number, t: Tile) => {
-      return sum + t.imageSize(scale).width;
-    }, 0);
-    return { width: sumWidth, height: maxHeight };
   }
 }
 
