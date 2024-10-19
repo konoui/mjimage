@@ -1,4 +1,4 @@
-import { isNum5, OPERATOR, Tile, TYPE } from "../core";
+import { OPERATOR, Tile, TYPE } from "../core";
 import { assert } from "../myassert";
 import { Hand, ShantenCalculator } from "./calc";
 

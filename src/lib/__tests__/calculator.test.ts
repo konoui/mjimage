@@ -233,7 +233,7 @@ describe("Block Calculator", () => {
     },
     {
       name: "with called",
-      input: "111m456m789m11p,1-23s",
+      input: "111m456m789m11p,-213s",
       want: [["11p", "111m", "456m", "789m", "-213s"]],
       handler: "Common",
     },

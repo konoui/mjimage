@@ -17,7 +17,7 @@ class BaseHelper {
   readonly tileHeight: number;
   readonly imageHostPath: string;
   readonly imageHostUrl: string;
-  readonly imageExt: string;
+  readonly imageExt: "svg" | "webp";
   readonly scale: number;
   readonly svgSprite: boolean;
   constructor(props: ImageHelperConfig = {}) {
@@ -107,7 +107,7 @@ class BaseHelper {
     if (tile == 100 || tile == 1000) {
       return tile == 100 ? "stick100" : "stick1000";
     }
-    // FIXME original file must be r5s/r5m/r5p instead of 0s/m/p
+    // original file is 0s/0m/0p
     const n = tile.t == TYPE.BACK || tile.has(OPERATOR.RED) ? 0 : tile.n;
     return `${tile.t}${n}`;
   }
@@ -277,6 +277,12 @@ const getBlockCreators = (h: ImageHelper) => {
     [BLOCK.RUN]: function (block: Block) {
       throw new Error("run is unsupported");
     },
+    [BLOCK.PAIR]: function (block: Block) {
+      throw new Error("pair is unsupported");
+    },
+    [BLOCK.ISOLATED]: function (block: Block) {
+      throw new Error("isolated is unsupported");
+    },
     [BLOCK.UNKNOWN]: function (block: Block) {
       // unable to draw tsumo/dora
       if (
@@ -286,12 +292,6 @@ const getBlockCreators = (h: ImageHelper) => {
       const size = block.imageSize(scale);
       const g = h.createBlockHandDiscard(block);
       return { ...size, e: g };
-    },
-    [BLOCK.PAIR]: function (block: Block) {
-      throw new Error("pair is unsupported");
-    },
-    [BLOCK.ISOLATED]: function (block: Block) {
-      throw new Error("isolated is unsupported");
     },
   };
 

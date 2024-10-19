@@ -6,6 +6,7 @@ import {
   Wind,
   WIND,
   createWindMap,
+  INPUT_SEPARATOR,
 } from "../core";
 import {
   Tile,
@@ -117,11 +118,14 @@ export class Hand {
     return tiles;
   }
   toString() {
-    let called = "";
-    for (let b of this.called) called = `${called},${b.toString()}`;
+    const called =
+      this.called.length > 0
+        ? `${INPUT_SEPARATOR}${this.called.join(INPUT_SEPARATOR)}`
+        : "";
 
-    let tsumo = "";
-    if (this.drawn) tsumo = `,${this.drawn.toString()}`;
+    const tsumo = this.drawn
+      ? `${INPUT_SEPARATOR}${this.drawn.toString()}`
+      : "";
 
     const tiles = this.hands.filter((v) => !v.has(OPERATOR.TSUMO));
     const b = new BlockHand(tiles).toString();
@@ -241,7 +245,6 @@ export class Hand {
   }
   kan(b: BlockAnKan | BlockShoKan) {
     if (b instanceof BlockAnKan) {
-      // Note: there is a case that t.len == 1
       this.dec(b.tiles);
       this.data.called = [...this.called, b];
       this.data.tsumo = null;
@@ -549,7 +552,7 @@ export class BlockCalculator {
     const newHands: Block[][] = [];
     for (let [hidx, bidx, tidx] of indexes) {
       const hand = hands[hidx];
-      const newHand = hand.map((block) => block.clone()); // block.clone is important now to use instanceof in calc.
+      const newHand = [...hand];
 
       const block = newHand[bidx];
       const newTile = block.tiles[tidx].clone({ add: op });
@@ -579,16 +582,17 @@ export class BlockCalculator {
 
   thirteenOrphans(): Block[][] {
     const ret: Block[] = [];
-    let pairs: string = "";
+    let foundPairs = false;
     for (let t of Object.values(TYPE)) {
       if (t == TYPE.BACK) continue;
       const nn = t == TYPE.Z ? NZ : N19;
       for (let n of nn) {
         if (this.hand.get(t, n) == 1)
           ret.push(new BlockIsolated(new Tile(t, n)));
-        else if (this.hand.get(t, n) == 2 && pairs == "")
+        else if (this.hand.get(t, n) == 2 && foundPairs == false) {
           ret.unshift(new BlockPair(new Tile(t, n), new Tile(t, n)));
-        else return [];
+          foundPairs = true;
+        } else return [];
       }
     }
     return [ret];

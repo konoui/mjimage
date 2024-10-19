@@ -148,15 +148,7 @@ export abstract class Block {
   constructor(tiles: readonly Tile[], type: BLOCK) {
     this._tiles = tiles;
     this._type = type;
-    if (this._type == BLOCK.CHI) {
-      this._tiles = [...this._tiles].sort((a: Tile, b: Tile) => {
-        if (a.has(OPERATOR.HORIZONTAL)) return -1;
-        if (b.has(OPERATOR.HORIZONTAL)) return 1;
-        return tileSortFunc(a, b);
-      });
-      return;
-    }
-    if (this.type != BLOCK.AN_KAN && this.isCalled()) {
+    if (this.isCalled()) {
       this._tiles = sortCalledTiles(this._tiles);
       return;
     }
@@ -513,7 +505,7 @@ export class Parser {
         continue;
       }
 
-      let [type, isType] = convertTypeAliasIfHas(char, cluster);
+      let [type, isType] = isTypeAlias(char, cluster);
       if (isType) {
         if (type == TYPE.BACK) {
           res.push(new Tile(type, 0));
@@ -591,9 +583,7 @@ export class Parser {
       throw new Error(`exceeded maximum input length(${input.length})`);
     const lastChar = input.charAt(input.length - 1);
     // Note: dummy tile for validation
-    const [_, isKind] = convertTypeAliasIfHas(lastChar, [
-      new Tile(TYPE.BACK, 1),
-    ]);
+    const [_, isKind] = isTypeAlias(lastChar, [new Tile(TYPE.BACK, 1)]);
     if (!isKind)
       throw new Error(`last character(${lastChar}) is not type value`);
   }
@@ -660,7 +650,7 @@ function makeTiles(cluster: readonly Tile[], k: Type): readonly Tile[] {
   });
 }
 
-function convertTypeAliasIfHas(s: string, cluster: Tile[]): [Type, boolean] {
+function isTypeAlias(s: string, cluster: Tile[]): [Type, boolean] {
   const [k, ok] = isType(s);
   if (ok) return [k, true];
 
@@ -678,8 +668,9 @@ function convertTypeAliasIfHas(s: string, cluster: Tile[]): [Type, boolean] {
 }
 
 function isNumber(v: string): [number, boolean] {
-  const valid = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
-  return [Number(v), valid.includes(v)];
+  const n = Number(v);
+  const ok = 0 <= n && n <= 9;
+  return [n, ok];
 }
 
 // isOperator will consume char if the next is an operator

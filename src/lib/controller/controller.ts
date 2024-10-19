@@ -19,6 +19,8 @@ import {
   Efficiency,
   Candidate,
   deserializeWinResult,
+  NZ,
+  N19,
 } from "../calculator";
 import {
   BlockAnKan,
@@ -291,7 +293,6 @@ export class Controller {
       );
       const w = sample.wind;
       const t = Tile.from(sample.choices.DISCARD[0]);
-      assert(t != null, `undefined tile ${this.hand(w).toString()}`);
       this.actor.send({ type: "DISCARD", tile: t, iam: w });
     } else if (sample.type == "CHOICE_FOR_CHAN_KAN") {
       const selected = events.filter((e) => {
@@ -690,7 +691,7 @@ export class Controller {
 
     let idx = Math.abs(Number(w[0]) - Number(whoDiscarded[0]));
     if (idx == 3) idx = 0;
-    if (idx == 1) idx = 3;
+    else if (idx == 1) idx = 3;
 
     let block = new BlockDaiKan([sample, sample, sample, sample]).clone({
       replace: { idx, tile: sample.clone({ add: OPERATOR.HORIZONTAL }) },
@@ -732,7 +733,7 @@ export class Controller {
     let num = 0;
     for (let t of Object.values(TYPE)) {
       if (t == TYPE.BACK) continue;
-      const arr = t == TYPE.Z ? [1, 2, 3, 4, 5, 6, 7] : [1, 9];
+      const arr = t == TYPE.Z ? NZ : N19;
       for (let n of arr) {
         if (h.get(t, n) > 0) num++;
       }
