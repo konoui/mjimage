@@ -155,7 +155,7 @@ export class Hand {
     if (t == TYPE.BACK) return this.data[t][1];
     return this.data[t][n];
   }
-  inc(tiles: readonly Tile[]): Tile[] {
+  inc(tiles: readonly Tile[]): readonly Tile[] {
     const backup: Tile[] = [];
     for (let t of tiles) {
       assert(!(t.isNum() && t.n == 0), `found 0s/0p/0m ${t.toString()}`);
@@ -177,7 +177,7 @@ export class Hand {
     }
     return backup;
   }
-  dec(tiles: readonly Tile[]): Tile[] {
+  dec(tiles: readonly Tile[]): readonly Tile[] {
     const backup: Tile[] = [];
     for (let t of tiles) {
       assert(!(t.isNum() && t.n == 0), `found 0s/0p/0m ${t.toString()}`);
@@ -506,7 +506,7 @@ export class BlockCalculator {
     this.hand = hand;
   }
 
-  calc(lastTile: Tile) {
+  calc(lastTile: Tile): readonly Block[][] {
     if (this.hand.drawn != null) lastTile = this.hand.drawn;
     return this.markDrawn(
       [
@@ -519,7 +519,7 @@ export class BlockCalculator {
     );
   }
 
-  markDrawn(hands: Block[][], lastTile: Tile) {
+  markDrawn(hands: readonly Block[][], lastTile: Tile): readonly Block[][] {
     if (hands.length == 0) return [];
     const op =
       this.hand.drawn != null
@@ -565,7 +565,7 @@ export class BlockCalculator {
     return newHands;
   }
 
-  sevenPairs(): Block[][] {
+  sevenPairs(): readonly Block[][] {
     if (this.hand.called.length > 0) return [];
     const ret: Block[] = [];
     for (let t of Object.values(TYPE)) {
@@ -580,7 +580,7 @@ export class BlockCalculator {
     return [ret];
   }
 
-  thirteenOrphans(): Block[][] {
+  thirteenOrphans(): readonly Block[][] {
     const ret: Block[] = [];
     let foundPairs = false;
     for (let t of Object.values(TYPE)) {
@@ -598,7 +598,7 @@ export class BlockCalculator {
     return [ret];
   }
 
-  nineGates(): Block[][] {
+  nineGates(): readonly Block[][] {
     const cond = (t: Type, n: number, want: number[]) =>
       want.includes(this.hand.get(t, n));
     for (let t of Object.values(TYPE)) {
@@ -622,7 +622,7 @@ export class BlockCalculator {
     return [];
   }
 
-  fourSetsOnePair(): Block[][] {
+  fourSetsOnePair(): readonly Block[][] {
     let ret: Block[][] = [];
     for (let t of Object.values(TYPE)) {
       for (let n = 1; n < this.hand.getArrayLen(t); n++) {
@@ -645,8 +645,8 @@ export class BlockCalculator {
     return ret;
   }
 
-  private commonAll(): Block[][] {
-    const handleZ = (): Block[][] => {
+  private commonAll(): readonly Block[][] {
+    const handleZ = (): readonly Block[][] => {
       const z: Block[] = [];
       const zt = TYPE.Z;
       for (let n = 1; n < this.hand.getArrayLen(zt); n++) {
@@ -660,7 +660,7 @@ export class BlockCalculator {
     };
 
     // handle back tiles as same unknown tiles, Not joker tile.
-    const handleBack = (): Block[][] => {
+    const handleBack = (): readonly Block[][] => {
       const b: Block[] = [];
       const bt = TYPE.BACK;
       const sum = this.hand.get(bt, 0);
@@ -697,7 +697,7 @@ export class BlockCalculator {
     return ret;
   }
 
-  private commonByType(t: Type, n: number = 1): Block[][] {
+  private commonByType(t: Type, n: number = 1): readonly Block[][] {
     if (n > 9) return [];
 
     if (this.hand.get(t, n) == 0) return this.commonByType(t, n + 1);
@@ -714,9 +714,9 @@ export class BlockCalculator {
         new Tile(t, n + 1),
         new Tile(t, n + 2),
       ]);
-      const nested = this.commonByType(t, n);
+      let nested = this.commonByType(t, n);
       this.hand.inc(tiles);
-      if (nested.length == 0) nested.push([]);
+      if (nested.length == 0) nested = [[]];
       for (let arr of nested) {
         arr.unshift(new BlockRun([tiles[0], tiles[1], tiles[2]]));
         ret.push(arr);
@@ -729,9 +729,9 @@ export class BlockCalculator {
         new Tile(t, n),
         new Tile(t, n),
       ]);
-      const nested = this.commonByType(t, n);
+      let nested = this.commonByType(t, n);
       this.hand.inc(tiles);
-      if (nested.length == 0) nested.push([]);
+      if (nested.length == 0) nested = [[]];
       for (let arr of nested) {
         // Note insert it to the head due to handling recursively, 111333m
         // first arr will have [333m]
@@ -772,8 +772,8 @@ export type SerializedWinResult = Omit<WinResult, "hand" | "boardContext"> & {
 };
 
 export interface BoardContext {
-  doraMarkers: Tile[];
-  blindDoraMarkers?: Tile[];
+  doraMarkers: readonly Tile[];
+  blindDoraMarkers?: readonly Tile[];
   round: Round;
   myWind: Wind;
   ronWind?: Wind;
@@ -802,8 +802,8 @@ export interface WinResult {
 export class DoubleCalculator {
   hand: Hand;
   cfg: {
-    doras: Tile[];
-    blindDoras: Tile[];
+    doras: readonly Tile[];
+    blindDoras: readonly Tile[];
     roundWind: Tile;
     myWind: Tile;
     reached: 0 | 1 | 2;
@@ -836,7 +836,7 @@ export class DoubleCalculator {
     };
   }
 
-  calc(hands: Block[][]): WinResult | false {
+  calc(hands: readonly Block[][]): WinResult | false {
     const patterns = this.calcPatterns(hands);
     if (patterns.length == 0) return false;
     let max = [0, 0];
@@ -940,7 +940,7 @@ export class DoubleCalculator {
     };
     return v;
   }
-  calcPatterns(hands: Block[][]) {
+  calcPatterns(hands: readonly Block[][]) {
     const ret: {
       points: { name: string; double: number }[];
       fu: number;
@@ -1018,18 +1018,18 @@ export class DoubleCalculator {
     return this.hand.menzen ? 0 : 1;
   }
 
-  dA1(h: Block[]) {
+  dA1(h: readonly Block[]) {
     if (this.cfg.reached == 1) return [{ name: "立直", double: 1 }];
     if (this.cfg.reached == 2) return [{ name: "ダブルリーチ", double: 2 }];
     return [];
   }
-  dB1(h: Block[]) {
+  dB1(h: readonly Block[]) {
     if (this.minus() != 0) return [];
     if (this.hand.drawn == null) [];
     const cond = h.some((b) => b.tiles.some((t) => t.has(OPERATOR.TSUMO)));
     return cond ? [{ name: "門前清自摸和", double: 1 }] : [];
   }
-  dC1(h: Block[]) {
+  dC1(h: readonly Block[]) {
     if (this.minus() != 0) return [];
     const yaku = "平和";
     const fu = this.calcFu(h);
@@ -1039,19 +1039,19 @@ export class DoubleCalculator {
     }
     return [];
   }
-  dD1(h: Block[]) {
+  dD1(h: readonly Block[]) {
     const cond = h.some((block) =>
       block.tiles.some((t) => t.t == TYPE.Z || N19.includes(t.n))
     );
     return cond ? [] : [{ name: "断么九", double: 1 }];
   }
-  dE1(h: Block[]) {
+  dE1(h: readonly Block[]) {
     if (this.minus() != 0) return [];
 
     const count = countSameBlocks(h);
     return count == 1 ? [{ name: "一盃口", double: 1 }] : [];
   }
-  dF1(h: Block[]) {
+  dF1(h: readonly Block[]) {
     const ret: { name: string; double: number }[] = [];
     h.forEach((block) => {
       if (block instanceof BlockPair) return;
@@ -1067,22 +1067,22 @@ export class DoubleCalculator {
     });
     return ret;
   }
-  dG1(h: Block[]) {
+  dG1(h: readonly Block[]) {
     return this.cfg.oneShotWin ? [{ name: "一発", double: 1 }] : [];
   }
-  dH1(h: Block[]): { name: string; double: number }[] {
+  dH1(h: readonly Block[]): { name: string; double: number }[] {
     return this.cfg.replacementWin ? [{ name: "嶺上開花", double: 1 }] : [];
   }
-  dI1(h: Block[]) {
+  dI1(h: readonly Block[]) {
     return this.cfg.quadWin ? [{ name: "搶槓", double: 1 }] : [];
   }
-  dJ1(h: Block[]) {
+  dJ1(h: readonly Block[]) {
     return this.cfg.finalWallWin ? [{ name: "海底摸月", double: 1 }] : [];
   }
-  dK1(h: Block[]) {
+  dK1(h: readonly Block[]) {
     return this.cfg.finalDiscardWin ? [{ name: "河底撈魚", double: 1 }] : [];
   }
-  dX1(h: Block[]) {
+  dX1(h: readonly Block[]) {
     let dcount = 0;
     let rcount = 0;
     let bcount = 0;
@@ -1102,10 +1102,10 @@ export class DoubleCalculator {
     return ret;
   }
 
-  dA2(h: Block[]) {
+  dA2(h: readonly Block[]) {
     return h.length == 7 ? [{ name: "七対子", double: 2 }] : [];
   }
-  dB2(h: Block[]) {
+  dB2(h: readonly Block[]) {
     const check = (bb: Block) => {
       return bb instanceof BlockRun || bb instanceof BlockChi;
     };
@@ -1127,7 +1127,7 @@ export class DoubleCalculator {
     }
     return [];
   }
-  dC2(h: Block[]) {
+  dC2(h: readonly Block[]) {
     if (h.length == 7) return [];
     const cond = h.every(
       (b) =>
@@ -1140,7 +1140,7 @@ export class DoubleCalculator {
     );
     return cond ? [{ name: "対々和", double: 2 }] : [];
   }
-  dD2(h: Block[]) {
+  dD2(h: readonly Block[]) {
     if (this.minus() != 0) return [];
     const l = h.filter((b) => {
       return (
@@ -1150,7 +1150,7 @@ export class DoubleCalculator {
     }).length;
     return l >= 3 ? [{ name: "三暗刻", double: 2 }] : [];
   }
-  dE2(h: Block[]) {
+  dE2(h: readonly Block[]) {
     const l = h.filter(
       (b) =>
         b instanceof BlockAnKan ||
@@ -1159,7 +1159,7 @@ export class DoubleCalculator {
     ).length;
     return l >= 3 ? [{ name: "三槓子", double: 2 }] : [];
   }
-  dF2(h: Block[]) {
+  dF2(h: readonly Block[]) {
     const check = (b: Block) => {
       return (
         b instanceof BlockAnKan ||
@@ -1186,21 +1186,21 @@ export class DoubleCalculator {
     }
     return [];
   }
-  dG2(h: Block[]) {
+  dG2(h: readonly Block[]) {
     const l = h.filter((b) => {
       const t = b.tiles[0];
       return t.t == TYPE.Z && [5, 6, 7].includes(t.n);
     }).length;
     return l == 3 ? [{ name: "小三元", double: 2 }] : [];
   }
-  dH2(h: Block[]) {
+  dH2(h: readonly Block[]) {
     const cond = h.every((b) => {
       const values = b.tiles[0].t == TYPE.Z ? NZ : N19;
       return b.tiles.every((t) => values.includes(t.n));
     });
     return cond ? [{ name: "混老頭", double: 2 }] : [];
   }
-  dI2(h: Block[]) {
+  dI2(h: readonly Block[]) {
     if (h.length == 7) return [];
     // 一つは BlockRun もしくは BlockChi がある。なければ、老頭に該当するため
     if (!h.some((b) => b instanceof BlockRun || b instanceof BlockChi))
@@ -1213,7 +1213,7 @@ export class DoubleCalculator {
     });
     return cond ? [{ name: "混全帯么九", double: 2 - this.minus() }] : [];
   }
-  dJ2(h: Block[]) {
+  dJ2(h: readonly Block[]) {
     if (this.minus() != 0) return [];
 
     let m = {
@@ -1240,7 +1240,7 @@ export class DoubleCalculator {
     return [];
   }
 
-  dA3(h: Block[]) {
+  dA3(h: readonly Block[]) {
     const cond = !h.some((block) => block.tiles[0].t == TYPE.Z);
     if (cond) return [];
     for (let t of Object.values(TYPE)) {
@@ -1249,7 +1249,7 @@ export class DoubleCalculator {
     }
     return [];
   }
-  dB3(h: Block[]) {
+  dB3(h: readonly Block[]) {
     if (h.length == 7) return [];
     if (!h.some((b) => b instanceof BlockRun || b instanceof BlockChi))
       return [];
@@ -1260,13 +1260,13 @@ export class DoubleCalculator {
     });
     return cond ? [{ name: "純全帯么九色", double: 3 - this.minus() }] : [];
   }
-  dC3(h: Block[]) {
+  dC3(h: readonly Block[]) {
     if (this.minus() != 0) return [];
 
     const count = countSameBlocks(h);
     return count == 2 ? [{ name: "ニ盃口", double: 3 }] : [];
   }
-  dA6(h: Block[]) {
+  dA6(h: readonly Block[]) {
     if (h.some((block) => block.tiles[0].t == TYPE.Z)) return [];
     for (let t of Object.values(TYPE)) {
       if (t == TYPE.Z) continue;
@@ -1276,7 +1276,7 @@ export class DoubleCalculator {
     return [];
   }
 
-  dA13(h: Block[]) {
+  dA13(h: readonly Block[]) {
     if (h.length != 13) return [];
     const double = h.some(
       (b) =>
@@ -1287,10 +1287,10 @@ export class DoubleCalculator {
       ? [{ name: "国士無双13面待ち", double: 26 }]
       : [{ name: "国士無双", double: 13 }];
   }
-  dB13(h: Block[]) {
+  dB13(h: readonly Block[]) {
     return h.length == 1 ? [{ name: "九蓮宝燈", double: 13 }] : [];
   }
-  dC13(h: Block[]) {
+  dC13(h: readonly Block[]) {
     if (h.length == 7) return [];
     const cond1 = h.every(
       (b) =>
@@ -1309,7 +1309,7 @@ export class DoubleCalculator {
       ? [{ name: "四暗刻単騎待ち", double: 26 }]
       : [{ name: "四暗刻", double: 13 }];
   }
-  dD13(h: Block[]) {
+  dD13(h: readonly Block[]) {
     if (h.length == 13) return [];
     const z = [5, 6, 7];
     const cond =
@@ -1320,17 +1320,17 @@ export class DoubleCalculator {
       ).length == 3;
     return cond ? [{ name: "大三元", double: 13 }] : [];
   }
-  dE13(h: Block[]) {
+  dE13(h: readonly Block[]) {
     const cond = h.every((b) => b.tiles[0].t == TYPE.Z);
     return cond ? [{ name: "字一色", double: 13 }] : [];
   }
-  dF13(h: Block[]) {
+  dF13(h: readonly Block[]) {
     const cond = h.every((b) =>
       b.tiles.every((t) => t.t != TYPE.Z && N19.includes(t.n))
     );
     return cond ? [{ name: "清老頭", double: 13 }] : [];
   }
-  dG13(h: Block[]) {
+  dG13(h: readonly Block[]) {
     const cond =
       h.filter(
         (b) =>
@@ -1340,7 +1340,7 @@ export class DoubleCalculator {
       ).length == 4;
     return cond ? [{ name: "四槓子", double: 13 }] : [];
   }
-  dH13(h: Block[]) {
+  dH13(h: readonly Block[]) {
     if (h.length == 13) return [];
     if (h.length == 7) return [];
     const zn = [1, 2, 3, 4];
@@ -1355,7 +1355,7 @@ export class DoubleCalculator {
       ? [{ name: "小四喜", double: 13 }]
       : [{ name: "大四喜", double: 13 }];
   }
-  dI13(h: Block[]) {
+  dI13(h: readonly Block[]) {
     const check = (t: Tile) => {
       if (t.equals(new Tile(TYPE.Z, 6))) return true;
       if (t.t == TYPE.S && [2, 3, 4, 6, 8].includes(t.n)) return true;
@@ -1366,14 +1366,14 @@ export class DoubleCalculator {
       : [];
   }
   // TODO 天和・地和
-  dJ13(h: Block[]) {
+  dJ13(h: readonly Block[]) {
     return [];
   }
-  dK13(h: Block[]) {
+  dK13(h: readonly Block[]) {
     return [];
   }
 
-  calcFu(h: Block[]) {
+  calcFu(h: readonly Block[]) {
     const base = 20;
     let fu = base;
 
@@ -1457,7 +1457,7 @@ const buildKey = (b: Block) => {
   return b.tiles.reduce((a: string, b: Tile) => `${a}${b.n}${b.t}`, "");
 };
 
-const countSameBlocks = (h: Block[]) => {
+const countSameBlocks = (h: readonly Block[]) => {
   let m: { [key: string]: number } = {};
   for (let b of h) {
     if (!(b instanceof BlockRun)) continue;

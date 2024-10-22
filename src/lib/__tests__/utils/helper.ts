@@ -32,7 +32,7 @@ export const initSvgDOM = () => {
   return { window, document };
 };
 
-export const handsToString = (hands: Block[][]) => {
+export const handsToString = (hands: readonly Block[][]) => {
   return hands.map((hand) => hand.map((block) => block.toString()));
 };
 
