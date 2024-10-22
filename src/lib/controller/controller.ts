@@ -81,7 +81,6 @@ export class Controller {
   mailBox: { [id: string]: PlayerEvent[] } = {};
   histories: History[] = [];
   debugMode: boolean;
-  snapshot?: string;
 
   constructor(players: PlayerProps[], params?: { debug?: boolean }) {
     this.debugMode = params?.debug ?? false;
@@ -280,8 +279,8 @@ export class Controller {
           });
           break;
         }
-        case "DRAWN_GAME_BY_NINE_TILES":
-          this.actor.send({ type: "DRAWN_GAME_BY_NINE_TILES", iam: w });
+        case "DRAWN_GAME_BY_NINE_ORPHANS":
+          this.actor.send({ type: "DRAWN_GAME_BY_NINE_ORPHANS", iam: w });
           break;
       }
     } else if (sample.type == "CHOICE_AFTER_CALLED") {

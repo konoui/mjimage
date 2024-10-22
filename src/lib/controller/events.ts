@@ -26,7 +26,7 @@ type ChoiceEvent =
   | "AN_KAN"
   | "SHO_KAN"
   | "DAI_KAN"
-  | "DRAWN_GAME_BY_NINE_TILES";
+  | "DRAWN_GAME_BY_NINE_ORPHANS";
 
 export interface DistributeEvent {
   id: string;
@@ -187,7 +187,7 @@ interface DrawnChoice {
   AN_KAN: false | SerializedBlock[];
   SHO_KAN: false | SerializedBlock[];
   DISCARD: false | string[];
-  DRAWN_GAME_BY_NINE_TILES: boolean;
+  DRAWN_GAME_BY_NINE_ORPHANS: boolean;
 }
 
 type ChoiceType = DiscardedChoice | DrawnChoice;
@@ -210,7 +210,7 @@ export function prioritizeDrawnEvents(events: ChoiceAfterDrawnEvent[]) {
     "REACH",
     "AN_KAN",
     "SHO_KAN",
-    "DRAWN_GAME_BY_NINE_TILES",
+    "DRAWN_GAME_BY_NINE_ORPHANS",
     "DISCARD",
   ];
   const choices = events.map((e) => e.choices);
