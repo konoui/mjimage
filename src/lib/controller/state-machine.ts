@@ -3,7 +3,10 @@ import {
   ChoiceAfterDiscardedEvent,
   ChoiceAfterDrawnEvent,
   ChoiceForChanKan,
+  ChoiceForReachAcceptance,
   Controller,
+  ReachAcceptedEvent,
+  ReachEvent,
   RonEvent,
 } from "./index";
 import {
@@ -23,6 +26,7 @@ import {
   SerializedWinResult,
 } from "./../calculator";
 import { nextWind, createWindMap } from "../core";
+import { assert } from "../myassert";
 
 type ControllerContext = {
   currentWind: Wind;
@@ -113,13 +117,18 @@ export const createControllerMachine = (c: Controller) => {
               guard: "canWin",
             },
             REACH: {
-              target: "discarded",
-              guard: "canReach",
-              actions: {
-                type: "notify_reach",
+              target: "waiting_reach_acceptance",
+              actions: [
+                {
+                  type: "notify_reach",
+                },
+                {
+                  type: "notify_choice_for_reach_acceptance",
+                },
+              ],
+              guard: {
+                type: "canReach",
               },
-              description:
-                "入力に牌が必要\\\n立直直後のロンは立直棒が点数にならないので\\\n別途状態を保つ必要がある",
             },
             SHO_KAN: {
               target: "an_sho_kaned",
@@ -167,6 +176,20 @@ export const createControllerMachine = (c: Controller) => {
           ],
           type: "final",
         },
+        waiting_reach_acceptance: {
+          on: {
+            REACH_ACCEPT: {
+              target: "reached",
+            },
+            RON: {
+              target: "roned",
+              guard: {
+                type: "canWin",
+              },
+            },
+          },
+          description: "リーチに対するアクションは RON か ACCEPT のみである",
+        },
         waiting_user_event_after_discarded: {
           description:
             "最大 4人から choice に対するレスポンスを待つ\\\nユーザからではなく、controller が優先順位を考慮して遷移させる必要がある\\\n通知する choice がない場合、controller が\\*で遷移させる",
@@ -189,6 +212,19 @@ export const createControllerMachine = (c: Controller) => {
             "*": {
               target: "wildcard_after_discarded",
             },
+          },
+        },
+        reached: {
+          on: {
+            NEXT: {
+              target: "waiting_user_event_after_discarded",
+              actions: {
+                type: "notify_choice_after_discarded",
+              },
+            },
+          },
+          entry: {
+            type: "notify_reach_accepted",
           },
         },
         roned: {
@@ -355,6 +391,7 @@ export const createControllerMachine = (c: Controller) => {
             }
           | { type: "TSUMO"; ret: WinResult; iam: Wind; lastTile: Tile }
           | { type: "REACH"; tile: Tile; iam: Wind }
+          | { type: "REACH_ACCEPT"; reacherInfo: { tile: Tile; wind: Wind } }
           | { type: "DISCARD"; tile: Tile; iam: Wind }
           | { type: "AN_KAN"; block: BlockAnKan; iam: Wind }
           | { type: "SHO_KAN"; block: BlockShoKan; iam: Wind }
@@ -479,11 +516,36 @@ export const createControllerMachine = (c: Controller) => {
           context.controller.emit(e);
           context.controller.pollReplies(id, [w]);
         },
-        notify_choice_for_chankan: ({ context, event }) => {
-          if (event.type != "SHO_KAN" && event.type != "AN_KAN")
-            throw new Error(`unexpected event ${event.type}`);
+        notify_choice_for_reach_acceptance: ({ context, event }) => {
           const id = context.genEventID();
-
+          const discarded = context.controller.river.lastTile;
+          const ltile = discarded.t.clone({ add: OPERATOR.HORIZONTAL });
+          for (let w of Object.values(WIND)) {
+            const e: ChoiceForReachAcceptance = {
+              id: id,
+              type: "CHOICE_FOR_REACH_ACCEPTANCE",
+              wind: w,
+              reacherInfo: { wind: discarded.w, tile: ltile.toString() },
+              choices: {
+                RON: serializeWinResultOrFalse(
+                  context.controller.doWin(w, ltile, {
+                    whoDiscarded: discarded.w,
+                    oneShot: context.oneShotMap[w],
+                    missingRon: context.missingMap[w],
+                  })
+                ),
+              },
+            };
+            context.controller.emit(e);
+          }
+          context.controller.pollReplies(id, Object.values(WIND));
+        },
+        notify_choice_for_chankan: ({ context, event }) => {
+          assert(
+            event.type == "SHO_KAN" || event.type == "AN_KAN",
+            `unexpected event ${event.type}`
+          );
+          const id = context.genEventID();
           const t = event.block.tiles[0].clone({ remove: OPERATOR.HORIZONTAL });
           for (let w of Object.values(WIND)) {
             const ron = context.controller.doWin(
@@ -495,7 +557,7 @@ export const createControllerMachine = (c: Controller) => {
                 oneShot: context.oneShotMap[w],
                 missingRon: context.missingMap[event.iam],
               }
-            ); // TODO which tile is sho kaned for 0/5
+            );
             const e: ChoiceForChanKan = {
               id: id,
               type: "CHOICE_FOR_CHAN_KAN" as const,
@@ -514,17 +576,14 @@ export const createControllerMachine = (c: Controller) => {
           context.controller.pollReplies(id, Object.values(WIND));
         },
         notify_call: ({ context, event }) => {
-          if (
-            !(
-              event.type == "CHI" ||
+          assert(
+            event.type == "CHI" ||
               event.type == "PON" ||
               event.type == "DAI_KAN" ||
               event.type == "AN_KAN" ||
-              event.type == "SHO_KAN"
-            )
-          )
-            throw new Error(`unexpected event ${event.type}`);
-
+              event.type == "SHO_KAN",
+            `unexpected event ${event.type}`
+          );
           const id = context.genEventID();
           const iam = event.iam;
           context.currentWind = iam; // update current wind
@@ -541,8 +600,7 @@ export const createControllerMachine = (c: Controller) => {
           context.controller.next();
         },
         notify_discard: ({ context, event }) => {
-          if (event.type != "DISCARD" && event.type != "REACH")
-            throw new Error(`unexpected event ${event.type}`);
+          assert(event.type == "DISCARD", `unexpected event ${event.type}`);
           const id = context.genEventID();
           const iam = context.currentWind;
           const t = event.tile;
@@ -556,7 +614,6 @@ export const createControllerMachine = (c: Controller) => {
             };
             context.controller.emit(e);
           }
-
           context.controller.next();
         },
         notify_draw: ({ context, event }, params) => {
@@ -591,10 +648,6 @@ export const createControllerMachine = (c: Controller) => {
         notify_ron: ({ context, event }) => {
           const id = context.genEventID();
           if (event.type == "RON") {
-            const ronWind = event.targetInfo.wind;
-            const cur = context.currentWind;
-            const pushBackReachStick =
-              ronWind == cur && context.oneShotMap[cur] == true;
             const iam = event.iam;
             for (let w of Object.values(WIND)) {
               const e: RonEvent = {
@@ -607,18 +660,15 @@ export const createControllerMachine = (c: Controller) => {
                   tile: event.targetInfo.tile.toString(),
                 },
                 ret: serializeWinResult(event.ret),
-                pushBackReachStick: pushBackReachStick,
               };
               context.controller.emit(e);
             }
           }
         },
         notify_tsumo: ({ context, event }) => {
-          if (event.type != "TSUMO")
-            throw new Error(`unexpected event ${event.type}`);
+          assert(event.type == "TSUMO", `unexpected event ${event.type}`);
           const id = context.genEventID();
           const iam = context.currentWind;
-
           for (let w of Object.values(WIND)) {
             const e = {
               id: id,
@@ -632,14 +682,13 @@ export const createControllerMachine = (c: Controller) => {
           }
         },
         notify_reach: ({ context, event }) => {
-          if (event.type != "REACH")
-            throw new Error(`unexpected event ${event.type}`);
+          assert(event.type == "REACH", `unexpected event ${event.type}`);
           const id = context.genEventID();
           const iam = event.iam;
           const t = event.tile.clone({ add: OPERATOR.HORIZONTAL });
           context.oneShotMap[iam] = true; // enable one shot
           for (let w of Object.values(WIND)) {
-            const e = {
+            const e: ReachEvent = {
               id: id,
               type: event.type,
               iam: iam,
@@ -648,6 +697,23 @@ export const createControllerMachine = (c: Controller) => {
             };
             context.controller.emit(e);
           }
+        },
+        notify_reach_accepted: ({ context, event }) => {
+          assert(event.type == "REACH_ACCEPT");
+          const id = context.genEventID();
+          for (let w of Object.values(WIND)) {
+            const e: ReachAcceptedEvent = {
+              id: id,
+              type: "REACH_ACCEPTED",
+              reacherInfo: {
+                wind: event.reacherInfo.wind,
+                tile: event.reacherInfo.tile.toString(),
+              },
+              wind: w,
+            };
+            context.controller.emit(e);
+          }
+          context.controller.next();
         },
         notify_new_dora_if_needed: ({ context, event }) => {
           const id = context.genEventID();

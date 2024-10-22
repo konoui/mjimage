@@ -10,6 +10,8 @@ type Event =
   | "CHOICE_AFTER_DISCARDED"
   | "CHOICE_AFTER_CALLED"
   | "CHOICE_FOR_CHAN_KAN"
+  | "CHOICE_FOR_REACH_ACCEPTANCE"
+  | "REACH_ACCEPTED"
   | "DISTRIBUTE"
   | "NEW_DORA"
   | "END_GAME";
@@ -66,7 +68,6 @@ export interface RonEvent {
   wind: Wind;
   ret: SerializedWinResult;
   victimInfo: { wind: Wind; tile: string };
-  pushBackReachStick: boolean;
 }
 
 export interface TsumoEvent {
@@ -103,6 +104,13 @@ export interface ReachEvent {
   wind: Wind;
 }
 
+export interface ReachAcceptedEvent {
+  id: string;
+  type: Extract<Event, "REACH_ACCEPTED">;
+  wind: Wind;
+  reacherInfo: { wind: Wind; tile: string };
+}
+
 export interface NewDoraEvent {
   id: string;
   type: Extract<Event, "NEW_DORA">;
@@ -124,6 +132,14 @@ export interface ChoiceAfterDiscardedEvent {
   wind: Wind;
   discarterInfo: { wind: Wind; tile: string };
   choices: DiscardedChoice;
+}
+
+export interface ChoiceForReachAcceptance {
+  id: string;
+  type: Extract<Event, "CHOICE_FOR_REACH_ACCEPTANCE">;
+  wind: Wind;
+  reacherInfo: { wind: Wind; tile: string };
+  choices: Pick<DiscardedChoice, "RON">;
 }
 
 export interface ChoiceAfterCalled {
@@ -150,10 +166,12 @@ export type PlayerEvent =
   | DiscardEvent
   | DrawEvent
   | ReachEvent
+  | ReachAcceptedEvent
   | NewDoraEvent
   | ChoiceAfterDrawnEvent
   | ChoiceAfterDiscardedEvent
   | ChoiceAfterCalled
+  | ChoiceForReachAcceptance
   | ChoiceForChanKan;
 
 interface DiscardedChoice {

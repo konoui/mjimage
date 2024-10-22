@@ -21,6 +21,7 @@ import {
   deserializeWinResult,
   NZ,
   N19,
+  SerializedWinResult,
 } from "../calculator";
 import {
   BlockAnKan,
@@ -44,6 +45,7 @@ import {
   EventHandlerFunc,
   createEventEmitter,
   DistributeEvent,
+  ChoiceForReachAcceptance,
 } from "./events";
 import {
   Wall,
@@ -244,7 +246,7 @@ export class Controller {
           const candidates = e.choices[selected.type];
           assert(candidates, `${selected.type} candidates is none`);
           this.actor.send({
-            type: selected.type,
+            type: "REACH",
             tile: Tile.from(candidates[0].tile),
             iam: w,
           });
@@ -294,6 +296,33 @@ export class Controller {
       const w = sample.wind;
       const t = Tile.from(sample.choices.DISCARD[0]);
       this.actor.send({ type: "DISCARD", tile: t, iam: w });
+    } else if (sample.type == "CHOICE_FOR_REACH_ACCEPTANCE") {
+      const selected = events.filter((e) => {
+        assert(e.type == "CHOICE_FOR_REACH_ACCEPTANCE");
+        return e.choices.RON !== false;
+      }) as ChoiceForReachAcceptance[];
+      if (selected.length == 0) {
+        this.actor.send({
+          type: "REACH_ACCEPT",
+          reacherInfo: {
+            tile: Tile.from(sample.reacherInfo.tile),
+            wind: sample.reacherInfo.wind,
+          },
+        });
+        return;
+      }
+
+      const e = selected[0];
+      this.actor.send({
+        type: "RON",
+        iam: e.wind,
+        ret: deserializeWinResult(e.choices.RON as SerializedWinResult),
+        targetInfo: {
+          wind: e.reacherInfo.wind,
+          tile: Tile.from(e.reacherInfo.tile),
+        },
+      });
+      return;
     } else if (sample.type == "CHOICE_FOR_CHAN_KAN") {
       const selected = events.filter((e) => {
         const ce = e as ChoiceForChanKan;
@@ -316,6 +345,8 @@ export class Controller {
           tile: Tile.from(e.callerInfo.tile),
         },
       });
+    } else {
+      console.warn(`controller found unexpected event: ${sample.type}`);
     }
   }
   export() {
@@ -800,6 +831,7 @@ export abstract class BaseActor {
       case "CHOICE_AFTER_DISCARDED":
       case "CHOICE_AFTER_DRAWN":
       case "CHOICE_FOR_CHAN_KAN":
+      case "CHOICE_FOR_REACH_ACCEPTANCE":
         break;
       case "DISTRIBUTE":
         // reset
@@ -870,15 +902,27 @@ export abstract class BaseActor {
           );
         break;
       }
-      case "REACH":
-        const pid = this.placeManager.playerID(e.iam);
+      case "REACH": {
+        // mark as reach
         this.hands[e.iam].reach();
+        // DISCARD イベントと同じ
+        const t = Tile.from(e.tile);
+        this.river.discard(t, e.iam);
+        this.hands[e.iam].discard(t);
+        if (e.iam != e.wind) {
+          this.counter.dec(t); // own tile is recorded by DRAW event
+          this.counter.addTileToSafeMap(t, e.iam); // そのユーザの捨て牌を現物に追加
+          // 立直されている場合、捨て牌は立直ユーザの現物になる
+          for (let w of Object.values(WIND))
+            if (this.hand(w).reached) this.counter.addTileToSafeMap(t, w);
+        }
+        break;
+      }
+      case "REACH_ACCEPTED":
+        // handle reach stick
+        const pid = this.placeManager.playerID(e.reacherInfo.wind);
         this.scoreManager.reach(pid);
         this.placeManager.incrementReachStick();
-
-        // Note: discarded tile is handled by discard event
-        // this.hands[e.iam].discard(e.tile);
-        // this.river.discard(e.tile, e.iam);
         break;
       case "NEW_DORA": {
         const doraMarker = Tile.from(e.doraMarker);
@@ -889,12 +933,6 @@ export abstract class BaseActor {
       case "TSUMO":
         break;
       case "RON":
-        if (e.pushBackReachStick) {
-          const w = e.victimInfo.wind;
-          const id = this.placeManager.playerID(w);
-          this.scoreManager.restoreReachStick(id);
-          this.placeManager.decrementReachStick();
-        }
         break;
       case "END_GAME":
         switch (e.subType) {
@@ -957,20 +995,20 @@ export class Observer extends BaseActor {
         );
         for (let w of Object.values(WIND))
           console.debug(
-            this.placeManager.playerID(w),
+            `${this.placeManager.playerID(w)}(${w})`,
             `init hand: ${this.hand(w).toString()}`
           );
         break;
       case "DRAW":
         console.debug(
-          this.placeManager.playerID(e.iam),
+          `${this.placeManager.playerID(e.iam)}(${e.iam})`,
           `draw: ${this.hand(e.iam).drawn}`,
           `hand: ${this.hand(e.iam).toString()}`
         );
         break;
       case "DISCARD":
         console.debug(
-          this.placeManager.playerID(e.iam),
+          `${this.placeManager.playerID(e.iam)}(${e.iam})`,
           `discard: ${e.tile.toString()}`,
           `hand: ${this.hand(e.iam).toString()}`
         );
@@ -981,22 +1019,22 @@ export class Observer extends BaseActor {
       case "AN_KAN":
       case "SHO_KAN":
         console.debug(
-          this.placeManager.playerID(e.iam),
+          `${this.placeManager.playerID(e.iam)}(${e.iam})`,
           `call: ${e.block.toString()}`,
           `hand: ${this.hand(e.iam).toString()}`
         );
         break;
       case "REACH":
         console.debug(
-          this.placeManager.playerID(e.iam),
-          `reach: ${this.hand(e.iam).toString()}`,
-          `tile: ${e.tile}`
+          `${this.placeManager.playerID(e.iam)}(${e.iam})`,
+          `reach: ${e.tile}`,
+          `hand: ${this.hand(e.iam).toString()}`
         );
         break;
       case "TSUMO":
       case "RON":
         console.debug(
-          this.placeManager.playerID(e.iam),
+          `${this.placeManager.playerID(e.iam)}(${e.iam})`,
           `ron/tsumo: ${JSON.stringify(e.ret, null, 2)}`,
           `hand: ${this.hand(e.iam).toString()}`
         );
@@ -1004,7 +1042,7 @@ export class Observer extends BaseActor {
       case "END_GAME":
         for (let w of Object.values(WIND)) {
           console.debug(
-            this.placeManager.playerID(w),
+            `${this.placeManager.playerID(w)}(${w})`,
             `end hand: ${this.hand(w).toString()}`
           );
         }

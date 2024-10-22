@@ -2,14 +2,15 @@ import { ActorHand, createLocalGame } from "../controller";
 import { Tile } from "../core/parser";
 import { TYPE, OPERATOR } from "../core/constants";
 describe("controller", () => {
-  test("push-back-reach-stick", () => {
+  test("立直直後のロン", () => {
     // const c = createLocalGame({ debug: true });
     // c.actor.start();
     // console.log(c.actor.getSnapshot().status);
     // c.next(true);
-    // c.observer.hands["1w"] = new Hand("123m456m789m123s1p");
-    // c.observer.hands["2w"] = new Hand("123m456m789m123s2p");
+    // c.observer.hands["1w"] = new ActorHand("123m456m789m123s1p");
+    // c.observer.hands["2w"] = new ActorHand("123m456m789m123s2p");
     // c.next(true);
+    // expect(true).toBe(true);
   });
   test("同順フリテン", () => {});
   test("立直後フリテン", () => {});

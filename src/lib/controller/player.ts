@@ -46,10 +46,10 @@ export class Player extends BaseActor {
   handleEvent(e: PlayerEvent) {
     switch (e.type) {
       case "CHOICE_AFTER_DISCARDED":
-        // e.choices.CHI = false;
-        // e.choices.DAI_KAN = false;
-        // e.choices.PON = false;
-        // e.choices.RON = false;
+        e.choices.CHI = false;
+        e.choices.DAI_KAN = false;
+        e.choices.PON = false;
+        //        e.choices.RON = false;
         this.eventHandler.emit(e);
         break;
       case "CHOICE_AFTER_CALLED":
@@ -58,6 +58,9 @@ export class Player extends BaseActor {
           const t = this.handleDiscard(e.choices.DISCARD.map(Tile.from));
           e.choices.DISCARD = [t.toString()];
         }
+        this.eventHandler.emit(e);
+        break;
+      case "CHOICE_FOR_REACH_ACCEPTANCE":
         this.eventHandler.emit(e);
         break;
       case "CHOICE_FOR_CHAN_KAN":
