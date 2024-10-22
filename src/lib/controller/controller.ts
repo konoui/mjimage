@@ -116,16 +116,20 @@ export class Controller {
   }
   boardParams(w: Wind): BoardContext {
     const hand = this.hand(w);
+    let reached: 1 | 2 | undefined = !hand.reached ? undefined : 1;
+    if (reached) {
+      const d = this.river.discards(w);
+      reached =
+        d.length == 0 || (d.length == 1 && d[0].t.has(OPERATOR.HORIZONTAL))
+          ? 2
+          : 1;
+    }
     return {
       doraMarkers: this.observer.doraMarkers,
       round: this.placeManager.round,
       myWind: w,
       sticks: this.observer.placeManager.sticks,
-      reached: !hand.reached
-        ? undefined
-        : this.river.discards(w).length != 0
-        ? 1
-        : 2,
+      reached: reached,
     };
   }
   hand(w: Wind) {

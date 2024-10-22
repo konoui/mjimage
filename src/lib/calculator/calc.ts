@@ -1021,7 +1021,7 @@ export class DoubleCalculator {
 
   dA1(h: readonly Block[]) {
     if (this.cfg.reached == 1) return [{ name: "立直", double: 1 }];
-    if (this.cfg.reached == 2) return [{ name: "ダブルリーチ", double: 2 }];
+    if (this.cfg.reached == 2) return [{ name: "ダブル立直", double: 2 }];
     return [];
   }
   dB1(h: readonly Block[]) {

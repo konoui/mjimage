@@ -20,7 +20,6 @@ describe("controller", () => {
   });
   test("同順フリテン", () => {});
   test("立直後フリテン", () => {});
-  test("食い替え", () => {});
 });
 
 describe("callable", () => {
@@ -30,13 +29,13 @@ describe("callable", () => {
     const got = c.doChi("1w", "4w", new Tile(TYPE.M, 7));
     expect(got.toString()).toBe("-7r56m");
   });
-  test("can-chi", () => {
+  test("can-chi/食い替え", () => {
     const c = createLocalGame();
     c.observer.hands["1w"] = new ActorHand("56m");
     const got = c.doChi("1w", "4w", new Tile(TYPE.M, 7));
     expect(got).toBe(false);
   });
-  test("can-chi", () => {
+  test("can-chi/食い替え", () => {
     const c = createLocalGame();
     c.observer.hands["1w"] = new ActorHand("333345666m");
     const got = c.doChi("1w", "4w", new Tile(TYPE.M, 6));
@@ -107,12 +106,7 @@ class MockWall extends Wall {
     if (t == null) return this.oWall.draw();
     return Tile.from(t);
   }
-  override initialHands(): {
-    "1w": string;
-    "2w": string;
-    "3w": string;
-    "4w": string;
-  } {
+  override initialHands(): { [key in Wind]: string } {
     const i = this.oWall.initialHands();
     for (let w of Object.values(WIND)) {
       if (this.initial[w] != "") i[w] = this.initial[w];
