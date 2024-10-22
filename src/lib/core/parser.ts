@@ -118,6 +118,7 @@ export class Tile {
   }
 
   equals(t: Tile): boolean {
+    if (t.t == TYPE.BACK && this.t == TYPE.BACK) return true;
     return this.t == t.t && this.n == t.n;
   }
 }

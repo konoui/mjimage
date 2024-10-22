@@ -1,16 +1,22 @@
-import { ActorHand, createLocalGame } from "../controller";
+import { ActorHand, createLocalGame, Wall } from "../controller";
 import { Tile } from "../core/parser";
-import { TYPE, OPERATOR } from "../core/constants";
+import { TYPE, OPERATOR, WIND } from "../core/constants";
+import { createWindMap, Wind } from "../core";
 describe("controller", () => {
   test("立直直後のロン", () => {
-    // const c = createLocalGame({ debug: true });
-    // c.actor.start();
-    // console.log(c.actor.getSnapshot().status);
-    // c.next(true);
-    // c.observer.hands["1w"] = new ActorHand("123m456m789m123s1p");
-    // c.observer.hands["2w"] = new ActorHand("123m456m789m123s2p");
-    // c.next(true);
-    // expect(true).toBe(true);
+    const c = createLocalGame({ debug: false });
+    const wall = new MockWall();
+    c.wall = wall;
+    wall.setInitialHand("1w", "123m456m789m123s1p");
+    wall.setNextTile("1z");
+    wall.setInitialHand("2w", "1z");
+    wall.setNextTile("2p");
+    c.actor.start();
+    const sum = c.scoreManager.summary;
+    expect([
+      sum[c.placeManager.playerID("1w")],
+      sum[c.placeManager.playerID("2w")],
+    ]).toStrictEqual([25000 + 12000, 25000 - 12000]);
   });
   test("同順フリテン", () => {});
   test("立直後フリテン", () => {});
@@ -79,3 +85,38 @@ describe("callable", () => {
     expect(got.toString()).toBe("555-r5m");
   });
 });
+
+class MockWall extends Wall {
+  private initial = createWindMap("");
+  wall: string[] = [];
+  oWall = new Wall();
+  constructor() {
+    super();
+  }
+  setInitialHand(w: Wind, v: string) {
+    this.initial[w] = v;
+  }
+  setNextTile(t: string) {
+    this.wall.push(t);
+  }
+  get doraMarkers() {
+    return [new Tile(TYPE.Z, 8)];
+  }
+  override draw() {
+    const t = this.wall.shift();
+    if (t == null) return this.oWall.draw();
+    return Tile.from(t);
+  }
+  override initialHands(): {
+    "1w": string;
+    "2w": string;
+    "3w": string;
+    "4w": string;
+  } {
+    const i = this.oWall.initialHands();
+    for (let w of Object.values(WIND)) {
+      if (this.initial[w] != "") i[w] = this.initial[w];
+    }
+    return i;
+  }
+}

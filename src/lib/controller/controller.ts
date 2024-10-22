@@ -49,6 +49,7 @@ import {
 } from "./events";
 import {
   Wall,
+  IWall,
   WallProps,
   River,
   PlaceManager,
@@ -73,7 +74,7 @@ export interface PlayerProps {
 }
 
 export class Controller {
-  wall: Wall = new Wall();
+  wall: IWall = new Wall();
   playerIDs: string[];
   actor = createActor(createControllerMachine(this), {});
   observer: Observer;
@@ -771,16 +772,7 @@ export class Controller {
     return num >= 9;
   }
   initialHands() {
-    const m = createWindMap("");
-    for (let i = 0; i < 3; i++) {
-      for (let w of Object.values(WIND)) {
-        for (let j = 0; j < 4; j++) {
-          m[w] += this.wall.draw().toString();
-        }
-      }
-    }
-    for (let w of Object.values(WIND)) m[w] += this.wall.draw().toString();
-    return m;
+    return this.wall.initialHands();
   }
 }
 

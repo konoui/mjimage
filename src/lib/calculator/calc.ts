@@ -839,7 +839,7 @@ export class DoubleCalculator {
   calc(hands: readonly Block[][]): WinResult | false {
     const patterns = this.calcPatterns(hands);
     if (patterns.length == 0) return false;
-    let max = [0, 0];
+    let max = [0, 0]; // [yayu, fu]
     let idx = 0;
     for (let i = 0; i < patterns.length; i++) {
       const pt = patterns[i];
@@ -866,7 +866,8 @@ export class DoubleCalculator {
 
     const fu = max[1] != 25 ? ceil(max[1], 10) : 25; // 七対子
     const sum = max[0];
-    let base = fu * 2 ** (sum + 2);
+    // 40符以上の4飜は満貫の2000にする。
+    let base = Math.min(fu * 2 ** (sum + 2), 2000);
     switch (sum) {
       case 26:
         base = 16000;

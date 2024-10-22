@@ -1,6 +1,24 @@
-import { OPERATOR, TYPE } from "../core/constants";
+import { OPERATOR, TYPE, WIND } from "../core/constants";
 import { Tile } from "../core/parser";
+import { createWindMap } from "../core";
 import { shuffle } from "./managers";
+
+export interface IWall {
+  kan(): Tile;
+  draw(): Tile;
+  openDoraMarker(): Tile;
+  doraMarkers: readonly Tile[];
+  blindDoraMarkers: readonly Tile[];
+  canKan: boolean;
+  canDraw: boolean;
+  export(): WallProps;
+  initialHands(): {
+    [WIND.E]: string;
+    [WIND.S]: string;
+    [WIND.W]: string;
+    [WIND.N]: string;
+  };
+}
 
 export interface WallProps {
   drawable: string[];
@@ -55,6 +73,19 @@ export class Wall {
   }
   get canDraw() {
     return this.walls.drawable.length > 0;
+  }
+
+  initialHands() {
+    const m = createWindMap("");
+    for (let i = 0; i < 3; i++) {
+      for (let w of Object.values(WIND)) {
+        for (let j = 0; j < 4; j++) {
+          m[w] += this.draw().toString();
+        }
+      }
+    }
+    for (let w of Object.values(WIND)) m[w] += this.draw().toString();
+    return m;
   }
 
   private init(backup?: WallProps) {
