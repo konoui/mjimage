@@ -1,9 +1,21 @@
-import { Controller, createEventPipe, Player } from "../controller";
+import {
+  Controller,
+  createEventPipe,
+  Player,
+  EventHandler,
+} from "../controller";
+import { WIND } from "../core";
 
 export const createLocalGame = (params?: {
   playerIDs?: string[];
   debug?: boolean;
   shuffle?: boolean;
+  playerInjection?: {
+    p1?: new (id: string, e: EventHandler) => Player;
+    p2?: new (id: string, e: EventHandler) => Player;
+    p3?: new (id: string, e: EventHandler) => Player;
+    p4?: new (id: string, e: EventHandler) => Player;
+  };
 }) => {
   const [ce1, pe1] = createEventPipe();
   const [ce2, pe2] = createEventPipe();
@@ -16,10 +28,20 @@ export const createLocalGame = (params?: {
     "player-3",
     "player-4",
   ];
-  const p1 = new Player(playerIDs[0], pe1);
-  const p2 = new Player(playerIDs[1], pe2);
-  const p3 = new Player(playerIDs[2], pe3);
-  const p4 = new Player(playerIDs[3], pe4);
+
+  const pi = params?.playerInjection;
+  const p1 = pi?.p1
+    ? new pi.p1(playerIDs[0], pe1)
+    : new Player(playerIDs[0], pe1);
+  const p2 = pi?.p2
+    ? new pi.p2(playerIDs[1], pe2)
+    : new Player(playerIDs[1], pe2);
+  const p3 = pi?.p3
+    ? new pi.p3(playerIDs[2], pe3)
+    : new Player(playerIDs[2], pe3);
+  const p4 = pi?.p4
+    ? new pi.p4(playerIDs[3], pe4)
+    : new Player(playerIDs[3], pe4);
   const players = [
     { handler: ce1, id: playerIDs[0] },
     { handler: ce2, id: playerIDs[1] },
