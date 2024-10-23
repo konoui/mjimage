@@ -13,7 +13,7 @@ import { Tile } from "../core/parser";
 import { TYPE, OPERATOR, WIND } from "../core/constants";
 import { createWindMap, Wind } from "../core";
 describe("controller", () => {
-  test("立直直後のロンは立直棒を消費しない", () => {
+  test("立直直後のロンは立直棒を消費しない/ダブルリーチ/一発のテスト", () => {
     const { c, p1, p2 } = createLocalGame({
       debug: false,
       shuffle: false,
@@ -43,9 +43,10 @@ describe("controller", () => {
       return !!e.choices.REACH;
     });
 
-    // 1w が 1z をツモ切りダブルリーチをする。1p が当たり牌を想定する。
-    // 2w が 1p をつも切りリーチをする。
-    // それをロンする。
+    // 1w は 1p 待ちを想定する
+    // 1w が 1z をツモ切りダブルリーチをする
+    // 2w が 1p をつも切りリーチをする
+    // それをロンする
     const wall = new MockWall();
     wall.setInitialHand("1w", "123m456m789m123s1p");
     wall.pushTile("1z");
@@ -73,17 +74,18 @@ describe("controller", () => {
       },
     });
 
-    // p1　は 1z が当たり牌を想定
+    // p1　は 1z 待ちを想定する
     // p2 が 1z を捨てるのをロン可能であるかチェックし、スルーする
     // p3 が 1z を捨てるのをロンできないことをチェックする
     // p2 が 1z を捨てるのをロンできることをチェックし、ロンする
     // 点数と 2本場になることをチェック
     const wall = new MockWall();
+    wall.addExclude("1z");
     wall.setInitialHand("1w", "123m456m789m123s1z");
     wall.pushTile("1p");
     wall.setInitialHand("2w", "2p");
     wall.pushTile("1z");
-    wall.setInitialHand("3w", "2p");
+    wall.setInitialHand("3w", "7z");
     wall.pushTile("1z");
 
     c.wall = wall;
@@ -94,6 +96,7 @@ describe("controller", () => {
     c.next(true);
     c.next(true);
     c.next(true);
+    // p2 の捨て牌はロンできる
     mp1.mDiscardHandlers.unshift((e, p) => {
       console.debug("check can ron");
       expect(!!e.choices.RON).toBe(true);
@@ -101,6 +104,7 @@ describe("controller", () => {
     });
     c.next(true);
     c.next(true);
+    // p3 の捨て牌はロンできない
     mp1.mDiscardHandlers.shift(); // remove pre check
     mp1.mDiscardHandlers.unshift((e, p) => {
       console.debug("check cannot ron");
@@ -111,11 +115,12 @@ describe("controller", () => {
     c.next(true);
     mp1.mDiscardHandlers.shift(); // remove pre check
     c.next(true);
-    wall.pushTile("6z");
+    wall.pushTile("6z"); // p1 が上がらないように dummy をセット
     c.next(true); // p1 draw
     c.next(true); // p1 discard
-    wall.pushTile("1z");
+    wall.pushTile("1z"); // ロン牌をセット
     c.next(true);
+    // フリテンが解消されロンできる
     mp1.mDiscardHandlers.unshift((e, p) => {
       console.debug("check can ron");
       expect(!!e.choices.RON).toBe(true);
@@ -134,8 +139,74 @@ describe("controller", () => {
     const sticks = c.placeManager.sticks;
     expect(sticks).toStrictEqual({ reach: 0, dead: 1 });
   });
-  test("立直後フリテン", () => {});
-  test("チャンカン", () => {});
+  test("チャンカン", () => {
+    const { c, p1, p2 } = createLocalGame({
+      debug: true,
+      shuffle: false,
+      playerInjection: {
+        p1: MockPlayer,
+        p2: MockPlayer,
+        p3: MockPlayer,
+        p4: MockPlayer,
+      },
+    });
+
+    // p1 は 1-4s 待ちを想定する
+    // p2 が 1s を 3w からポンする
+    // p2 が 1s をカカンしたのをロンする
+    const wall = new MockWall();
+    wall.addExclude("1s", "4s");
+    wall.setInitialHand("1w", "123m456m789m23s11p");
+    wall.pushTile("2z");
+    wall.setInitialHand("2w", "123m456m11s");
+    wall.pushTile("4z");
+    wall.setInitialHand("3w", "567s");
+    wall.pushTile("1s");
+    wall.setInitialHand("4w", "7z");
+
+    const mp1 = p1 as MockPlayer;
+    mp1.doChankan = true;
+
+    const mp2 = p2 as MockPlayer;
+    mp2.mDiscardHandlers.push((e, p) => {
+      if (e.choices.PON) p.eventHandler.emit(e);
+      return !!e.choices.PON;
+    });
+
+    c.wall = wall;
+    c.actor.start();
+
+    c.next(true);
+    c.next(true);
+    c.next(true);
+    c.next(true);
+    c.next(true);
+    c.next(true);
+    c.next(true); // pon
+    c.next(true);
+    c.next(true);
+    c.next(true);
+    c.next(true);
+    c.next(true);
+    c.next(true);
+    c.next(true);
+
+    wall.pushTile("1s");
+    mp2.mDrawHandlers.push((e, p) => {
+      expect(!!e.choices.SHO_KAN).toBe(true);
+      p.eventHandler.emit(e);
+      return true;
+    });
+
+    c.next(true); // p2 draw
+    c.next(true); // kan
+
+    const sum = c.scoreManager.summary;
+    expect([
+      sum[c.placeManager.playerID("1w")],
+      sum[c.placeManager.playerID("2w")],
+    ]).toStrictEqual([25000 + 11600, 25000 - 11600]);
+  });
 });
 
 describe("callable", () => {
@@ -209,6 +280,7 @@ class MockPlayer extends Player {
   mDrawHandlers: ((e: ChoiceAfterDrawnEvent, p: MockPlayer) => boolean)[] = [];
   mCalledHandlers: ((e: ChoiceAfterCalled, p: MockPlayer) => boolean)[] = [];
   doReachRon = false;
+  doChankan = false;
   constructor(playerID: string, eventHandler: EventHandler) {
     super(playerID, eventHandler);
   }
@@ -251,6 +323,7 @@ class MockPlayer extends Player {
         this.eventHandler.emit(e);
         break;
       case "CHOICE_FOR_CHAN_KAN":
+        if (!this.doChankan) e.choices.RON = false;
         this.eventHandler.emit(e);
         break;
       default:
@@ -263,6 +336,7 @@ class MockWall extends Wall {
   private initial = createWindMap("");
   wall: string[] = [];
   oWall = new Wall();
+  exclude: string[] = [];
   constructor() {
     super();
   }
@@ -278,9 +352,19 @@ class MockWall extends Wall {
   get blindDoraMarkers() {
     return this.doraMarkers;
   }
+
+  addExclude(...tiles: string[]) {
+    this.exclude.push(...tiles);
+  }
+
   override draw() {
     const t = this.wall.shift();
-    if (t == null) return this.oWall.draw();
+    if (t == null) {
+      const d = this.oWall.draw();
+      // TODO
+      if (this.exclude.includes(d.toString())) return this.oWall.draw();
+      return d;
+    }
     return Tile.from(t);
   }
   override initialHands(): { [key in Wind]: string } {

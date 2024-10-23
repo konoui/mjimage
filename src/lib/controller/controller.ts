@@ -335,13 +335,14 @@ export class Controller {
     } else if (sample.type == "CHOICE_FOR_CHAN_KAN") {
       const selected = events.filter((e) => {
         const ce = e as ChoiceForChanKan;
-        return ce.choices.RON;
+        return ce.choices.RON !== false;
       }) as ChoiceForChanKan[];
 
       if (selected.length == 0) {
         this.actor.send({ type: "" });
         return;
       }
+
       const e = selected[0];
       assert(e.choices.RON, "ron choice is none");
       this.actor.send({
@@ -354,6 +355,7 @@ export class Controller {
           tile: Tile.from(e.callerInfo.tile),
         },
       });
+      return;
     } else {
       console.warn(`controller found unexpected event: ${sample.type}`);
     }
@@ -1020,7 +1022,7 @@ export class Observer extends BaseActor {
       case "SHO_KAN":
         console.debug(
           `${this.placeManager.playerID(e.iam)}(${e.iam})`,
-          `call: ${e.block.toString()}`,
+          `call: ${e.block.tiles}`,
           `hand: ${this.hand(e.iam).toString()}`
         );
         break;

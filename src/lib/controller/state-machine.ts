@@ -326,10 +326,11 @@ export const createControllerMachine = (c: Controller) => {
           ],
         },
         an_sho_kaned: {
-          on: {
-            NEXT: {
-              target: "waiting_chankan_event",
-            },
+          // FIXME
+          // on Next は動作しない。具体的に notify_choice_for_chankan を Next で実行する必要があるが
+          // Next 時には、kan されたコンテキスト（誰がどのブロックでカンされたか失われてしまっている。
+          always: {
+            target: "waiting_chankan_event",
           },
           entry: [
             {
@@ -348,23 +349,29 @@ export const createControllerMachine = (c: Controller) => {
         },
         waiting_chankan_event: {
           description: "チャンカンを待つ",
-          exit: [
-            {
-              type: "notify_draw",
-              params: { action: "kan" },
-            },
-            {
-              type: "notify_choice_after_drawn",
-              params: { replacementWin: true },
-            },
-          ],
           on: {
-            RON: {
-              target: "roned",
-              guard: "canWin",
-            },
             "*": {
               target: "waiting_user_event_after_drawn",
+              actions: [
+                {
+                  type: "notify_draw",
+                  params: {
+                    action: "kan",
+                  },
+                },
+                {
+                  type: "notify_choice_after_drawn",
+                  params: {
+                    replacementWin: true,
+                  },
+                },
+              ],
+            },
+            RON: {
+              target: "roned",
+              guard: {
+                type: "canWin",
+              },
             },
           },
         },
@@ -560,7 +567,7 @@ export const createControllerMachine = (c: Controller) => {
             );
             const e: ChoiceForChanKan = {
               id: id,
-              type: "CHOICE_FOR_CHAN_KAN" as const,
+              type: "CHOICE_FOR_CHAN_KAN",
               wind: w,
               callerInfo: { wind: event.iam, tile: t.toString() },
               choices: {
@@ -646,23 +653,22 @@ export const createControllerMachine = (c: Controller) => {
           context.controller.next();
         },
         notify_ron: ({ context, event }) => {
+          assert(event.type == "RON");
           const id = context.genEventID();
-          if (event.type == "RON") {
-            const iam = event.iam;
-            for (let w of Object.values(WIND)) {
-              const e: RonEvent = {
-                id: id,
-                type: event.type,
-                iam: iam,
-                wind: w,
-                victimInfo: {
-                  wind: event.targetInfo.wind,
-                  tile: event.targetInfo.tile.toString(),
-                },
-                ret: serializeWinResult(event.ret),
-              };
-              context.controller.emit(e);
-            }
+          const iam = event.iam;
+          for (let w of Object.values(WIND)) {
+            const e: RonEvent = {
+              id: id,
+              type: event.type,
+              iam: iam,
+              wind: w,
+              victimInfo: {
+                wind: event.targetInfo.wind,
+                tile: event.targetInfo.tile.toString(),
+              },
+              ret: serializeWinResult(event.ret),
+            };
+            context.controller.emit(e);
           }
         },
         notify_tsumo: ({ context, event }) => {

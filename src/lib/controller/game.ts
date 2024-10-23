@@ -7,7 +7,6 @@ import {
 import { WIND } from "../core";
 
 export const createLocalGame = (params?: {
-  playerIDs?: string[];
   debug?: boolean;
   shuffle?: boolean;
   playerInjection?: {
@@ -22,26 +21,19 @@ export const createLocalGame = (params?: {
   const [ce3, pe3] = createEventPipe();
   const [ce4, pe4] = createEventPipe();
 
-  const playerIDs = params?.playerIDs ?? [
-    "player-1",
-    "player-2",
-    "player-3",
-    "player-4",
-  ];
+  const playerIDs = ["player-1", "player-2", "player-3", "player-4"];
 
   const pi = params?.playerInjection;
-  const p1 = pi?.p1
-    ? new pi.p1(playerIDs[0], pe1)
-    : new Player(playerIDs[0], pe1);
-  const p2 = pi?.p2
-    ? new pi.p2(playerIDs[1], pe2)
-    : new Player(playerIDs[1], pe2);
-  const p3 = pi?.p3
-    ? new pi.p3(playerIDs[2], pe3)
-    : new Player(playerIDs[2], pe3);
-  const p4 = pi?.p4
-    ? new pi.p4(playerIDs[3], pe4)
-    : new Player(playerIDs[3], pe4);
+  const newP1 = pi?.p1 ?? Player;
+  const newP2 = pi?.p2 ?? Player;
+  const newP3 = pi?.p3 ?? Player;
+  const newP4 = pi?.p4 ?? Player;
+
+  const p1 = new newP1(playerIDs[0], pe1);
+  const p2 = new newP2(playerIDs[1], pe2);
+  const p3 = new newP3(playerIDs[2], pe3);
+  const p4 = new newP4(playerIDs[3], pe4);
+
   const players = [
     { handler: ce1, id: playerIDs[0] },
     { handler: ce2, id: playerIDs[1] },
