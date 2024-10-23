@@ -20,6 +20,8 @@ describe("controller", () => {
       playerInjection: {
         p1: MockPlayer,
         p2: MockPlayer,
+        p3: MockPlayer,
+        p4: MockPlayer,
       },
     });
     const mp1 = p1 as MockPlayer;
@@ -33,15 +35,13 @@ describe("controller", () => {
       return !!e.choices.REACH;
     });
     mp1.doReachRon = true;
-
-    mp2.mDrawHandlers.unshift((e: ChoiceAfterDrawnEvent) => {
+    mp2.mDrawHandlers.unshift((e, p) => {
       if (e.choices.REACH) {
         e.choices.REACH = e.choices.REACH.filter((t) => t.tile == "1p");
-        mp2.eventHandler.emit(e);
+        p.eventHandler.emit(e);
       }
       return !!e.choices.REACH;
     });
-    console.error(mp2.mDrawHandlers.length, mp2.mDiscardHandlers.length);
 
     // 1w が 1z をツモ切りダブルリーチをする。1p が当たり牌を想定する。
     // 2w が 1p をつも切りリーチをする。
@@ -62,7 +62,7 @@ describe("controller", () => {
     ]).toStrictEqual([25000 + 12000, 25000 - 12000]);
   });
   test("同順フリテン", () => {
-    const { c, p1, p2, p3 } = createLocalGame({
+    const { c, p1 } = createLocalGame({
       debug: true,
       shuffle: false,
       playerInjection: {
@@ -94,7 +94,7 @@ describe("controller", () => {
     c.next(true);
     c.next(true);
     c.next(true);
-    mp1.mDiscardHandlers.unshift((e: ChoiceAfterDiscardedEvent) => {
+    mp1.mDiscardHandlers.unshift((e, p) => {
       console.debug("check can ron");
       expect(!!e.choices.RON).toBe(true);
       return false;
@@ -102,7 +102,7 @@ describe("controller", () => {
     c.next(true);
     c.next(true);
     mp1.mDiscardHandlers.shift(); // remove pre check
-    mp1.mDiscardHandlers.unshift((e: ChoiceAfterDiscardedEvent) => {
+    mp1.mDiscardHandlers.unshift((e, p) => {
       console.debug("check cannot ron");
       expect(!!e.choices.RON).toBe(false);
       return false;
@@ -116,10 +116,10 @@ describe("controller", () => {
     c.next(true); // p1 discard
     wall.pushTile("1z");
     c.next(true);
-    mp1.mDiscardHandlers.unshift((e: ChoiceAfterDiscardedEvent) => {
+    mp1.mDiscardHandlers.unshift((e, p) => {
       console.debug("check can ron");
       expect(!!e.choices.RON).toBe(true);
-      mp1.eventHandler.emit(e); // ロンする
+      p.eventHandler.emit(e); // ロンする
       return true;
     });
     c.next(true);
@@ -135,6 +135,7 @@ describe("controller", () => {
     expect(sticks).toStrictEqual({ reach: 0, dead: 1 });
   });
   test("立直後フリテン", () => {});
+  test("チャンカン", () => {});
 });
 
 describe("callable", () => {
@@ -201,57 +202,52 @@ describe("callable", () => {
 });
 
 class MockPlayer extends Player {
-  mDiscardHandlers: ((e: ChoiceAfterDiscardedEvent) => boolean)[] = [];
-  mDrawHandlers: ((e: ChoiceAfterDrawnEvent) => boolean)[] = [];
-  mCalledHandlers: ((e: ChoiceAfterCalled) => boolean)[] = [];
+  mDiscardHandlers: ((
+    e: ChoiceAfterDiscardedEvent,
+    p: MockPlayer
+  ) => boolean)[] = [];
+  mDrawHandlers: ((e: ChoiceAfterDrawnEvent, p: MockPlayer) => boolean)[] = [];
+  mCalledHandlers: ((e: ChoiceAfterCalled, p: MockPlayer) => boolean)[] = [];
   doReachRon = false;
-  // 何もしない
   constructor(playerID: string, eventHandler: EventHandler) {
     super(playerID, eventHandler);
-    this.mDiscardHandlers.push((e: ChoiceAfterDiscardedEvent) => {
-      e.choices.CHI = false;
-      e.choices.DAI_KAN = false;
-      e.choices.PON = false;
-      e.choices.RON = false;
-      this.eventHandler.emit(e);
-      return true;
-    });
-    // ツモ切り
-    this.mDrawHandlers.push((e: ChoiceAfterDrawnEvent) => {
-      e.choices.AN_KAN = false;
-      e.choices.DRAWN_GAME_BY_NINE_ORPHANS = false;
-      e.choices.SHO_KAN = false;
-      e.choices.TSUMO = false;
-      e.choices.REACH = false;
-      assert(e.choices.DISCARD);
-      const tsumo = e.choices.DISCARD.filter((t) =>
-        Tile.from(t).has(OPERATOR.TSUMO)
-      );
-      e.choices.DISCARD = tsumo;
-      this.eventHandler.emit(e);
-      return true;
-    });
-    this.mCalledHandlers.push((e: ChoiceAfterCalled) => {
-      this.eventHandler.emit(e);
-      return true;
-    });
   }
   override handleEvent(e: PlayerEvent): void {
     switch (e.type) {
       case "CHOICE_AFTER_DISCARDED":
-        for (let h of this.mDiscardHandlers) if (h(e)) return;
+        for (let h of this.mDiscardHandlers) if (h(e, this)) return;
+
+        // デフォルトは何もしない
+        e.choices.CHI = false;
+        e.choices.DAI_KAN = false;
+        e.choices.PON = false;
+        e.choices.RON = false;
+        this.eventHandler.emit(e);
         break;
       case "CHOICE_AFTER_CALLED":
-        for (let h of this.mCalledHandlers) if (h(e)) return;
+        for (let h of this.mCalledHandlers) if (h(e, this)) return;
+
+        // デフォルトは適当に捨てる
+        this.eventHandler.emit(e);
         break;
       case "CHOICE_AFTER_DRAWN":
-        for (let h of this.mDrawHandlers) if (h(e)) return;
-        break;
-      case "CHOICE_FOR_REACH_ACCEPTANCE":
-        if (!this.doReachRon) e.choices.RON = false;
+        for (let h of this.mDrawHandlers) if (h(e, this)) return;
+
+        // デフォルトはツモ切り
+        e.choices.AN_KAN = false;
+        e.choices.DRAWN_GAME_BY_NINE_ORPHANS = false;
+        e.choices.SHO_KAN = false;
+        e.choices.TSUMO = false;
+        e.choices.REACH = false;
+        assert(e.choices.DISCARD);
+        const tsumo = e.choices.DISCARD.filter((t) =>
+          Tile.from(t).has(OPERATOR.TSUMO)
+        );
+        e.choices.DISCARD = tsumo;
         this.eventHandler.emit(e);
         break;
       case "CHOICE_FOR_REACH_ACCEPTANCE":
+        if (!this.doReachRon) e.choices.RON = false;
         this.eventHandler.emit(e);
         break;
       case "CHOICE_FOR_CHAN_KAN":

@@ -882,11 +882,11 @@ export class DoubleCalculator {
       case 10:
       case 9:
       case 8:
-        base = 6000;
+        base = 4000;
         break;
       case 7:
       case 6:
-        base = 4000;
+        base = 3000;
         break;
       case 5:
         base = 2000;

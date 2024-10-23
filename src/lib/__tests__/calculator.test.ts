@@ -5,11 +5,11 @@ import {
   HandData,
   DoubleCalculator,
   BoardContext,
+  WinResult,
 } from "../calculator";
 import { TYPE, OPERATOR } from "../core/constants";
 import { Block, Parser, Tile } from "../core/parser";
 import { handsToString } from "./utils/helper";
-
 describe("Hand", () => {
   const getData = (h: Hand) => {
     return (h as any).data as HandData;
@@ -490,5 +490,23 @@ describe("calc", () => {
     // TODO
     expect(!!got).toEqual(true);
     // console.log(got);
+  });
+  test("3", () => {
+    const input = "123m123s123p789p9m,t9m";
+    const h = new Hand(input);
+    const c = new BlockCalculator(h);
+    const cfg: BoardContext = {
+      doraMarkers: [new Tile(TYPE.M, 9, [OPERATOR.TSUMO])],
+      myWind: "1w",
+      round: "1w1",
+      ronWind: "2w",
+    };
+    const dc = new DoubleCalculator(h, cfg);
+    const hands = c.calc(new Tile(TYPE.M, 3, [OPERATOR.RON]));
+    const got = dc.calc(hands);
+
+    expect(!!got).toEqual(true);
+    expect((got as WinResult).sum).toBe(7);
+    expect((got as WinResult).point).toBe(18000);
   });
 });
