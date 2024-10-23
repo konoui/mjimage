@@ -2,11 +2,23 @@ import { assert } from "../myassert";
 import { Wind } from "../core/constants";
 import { Tile } from "../core/parser";
 
+export interface IRiver {
+  discard(t: Tile, w: Wind): void;
+  discards(w?: Wind): { w: Wind; t: Tile; callMarker?: boolean }[];
+  lastTile: { w: Wind; t: Tile; callMarker?: boolean };
+  markCalled(): void;
+  cannotContinue(): boolean;
+}
+
 export class River {
   private m: { w: Wind; t: Tile; callMarker?: boolean }[] = [];
   constructor() {}
   discard(t: Tile, w: Wind) {
     this.m.push({ w: w, t: t });
+  }
+  discards(w?: Wind) {
+    if (w == undefined) return [...this.m];
+    return this.m.filter((v) => v.w == w);
   }
   get lastTile() {
     const last = this.m.at(-1);
@@ -15,10 +27,6 @@ export class River {
       `lastTile is null(${last}). river: ${JSON.stringify(this.m, null, 2)}`
     );
     return last;
-  }
-  discards(w?: Wind) {
-    if (w == undefined) return [...this.m];
-    return this.m.filter((v) => v.w == w);
   }
   markCalled() {
     this.lastTile.callMarker = true;

@@ -56,6 +56,7 @@ import {
   ScoreManager,
   shuffle,
   Counter,
+  IRiver,
 } from ".";
 import { nextWind } from "../core/";
 
@@ -68,7 +69,7 @@ export interface History {
   choiceEvents: { [id: string]: PlayerEvent[] };
 }
 
-export interface PlayerProps {
+export interface PlayerConnection {
   id: string;
   handler: EventHandler;
 }
@@ -83,7 +84,10 @@ export class Controller {
   histories: History[] = [];
   debugMode: boolean;
 
-  constructor(players: PlayerProps[], params?: { debug?: boolean }) {
+  constructor(
+    players: PlayerConnection[],
+    params?: { debug?: boolean; shuffle?: boolean }
+  ) {
     this.debugMode = params?.debug ?? false;
     this.handlers = players.reduce((m, obj) => {
       m[obj.id] = obj.handler;
@@ -106,7 +110,8 @@ export class Controller {
     const initial = Object.fromEntries(this.playerIDs.map((i) => [i, 25000]));
     this.observer.scoreManager = new ScoreManager(initial);
 
-    const shuffled = shuffle(this.playerIDs.concat());
+    const shuffled =
+      params?.shuffle == false ? this.playerIDs : shuffle([...this.playerIDs]);
     this.observer.placeManager = new PlaceManager({
       [shuffled[0]]: WIND.E,
       [shuffled[1]]: WIND.S,
@@ -804,7 +809,7 @@ export class ActorHand extends Hand {
 
 export abstract class BaseActor {
   id: string;
-  river = new River();
+  river: IRiver = new River();
   placeManager = new PlaceManager({}); // empty for init
   scoreManager = new ScoreManager({}); // empty for init
   hands = createWindMap(new ActorHand("")); // empty for init

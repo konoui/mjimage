@@ -19,7 +19,7 @@ if (type == "test") {
 if (type == "game" || type == "single") {
   for (let i = 0; i < count; i++) {
     console.debug(`${type}(${i})===`);
-    const c = createLocalGame();
+    const { c } = createLocalGame();
     const starter = factory(c, type);
     subscribeError(c);
     try {
