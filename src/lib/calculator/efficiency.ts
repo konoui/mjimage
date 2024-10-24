@@ -100,7 +100,7 @@ export class Efficiency {
     }
   ) {
     const h = new Hand(input, true);
-    Array(13 - h.hands.length)
+    Array(13 - (h.hands.length + h.called.length * 3))
       .fill(undefined)
       .map(() => h.inc([new Tile(TYPE.BACK, 0)]));
     return Efficiency.candidateTiles(h, options);
