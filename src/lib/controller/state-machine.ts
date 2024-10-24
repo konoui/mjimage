@@ -479,7 +479,7 @@ export const createControllerMachine = (c: Controller) => {
               choices: {
                 RON: serializeWinResultOrFalse(
                   context.controller.doWin(w, ltile, {
-                    whoDiscarded: discarded.w,
+                    discardedBy: discarded.w,
                     oneShot: context.oneShotMap[w],
                     missingRon: context.missingMap[w],
                   })
@@ -536,7 +536,7 @@ export const createControllerMachine = (c: Controller) => {
               choices: {
                 RON: serializeWinResultOrFalse(
                   context.controller.doWin(w, ltile, {
-                    whoDiscarded: discarded.w,
+                    discardedBy: discarded.w,
                     oneShot: context.oneShotMap[w],
                     missingRon: context.missingMap[w],
                   })
@@ -559,7 +559,7 @@ export const createControllerMachine = (c: Controller) => {
               w,
               event.block.tiles[0].clone({ remove: OPERATOR.HORIZONTAL }),
               {
-                whoDiscarded: event.iam,
+                discardedBy: event.iam,
                 quadWin: true,
                 oneShot: context.oneShotMap[w],
                 missingRon: context.missingMap[event.iam],

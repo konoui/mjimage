@@ -231,7 +231,7 @@ describe("callable", () => {
   test("can-ron", () => {
     const { c } = createLocalGame();
     c.observer.hands["1w"] = new ActorHand("406m123456p1123s");
-    const got = c.doWin("1w", new Tile(TYPE.S, 4), { whoDiscarded: "2w" });
+    const got = c.doWin("1w", new Tile(TYPE.S, 4), { discardedBy: "2w" });
     expect(!!got).toBe(true);
   });
   test("can-pon", () => {

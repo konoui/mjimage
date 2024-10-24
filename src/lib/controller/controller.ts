@@ -8,6 +8,8 @@ import {
   WIND,
   ROUND,
   createWindMap,
+  callBlockIndex,
+  BLOCK,
 } from "../core/";
 import {
   BoardContext,
@@ -440,7 +442,7 @@ export class Controller {
       replacementWin?: boolean;
       oneShot?: boolean;
       missingRon?: boolean;
-      whoDiscarded?: Wind;
+      discardedBy?: Wind;
     }
   ): WinResult | false {
     if (t == null) return false;
@@ -448,10 +450,10 @@ export class Controller {
     const env = this.boardParams(w);
     if (hand.drawn == null) {
       if (params == null) throw new Error("should ron but params == null");
-      if (params.whoDiscarded == w) return false;
+      if (params.discardedBy == w) return false;
       if (params.missingRon) return false;
       hand = hand.clone();
-      env.ronWind = params.whoDiscarded;
+      env.ronWind = params.discardedBy;
       env.finalDiscardWin = !this.wall.canDraw;
       env.quadWin = params.quadWin;
       hand.inc([t]); // TODO hand.draw looks good but it adds OP.TSUMO
@@ -476,9 +478,9 @@ export class Controller {
     }
     return ret;
   }
-  doPon(w: Wind, whoDiscarded: Wind, t?: Tile): BlockPon[] | false {
+  doPon(w: Wind, discardedBy: Wind, t?: Tile): BlockPon[] | false {
     if (t == null) return false;
-    if (w == whoDiscarded) return false;
+    if (w == discardedBy) return false;
     const hand = this.hand(w);
     if (hand.reached) return false;
     if (hand.hands.length < 3) return false;
@@ -486,12 +488,7 @@ export class Controller {
     let sample = t.clone({ removeAll: true });
     if (hand.get(t.t, sample.n) < 2) return false;
 
-    // FIXME arrange as function
-    const distance = Math.abs(Number(w[0]) - Number(whoDiscarded[0]));
-    let idx = 0;
-    if (distance == 3) idx = 0;
-    else if (distance == 2) idx = 1;
-    else if (distance == 1) idx = 2;
+    const idx = callBlockIndex(w, discardedBy, BLOCK.PON);
 
     const blocks: BlockPon[] = [];
     const base = new BlockPon([sample, sample, sample]).clone({
@@ -530,10 +527,10 @@ export class Controller {
 
     return blocks;
   }
-  doChi(w: Wind, whoDiscarded: Wind, t?: Tile): BlockChi[] | false {
+  doChi(w: Wind, discardedBy: Wind, t?: Tile): BlockChi[] | false {
     if (t == null) return false;
     if (!t.isNum()) return false;
-    if (nextWind(whoDiscarded) != w) return false;
+    if (nextWind(discardedBy) != w) return false;
     const hand = this.hand(w);
     if (hand.reached) return false;
     if (hand.hands.length < 3) return false;
@@ -723,18 +720,15 @@ export class Controller {
 
     return blocks;
   }
-  doDaiKan(w: Wind, whoDiscarded: Wind, t: Tile): BlockDaiKan | false {
+  doDaiKan(w: Wind, discardedBy: Wind, t: Tile): BlockDaiKan | false {
     const hand = this.hand(w);
     if (hand.reached) return false;
-    if (w == whoDiscarded) return false;
+    if (w == discardedBy) return false;
 
     const sample = t.clone({ removeAll: true });
     if (hand.get(sample.t, sample.n) != 3) return false;
 
-    let idx = Math.abs(Number(w[0]) - Number(whoDiscarded[0]));
-    if (idx == 3) idx = 0;
-    else if (idx == 1) idx = 3;
-
+    const idx = callBlockIndex(w, discardedBy, BLOCK.DAI_KAN);
     let block = new BlockDaiKan([sample, sample, sample, sample]).clone({
       replace: { idx, tile: sample.clone({ add: OPERATOR.HORIZONTAL }) },
     });
