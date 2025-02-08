@@ -22,7 +22,7 @@ describe("use", () => {
 
   test("remove unused tile", () => {
     const img = fs.readFileSync(spritePath).toString();
-    let draw = SVG().svg(img);
+    const draw = SVG().svg(img);
     const use = new Use().use("m1");
     draw.add(use);
 

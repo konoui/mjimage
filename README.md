@@ -2,7 +2,7 @@
 
 ## 麻雀牌ジェネレーター
 
-仕様に沿ってテキストを入力することで、SVG 形式の画像を表示する Typescript ライブラリです。
+仕様に沿ってテキストを入力することで、SVG 形式の画像を生成する Typescript ライブラリです。
 
 ## 仕様
 
@@ -78,6 +78,8 @@ table:
 
 ## 使い方
 
-[設定例](doc/configuration.md)
+[Hugo 設定例](doc/configuration.md)
 
 [html の例](browser-mjimage/example/index.html)
+
+[CLI](./src/cmd/README.md)

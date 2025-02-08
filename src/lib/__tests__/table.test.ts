@@ -24,7 +24,7 @@ const fontCtx: FontContext = {
 };
 
 const helperConfig = {
-  imageHostPath: "http://localhost:1234/svg/",
+  imageHostUrl: "http://localhost:1234/svg/",
   scale: 0.4,
 };
 
