@@ -88,7 +88,8 @@ const createStickAndDora = (
   const roundText = new Text()
     .plain(scoreBoard.round)
     .font(font)
-    .move(roundX, 0);
+    .x(roundX)
+    .y(0);
   g.add(roundText);
 
   roundHeight += 25 * helper.scale; // margin
@@ -102,28 +103,33 @@ const createStickAndDora = (
   const stick1000 = helper
     .createStick(1000)
     .size(stickWidth, stickHeight)
-    .move(0, 0);
+    .x(0)
+    .y(0);
   const text1000 = new Text()
     .plain(num1000.toString())
     .font(stickFont)
-    .attr({ x: stickWidth, y: stickHeight });
+    .dx(stickWidth)
+    .dy(stickHeight);
   stickGroup.add(stick1000);
   stickGroup.add(text1000);
 
   const stick100 = helper
     .createStick(100)
     .size(stickWidth, stickHeight)
-    .move(0, stickHeight + stickHeight);
+    .x(0)
+    .y(stickHeight + stickHeight);
   const text100 = new Text()
     .plain(num100.toString())
     .font(stickFont)
-    .attr({ x: stickWidth, y: stickHeight * 3 });
+    .dx(stickWidth)
+    .dy(stickHeight * 3);
   stickGroup.add(stick100);
   stickGroup.add(text100);
 
   const doraImg = helper
     .createImage(scoreBoard.doras[0], 0, 0)
-    .move(stickWidth + textWidth, 0);
+    .x(stickWidth + textWidth)
+    .y(0);
   stickGroup.add(doraImg);
 
   g.add(roundText);
@@ -197,7 +203,8 @@ const createScoreBoard = (
   const g = new G();
   const rect = new Rect()
     .size(sizeWidth, sizeWidth)
-    .move(0, 0)
+    .x(0)
+    .y(0)
     .fill("none")
     .stroke("#000000");
   g.add(rect);
