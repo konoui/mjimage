@@ -14,7 +14,7 @@
     "scripts": {
         "build": "vite build",
         "test": "vitest run",
-        "cmd": "tsx src/cmd/index.ts",
+        "e2e": "tsx src/e2e/index.ts",
         "prepublishOnly": "npm run build"
     },
     "sideEffects": false,
