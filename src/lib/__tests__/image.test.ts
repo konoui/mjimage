@@ -1,15 +1,14 @@
-import { SVG } from "@svgdotjs/svg.js";
 import { Parser } from "../core/parser";
 import { createHand, drawBlocks, ImageHelper } from "../image/image";
 
-import { loadTestData, initSvgDOM } from "./utils/helper";
+import { loadTestData, initSvgDOM, SVG } from "./utils/helper";
 
 const { window, document } = initSvgDOM();
 
 const update = false;
 
 const helperConfig = {
-  imageHostUrl: "http://localhost:1234/svg/",
+  imageHostUrl: "https://static.konoui.dev/mjimage/svg/",
 };
 
 const params = {
@@ -26,7 +25,7 @@ describe("generate svg", () => {
     drawBlocks(draw, blocks, helperConfig, params);
     const got = draw.svg();
     const want = loadTestData("image.common.svg", got, update);
-    expect(want.toString()).toBe(got);
+    expect(got).toBe(want.toString());
   });
 
   test("handle 0s and 5s as same for AN_KAN", () => {
@@ -36,7 +35,7 @@ describe("generate svg", () => {
     drawBlocks(draw, blocks, helperConfig, params);
     const got = draw.svg();
     const want = loadTestData("image.05an-kan.svg", got, update);
-    expect(want.toString()).toBe(got);
+    expect(got).toBe(want.toString());
   });
 
   test("handle 0s and 5s as same for DAI_KAN", () => {
@@ -46,7 +45,7 @@ describe("generate svg", () => {
     drawBlocks(draw, blocks, helperConfig, params);
     const got = draw.svg();
     const want = loadTestData("image.05sho-kan.svg", got, update);
-    expect(want.toString()).toBe(got);
+    expect(got).toBe(want.toString());
   });
 
   test("chi", () => {
@@ -56,7 +55,7 @@ describe("generate svg", () => {
     drawBlocks(draw, blocks, helperConfig, params);
     const got = draw.svg();
     const want = loadTestData("image.chi.svg", got, update);
-    expect(want.toString()).toBe(got);
+    expect(got).toBe(want.toString());
   });
 
   test("simple-discard", () => {
@@ -66,7 +65,7 @@ describe("generate svg", () => {
     drawBlocks(draw, blocks, helperConfig, params);
     const got = draw.svg();
     const want = loadTestData("image.simple-discard.svg", got, update);
-    expect(want.toString()).toBe(got);
+    expect(got).toBe(want.toString());
   });
 
   test("simple-discard like chi", () => {
@@ -76,7 +75,7 @@ describe("generate svg", () => {
     drawBlocks(draw, blocks, helperConfig, params);
     const got = draw.svg();
     const want = loadTestData("image.simple-discard-like-chi.svg", got, update);
-    expect(want.toString()).toBe(got);
+    expect(got).toBe(want.toString());
   });
 
   test("out-tile", () => {
@@ -86,7 +85,7 @@ describe("generate svg", () => {
     drawBlocks(draw, blocks, helperConfig, params);
     const got = draw.svg();
     const want = loadTestData("image.out-discard.svg", got, update);
-    expect(want.toString()).toBe(got);
+    expect(got).toBe(want.toString());
   });
 
   test("multiple operators", () => {
@@ -95,7 +94,7 @@ describe("generate svg", () => {
     drawBlocks(draw, blocks, helperConfig, params);
     const got = draw.svg();
     const want = loadTestData("image.multiple-operators.svg", got, update);
-    expect(want.toString()).toBe(got);
+    expect(got).toBe(want.toString());
   });
 
   test("back tile block", () => {
@@ -108,7 +107,7 @@ describe("generate svg", () => {
       got,
       update
     );
-    expect(want.toString()).toBe(got);
+    expect(got).toBe(want.toString());
   });
 
   test("dora/tsumo without text", () => {
@@ -121,7 +120,7 @@ describe("generate svg", () => {
     });
     const got = draw.svg();
     const want = loadTestData("dora-tsumo-without-text.svg", got, update);
-    expect(want.toString()).toBe(got);
+    expect(got).toBe(want.toString());
   });
 
   test("unknown block", () => {

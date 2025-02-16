@@ -1,6 +1,6 @@
-import { Tile, Block, BLOCK, BlockOther, WIND_MAP } from "../core/";
+import { Tile, BLOCK, BlockOther, WIND_MAP } from "../core/";
 import { ImageHelper, createHand, ImageHelperConfig } from "../image/image";
-import { Svg, Element, Text, G, Rect } from "@svgdotjs/svg.js";
+import { Svg, Text, G, Rect, Mark } from "./../image/svg";
 import { FontContext } from "../measure-text/";
 import { parse, ScoreBoardInput, DiscardsInput, HandsInput } from "./";
 
@@ -15,7 +15,7 @@ const splitTiles = (input: readonly Tile[]) => {
 };
 
 const simpleRotate = (
-  e: Element,
+  e: Mark,
   width: number,
   height: number,
   degree: 0 | 90 | 180 | 270,

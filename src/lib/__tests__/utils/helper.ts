@@ -1,10 +1,22 @@
 import fs from "fs";
 import path from "path";
 import { Block } from "../../core/parser";
-import { registerWindow } from "@svgdotjs/svg.js";
+import {
+  registerWindow,
+  SVG as SVGJS,
+  Use as SVGJSUSE,
+} from "@svgdotjs/svg.js";
+import { MySVG, MyUse } from "../../image/svg";
 import { createHTMLWindow } from "svgdom";
 // @ts-ignore, https://github.com/DefinitelyTyped/DefinitelyTyped/pull/66501/files
 import { config } from "svgdom";
+
+const svgjs = false;
+export function SVG() {
+  return MySVG();
+}
+
+export const Use = MyUse;
 
 export const loadInputData = (filename: string) => {
   return loadTestData(filename, "", false, "__fixtures__").toString();

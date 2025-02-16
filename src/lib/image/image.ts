@@ -1,5 +1,5 @@
 import { Tile, Block, BlockAnKan, BlockHand } from "../core/parser";
-import { Svg, G, Image, Text, Use, Symbol } from "@svgdotjs/svg.js";
+import { Svg, G, Image, Text, Use, Symbol } from "./svg";
 import { FONT_FAMILY, TILE_CONTEXT, TYPE, OP, BLOCK } from "../core";
 import { assert } from "../myassert";
 
@@ -101,7 +101,7 @@ class BaseHelper {
     const fontSize = size.baseHeight * 0.2;
     const textX = size.baseWidth;
     const textY = size.baseHeight;
-    const text = new Text().text(t);
+    const text = new Text().plain(t);
     text
       .size(size.baseWidth, size.baseHeight)
       .font({
