@@ -1,9 +1,7 @@
 import { Parser } from "../core/parser";
 import { createHand, drawBlocks, ImageHelper } from "../image/image";
 
-import { loadTestData, initSvgDOM, SVG } from "./utils/helper";
-
-const { window, document } = initSvgDOM();
+import { loadTestData, SVG } from "./utils/helper";
 
 const update = false;
 

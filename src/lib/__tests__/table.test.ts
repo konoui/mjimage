@@ -9,9 +9,7 @@ import {
 } from "../table/table-parser";
 import { FONT_FAMILY, TYPE } from "../core/constants";
 
-import { initSvgDOM, loadTestData, loadInputData, SVG } from "./utils/helper";
-
-const { window, document } = initSvgDOM();
+import { loadTestData, loadInputData, SVG } from "./utils/helper";
 
 // FIXME using node canvas
 const fontCtx: FontContext = {

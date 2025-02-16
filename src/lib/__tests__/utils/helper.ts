@@ -1,13 +1,8 @@
 import fs from "fs";
 import path from "path";
 import { Block } from "../../core/parser";
-import {
-  registerWindow,
-  SVG as SVGJS,
-  Use as SVGJSUSE,
-} from "@svgdotjs/svg.js";
 import { MySVG, MyUse } from "../../image/svg";
-import { createHTMLWindow } from "svgdom";
+
 // @ts-ignore, https://github.com/DefinitelyTyped/DefinitelyTyped/pull/66501/files
 import { config } from "svgdom";
 
@@ -33,15 +28,6 @@ export const loadTestData = (
   if (update) fs.writeFileSync(gotPath, data);
   const want = fs.readFileSync(gotPath);
   return want;
-};
-
-export const initSvgDOM = () => {
-  const window = createHTMLWindow();
-  const document = window.document;
-  registerWindow(window, document);
-
-  config.setFontDir("./node_modules/svgdom/fonts/");
-  return { window, document };
 };
 
 export const handsToString = (hands: readonly Block[][]) => {
