@@ -1,4 +1,10 @@
-import { translate, compose, rotateDEG, Matrix } from "transformation-matrix";
+import {
+  translate,
+  compose,
+  rotateDEG,
+  Matrix,
+  toSVG,
+} from "transformation-matrix";
 import { XMLParser, XMLBuilder } from "fast-xml-parser";
 
 export type Attrs = {
@@ -86,7 +92,6 @@ export abstract class Mark {
   }
   css(style: Record<string, string>): this {
     this.styles = { ...this.styles, ...style };
-    console.log(this.styles);
     return this;
   }
   svg() {
@@ -183,7 +188,8 @@ export class Symbol extends Mark {
 
 export class G extends Mark {
   children: Mark[] = [];
-  private matrix: Matrix | undefined;
+  private rotateMatrix: Matrix | undefined;
+  private translateMatrix: Matrix | undefined;
   constructor() {
     super("g");
   }
@@ -192,21 +198,26 @@ export class G extends Mark {
     return this;
   }
   rotate(angle: number, cx: number, cy: number) {
-    this.compose(rotateDEG(angle, cx, cy));
+    this.rotateMatrix = rotateDEG(angle, cx, cy);
     return this;
   }
   translate(x: number, y: number) {
-    this.compose(translate(x, y));
+    this.translateMatrix = translate(x, y);
     return this;
-  }
-  private compose(m: Matrix) {
-    this.matrix = this.matrix == null ? m : compose(this.matrix, m);
   }
   protected center() {
     return this.children.map((c) => c.toString()).join("");
   }
   protected left(...v: string[]) {
-    return super.left(serializeGMatrix(this.matrix));
+    // svgjs handle translate first, the followings are same results.
+    // console.log("trans/rotate", new G().translate(10, 20).rotate(10, 10, 20).svg());
+    // console.log("rotate/trans", new G().rotate(10, 10, 20).translate(10, 20).svg());
+    const matrixes = [this.translateMatrix, this.rotateMatrix].filter(
+      (v) => v != null
+    );
+    return matrixes.length == 0
+      ? super.left()
+      : super.left(serializeGMatrix(compose(matrixes)));
   }
 }
 
@@ -249,6 +260,7 @@ export class Svg extends Mark {
     for (const elm of parse(input)) {
       this.add(elm);
     }
+    return this;
   }
   x(x: number): this {
     throw new Error("unimplemented");
@@ -299,7 +311,7 @@ function serializeViewBox(
 
 function serializeGMatrix(m: Matrix | undefined): string {
   if (m == null) return "";
-  return `transform="matrix(${m.a},${m.b},${m.c},${m.d},${m.e},${m.f})"`;
+  return `transform="${toSVG(m)}"`;
 }
 
 function serializeAttrs(attrs: Attrs): string {
@@ -326,7 +338,7 @@ export function* parse(input: string) {
 
   const doc = parser.parse(input);
 
-  for (const symbol of doc.svg.symbol) {
+  for (const symbol of doc.svg["symbol"]) {
     const v = builder.build(symbol) as string;
     const symobj = new Symbol(v);
     for (const [key, value] of Object.entries(symbol)) {

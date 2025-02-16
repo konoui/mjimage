@@ -27,22 +27,22 @@ const simpleRotate = (
     const translatedX = x;
     const translatedY = y - height;
     g.rotate(degree, 0, height).translate(translatedX, translatedY);
-    return g;
+    return new G().add(g);
   }
   if (degree == 180) {
     const translatedX = x + width;
     const translatedY = y - height;
     g.rotate(degree, 0, height).translate(translatedX, translatedY);
-    return g;
+    return new G().add(g);
   }
   if (degree == 270) {
     const translatedX = x + height;
     const translatedY = y + (width - height);
     g.rotate(degree, 0, height).translate(translatedX, translatedY);
-    return g;
+    return new G().add(g);
   }
 
-  return g;
+  return new G().add(g);
 };
 
 const handleDiscard = (tiles: readonly Tile[], helper: ImageHelper) => {
@@ -74,8 +74,6 @@ const createStickAndDora = (
   const textWidth = fontCtx.textWidth;
   const textHeight = fontCtx.textHeight;
 
-  const g = new G();
-
   const num100 = scoreBoard.sticks.dead;
   const num1000 = scoreBoard.sticks.reach;
   const stickWidth = 125 * helper.scale;
@@ -90,7 +88,6 @@ const createStickAndDora = (
     .font(font)
     .x(roundX)
     .y(0);
-  g.add(roundText);
 
   roundHeight += 25 * helper.scale; // margin
 
@@ -132,6 +129,8 @@ const createStickAndDora = (
     .y(0);
   stickGroup.add(doraImg);
 
+  const g = new G();
+  g.add(roundText);
   g.add(roundText);
   g.add(stickGroup);
 
@@ -160,8 +159,6 @@ const createHands = (
   ); // additional margin
   const sizeHeight = sizeWidth;
 
-  const g = new G().size(sizeWidth, sizeHeight);
-
   const front = simpleRotate(fe.e, fe.width, fe.height, 0).translate(
     (sizeWidth - fe.width) / 2,
     sizeHeight - fe.height
@@ -179,12 +176,13 @@ const createHands = (
     (sizeWidth - le.width) / 2
   );
 
+  const g = new G().size(sizeWidth, sizeHeight);
   g.add(front);
   g.add(right);
   g.add(opposite);
   g.add(left);
 
-  return { e: g, width: sizeWidth, height: sizeHeight };
+  return { e: new G().add(g), width: sizeWidth, height: sizeHeight };
 };
 
 const getPlaces = (front: "東" | "南" | "西" | "北") => {
@@ -199,15 +197,6 @@ const createScoreBoard = (
   scoreBoard: ScoreBoardInput
 ) => {
   const sizeWidth = helper.tileWidth * 5 + helper.tileHeight * 1; // 11111-1
-
-  const g = new G();
-  const rect = new Rect()
-    .size(sizeWidth, sizeWidth)
-    .x(0)
-    .y(0)
-    .fill("none")
-    .stroke("#000000");
-  g.add(rect);
 
   const font = fontCtx.font;
   const textWidth = fontCtx.textWidth;
@@ -272,6 +261,14 @@ const createScoreBoard = (
     sizeWidth / 2
   );
 
+  const g = new G();
+  const rect = new Rect()
+    .size(sizeWidth, sizeWidth)
+    .x(0)
+    .y(0)
+    .fill("none")
+    .stroke("#000000");
+  g.add(rect);
   g.add(boardRect.e);
   g.add(frontText);
   g.add(rightText);
@@ -328,7 +325,7 @@ const createDiscards = (helper: ImageHelper, discards: DiscardsInput) => {
   g.add(right);
   g.add(opposite);
   g.add(left);
-  return { e: g, width: sizeWidth, height: sizeHeight };
+  return { e: new G().add(g), width: sizeWidth, height: sizeHeight };
 };
 
 export const createTable = (
