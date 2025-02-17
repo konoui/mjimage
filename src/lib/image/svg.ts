@@ -145,20 +145,12 @@ export class Rect extends Mark {
 export class Text extends Mark {
   attrs: Attrs & { fontFamily?: string; fontSize?: number };
   private _text: string = "";
-  private isPlain: boolean = false;
   constructor(text = "") {
     super("text");
     this._text = text;
     this.attrs = {};
   }
-  text(text: string) {
-    this.isPlain = false;
-    // FIXME
-    this.plain(text);
-    return this;
-  }
   plain(text: string) {
-    this.isPlain = true;
     this._text = text;
     return this;
   }
@@ -287,6 +279,7 @@ export class Svg extends Mark {
   }
 }
 
+// aliases
 export function SVG() {
   return new Svg();
 }
@@ -296,7 +289,6 @@ export const MyImage = Image;
 export const MyUse = Use;
 export const MyRect = Rect;
 export const MyText = Text;
-export const Element = Mark;
 
 function camelToSnake(str: string): string {
   return str.replace(/[A-Z]/g, (match) => "-" + match.toLowerCase());
@@ -330,7 +322,7 @@ function serializeStyles(style: Styles): string {
   return s != "" ? `style="${s}"` : "";
 }
 
-export function* parse(input: string) {
+function* parse(input: string) {
   const parser = new XMLParser({ ignoreAttributes: false });
   const builder = new XMLBuilder({
     ignoreAttributes: false,
