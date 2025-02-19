@@ -1,6 +1,6 @@
 import { Tile, BLOCK, BlockOther, WIND_MAP } from "../core/";
 import { ImageHelper, createHand, ImageHelperConfig } from "../image/image";
-import { Svg, Text, G, Rect, Mark } from "./../image/svg";
+import { Svg, Text, G, Rect, Mark } from "../svgjs/svg";
 import { FontContext } from "../measure-text/";
 import { parse, ScoreBoardInput, DiscardsInput, HandsInput } from "./";
 

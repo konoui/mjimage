@@ -211,6 +211,17 @@ export class G extends Mark {
       ? super.left()
       : super.left(serializeGMatrix(compose(matrixes)));
   }
+  each(block: (idx: number, children: Mark[]) => void, deep: boolean) {
+    for (let i = 0; i < this.children.length; i++) {
+      const child = this.children[i];
+      if (child instanceof G) {
+        if (deep) {
+          child.each(block, true);
+        }
+      }
+      block(i, this.children);
+    }
+  }
 }
 
 const svgHeaders = [
@@ -268,12 +279,12 @@ export class Svg extends Mark {
   }
   each(block: (idx: number, children: Mark[]) => void, deep: boolean) {
     for (let i = 0; i < this.children.length; i++) {
-      //
-      // if (child instanceof G) {
-      //   if (deep) {
-      //     child.each(block) // g does not have each
-      //   }
-      // }
+      const child = this.children[i];
+      if (child instanceof G) {
+        if (deep) {
+          child.each(block, true);
+        }
+      }
       block(i, this.children);
     }
   }

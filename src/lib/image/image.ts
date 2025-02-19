@@ -1,5 +1,5 @@
 import { Tile, Block, BlockAnKan, BlockHand } from "../core/parser";
-import { Svg, G, Image, Text, Use, Symbol } from "./svg";
+import { Svg, G, Image, Text, Use, Symbol } from "../svgjs/svg";
 import { FONT_FAMILY, TILE_CONTEXT, TYPE, OP, BLOCK } from "../core";
 import { assert } from "../myassert";
 

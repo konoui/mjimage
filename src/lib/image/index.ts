@@ -1,2 +1,3 @@
 export * from "./image";
-export * from "./svg";
+export * from "./table";
+export * from "./table-parser";

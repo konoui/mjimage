@@ -1,12 +1,11 @@
 import { Tile, Parser } from "../core/";
-import { ImageHelper } from "../image";
-import { drawTable, createTable } from "../table";
+import { ImageHelper, drawTable, createTable } from "../image";
 import { FontContext } from "../measure-text";
 import {
   DiscardsInput,
   ScoreBoardInput,
   HandsInput,
-} from "../table/table-parser";
+} from "../image/table-parser";
 import { FONT_FAMILY, TYPE } from "../core/constants";
 
 import { loadTestData, loadInputData, SVG } from "./utils/helper";

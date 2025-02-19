@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { Block } from "../../core/parser";
-import { MySVG, MyUse } from "../../image/svg";
+import { MySVG, MyUse } from "../../svgjs/svg";
 
 // @ts-ignore, https://github.com/DefinitelyTyped/DefinitelyTyped/pull/66501/files
 import { config } from "svgdom";

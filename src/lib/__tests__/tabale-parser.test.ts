@@ -1,4 +1,4 @@
-import { parseTableInput, TableInput } from "../table/table-parser";
+import { parseTableInput, TableInput } from "../image/table-parser";
 import { WIND } from "../core";
 describe("parse-table", () => {
   test("simple", () => {
