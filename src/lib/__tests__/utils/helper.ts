@@ -1,10 +1,17 @@
 import fs from "fs";
 import path from "path";
 import { Block } from "../../core/parser";
-import { registerWindow } from "@svgdotjs/svg.js";
-import { createHTMLWindow } from "svgdom";
+import { MySVG, MyUse } from "../../image/svg";
+
 // @ts-ignore, https://github.com/DefinitelyTyped/DefinitelyTyped/pull/66501/files
 import { config } from "svgdom";
+
+const svgjs = false;
+export function SVG() {
+  return MySVG();
+}
+
+export const Use = MyUse;
 
 export const loadInputData = (filename: string) => {
   return loadTestData(filename, "", false, "__fixtures__").toString();
@@ -21,15 +28,6 @@ export const loadTestData = (
   if (update) fs.writeFileSync(gotPath, data);
   const want = fs.readFileSync(gotPath);
   return want;
-};
-
-export const initSvgDOM = () => {
-  const window = createHTMLWindow();
-  const document = window.document;
-  registerWindow(window, document);
-
-  config.setFontDir("./node_modules/svgdom/fonts/");
-  return { window, document };
 };
 
 export const handsToString = (hands: readonly Block[][]) => {

@@ -5,8 +5,8 @@ import {
   drawTable,
   drawBlocks,
   ImageHelperConfig,
-} from "@konoui/mjimage/src";
-import { SVG } from "@svgdotjs/svg.js";
+  SVG,
+} from "@konoui/mjimage";
 
 interface InitializeConfig extends Omit<ImageHelperConfig, "scale"> {
   querySelector?: string | string[];
@@ -60,7 +60,7 @@ export class mjimage {
         const textHeight = fontSize;
 
         const svg = SVG();
-
+        const dparser = new DOMParser();
         try {
           if (tableRegex.test(input)) {
             const scale = calculateScale(tableScale, textHeight);
@@ -90,7 +90,10 @@ export class mjimage {
               { responsive: responsive }
             );
           }
-          svg.addTo(target);
+          const doc = dparser.parseFromString(svg.svg(), "image/svg+xml");
+          const svgImg = doc.querySelector("svg");
+          if (svgImg == null) console.warn(`querySelector("svg") is null`);
+          else target.appendChild(svgImg);
         } catch (e) {
           target.textContent = input;
           console.error("encounter unexpected error:", e);

@@ -1,4 +1,3 @@
-import { SVG } from "@svgdotjs/svg.js";
 import { Tile, Parser } from "../core/";
 import { ImageHelper } from "../image";
 import { drawTable, createTable } from "../table";
@@ -10,9 +9,7 @@ import {
 } from "../table/table-parser";
 import { FONT_FAMILY, TYPE } from "../core/constants";
 
-import { initSvgDOM, loadTestData, loadInputData } from "./utils/helper";
-
-const { window, document } = initSvgDOM();
+import { loadTestData, loadInputData, SVG } from "./utils/helper";
 
 // FIXME using node canvas
 const fontCtx: FontContext = {
@@ -24,7 +21,7 @@ const fontCtx: FontContext = {
 };
 
 const helperConfig = {
-  imageHostPath: "http://localhost:1234/svg/",
+  imageHostUrl: "https://static.konoui.dev/mjimage/svg/",
   scale: 0.4,
 };
 

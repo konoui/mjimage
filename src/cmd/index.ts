@@ -1,47 +1,32 @@
-import { Controller, createLocalGame } from "./../lib/controller";
-import { Replayer } from "../lib/controller/replay";
-import { loadArrayData, storeArrayData } from "./../lib/__tests__/utils/helper";
+import { Parser } from "../lib/core";
+import { createHand, ImageHelper, optimizeSVG, SVG } from "../lib/image";
 
-const type = process.argv[2];
-if (!["test", "single", "game"].includes(type))
-  throw new Error("unexpected type");
-const count = Number(process.argv[3]) ?? 1;
-const filename = "games.json";
+import fs from "fs";
 
-if (type == "test") {
-  const games = loadArrayData(filename);
-  for (let game of games) {
-    const r = new Replayer(game);
-    r.auto();
-  }
+const tableRegex = /^\s*table/;
+const spritePath = "browser-mjimage/static/svg/tiles.svg";
+const imgHelper = new ImageHelper({
+  svgSprite: true,
+});
+
+function loadImgTiles() {
+  const img = fs.readFileSync(spritePath).toString();
+  return img;
 }
 
-if (type == "game" || type == "single") {
-  for (let i = 0; i < count; i++) {
-    console.debug(`${type}(${i})===`);
-    const { c } = createLocalGame();
-    const starter = factory(c, type);
-    subscribeError(c);
-    try {
-      starter();
-    } catch (e) {
-      console.error("Error", e);
-      storeArrayData(filename, c.export());
-    }
-  }
-}
+const input = process.argv[2];
 
-function factory(c: Controller, type: "single" | "game") {
-  if (type == "single") return () => c.start();
-  else return () => c.startGame();
-}
-
-function subscribeError(c: Controller) {
-  c.actor.subscribe({
-    error: (err) => {
-      console.error("Error", err);
-      storeArrayData(filename, c.export());
-      process.exit(1);
-    },
-  });
-}
+const tiles = loadImgTiles();
+const draw = SVG().importSymbol(tiles);
+const blocks = new Parser(input).parse();
+// bpth text and Use do not work
+// Getting bbox of element "g" is not possible: TypeError: Cannot read properties of null
+const hand = createHand(imgHelper, blocks, {
+  doraText: false,
+  tsumoText: false,
+});
+draw.add(hand.e);
+draw.viewbox(0, 0, hand.width, hand.height);
+// FIXME does not work
+// optimizeSVG(draw);
+console.log(draw.svg());

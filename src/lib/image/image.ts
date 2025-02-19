@@ -1,12 +1,10 @@
 import { Tile, Block, BlockAnKan, BlockHand } from "../core/parser";
-import { Svg, G, Image, Text, Use, Symbol } from "@svgdotjs/svg.js";
+import { Svg, G, Image, Text, Use, Symbol } from "./svg";
 import { FONT_FAMILY, TILE_CONTEXT, TYPE, OP, BLOCK } from "../core";
 import { assert } from "../myassert";
 
 export interface ImageHelperConfig {
   scale?: number;
-  // specify either hostPath or hostUrl
-  imageHostPath?: string;
   imageHostUrl?: string;
   imageExt?: "svg" | "webp";
   svgSprite?: boolean;
@@ -56,14 +54,12 @@ const tileImageSize = (
 class BaseHelper {
   readonly tileWidth: number;
   readonly tileHeight: number;
-  readonly imageHostPath: string;
   readonly imageHostUrl: string;
   readonly imageExt: "svg" | "webp";
   readonly scale: number;
   readonly svgSprite: boolean;
   constructor(props: ImageHelperConfig = {}) {
     this.scale = props.scale ?? 1;
-    this.imageHostPath = props.imageHostPath ?? "";
     this.imageHostUrl = props.imageHostUrl ?? "";
     this.imageExt = props.imageExt ?? "svg";
     this.tileWidth = TILE_CONTEXT.WIDTH * this.scale;
@@ -105,7 +101,7 @@ class BaseHelper {
     const fontSize = size.baseHeight * 0.2;
     const textX = size.baseWidth;
     const textY = size.baseHeight;
-    const text = new Text().text(t);
+    const text = new Text().plain(t);
     text
       .size(size.baseWidth, size.baseHeight)
       .font({
@@ -158,7 +154,7 @@ class BaseHelper {
     if (this.imageHostUrl != "") {
       return `${this.imageHostUrl}${filename}`;
     }
-    return `${this.imageHostPath}${filename}`;
+    return filename;
   }
 }
 
@@ -437,7 +433,7 @@ const findUsedIDs = (draw: Svg) => {
       const id = hrefAttr.substring(1);
       if (validIDs.includes(id)) usedIDs.push(id);
     }
-  });
+  }, true);
   return usedIDs;
 };
 

@@ -1,6 +1,6 @@
-import { Tile, Block, BLOCK, BlockOther, WIND_MAP } from "../core/";
+import { Tile, BLOCK, BlockOther, WIND_MAP } from "../core/";
 import { ImageHelper, createHand, ImageHelperConfig } from "../image/image";
-import { Svg, Element, Text, G, Rect } from "@svgdotjs/svg.js";
+import { Svg, Text, G, Rect, Mark } from "./../image/svg";
 import { FontContext } from "../measure-text/";
 import { parse, ScoreBoardInput, DiscardsInput, HandsInput } from "./";
 
@@ -15,7 +15,7 @@ const splitTiles = (input: readonly Tile[]) => {
 };
 
 const simpleRotate = (
-  e: Element,
+  e: Mark,
   width: number,
   height: number,
   degree: 0 | 90 | 180 | 270,
@@ -27,22 +27,22 @@ const simpleRotate = (
     const translatedX = x;
     const translatedY = y - height;
     g.rotate(degree, 0, height).translate(translatedX, translatedY);
-    return g;
+    return new G().add(g);
   }
   if (degree == 180) {
     const translatedX = x + width;
     const translatedY = y - height;
     g.rotate(degree, 0, height).translate(translatedX, translatedY);
-    return g;
+    return new G().add(g);
   }
   if (degree == 270) {
     const translatedX = x + height;
     const translatedY = y + (width - height);
     g.rotate(degree, 0, height).translate(translatedX, translatedY);
-    return g;
+    return new G().add(g);
   }
 
-  return g;
+  return new G().add(g);
 };
 
 const handleDiscard = (tiles: readonly Tile[], helper: ImageHelper) => {
@@ -74,8 +74,6 @@ const createStickAndDora = (
   const textWidth = fontCtx.textWidth;
   const textHeight = fontCtx.textHeight;
 
-  const g = new G();
-
   const num100 = scoreBoard.sticks.dead;
   const num1000 = scoreBoard.sticks.reach;
   const stickWidth = 125 * helper.scale;
@@ -88,8 +86,8 @@ const createStickAndDora = (
   const roundText = new Text()
     .plain(scoreBoard.round)
     .font(font)
-    .move(roundX, 0);
-  g.add(roundText);
+    .x(roundX)
+    .y(0);
 
   roundHeight += 25 * helper.scale; // margin
 
@@ -102,30 +100,37 @@ const createStickAndDora = (
   const stick1000 = helper
     .createStick(1000)
     .size(stickWidth, stickHeight)
-    .move(0, 0);
+    .x(0)
+    .y(0);
   const text1000 = new Text()
     .plain(num1000.toString())
     .font(stickFont)
-    .attr({ x: stickWidth, y: stickHeight });
+    .dx(stickWidth)
+    .dy(stickHeight);
   stickGroup.add(stick1000);
   stickGroup.add(text1000);
 
   const stick100 = helper
     .createStick(100)
     .size(stickWidth, stickHeight)
-    .move(0, stickHeight + stickHeight);
+    .x(0)
+    .y(stickHeight + stickHeight);
   const text100 = new Text()
     .plain(num100.toString())
     .font(stickFont)
-    .attr({ x: stickWidth, y: stickHeight * 3 });
+    .dx(stickWidth)
+    .dy(stickHeight * 3);
   stickGroup.add(stick100);
   stickGroup.add(text100);
 
   const doraImg = helper
     .createImage(scoreBoard.doras[0], 0, 0)
-    .move(stickWidth + textWidth, 0);
+    .x(stickWidth + textWidth)
+    .y(0);
   stickGroup.add(doraImg);
 
+  const g = new G();
+  g.add(roundText);
   g.add(roundText);
   g.add(stickGroup);
 
@@ -154,8 +159,6 @@ const createHands = (
   ); // additional margin
   const sizeHeight = sizeWidth;
 
-  const g = new G().size(sizeWidth, sizeHeight);
-
   const front = simpleRotate(fe.e, fe.width, fe.height, 0).translate(
     (sizeWidth - fe.width) / 2,
     sizeHeight - fe.height
@@ -173,12 +176,13 @@ const createHands = (
     (sizeWidth - le.width) / 2
   );
 
+  const g = new G().size(sizeWidth, sizeHeight);
   g.add(front);
   g.add(right);
   g.add(opposite);
   g.add(left);
 
-  return { e: g, width: sizeWidth, height: sizeHeight };
+  return { e: new G().add(g), width: sizeWidth, height: sizeHeight };
 };
 
 const getPlaces = (front: "東" | "南" | "西" | "北") => {
@@ -193,14 +197,6 @@ const createScoreBoard = (
   scoreBoard: ScoreBoardInput
 ) => {
   const sizeWidth = helper.tileWidth * 5 + helper.tileHeight * 1; // 11111-1
-
-  const g = new G();
-  const rect = new Rect()
-    .size(sizeWidth, sizeWidth)
-    .move(0, 0)
-    .fill("none")
-    .stroke("#000000");
-  g.add(rect);
 
   const font = fontCtx.font;
   const textWidth = fontCtx.textWidth;
@@ -265,6 +261,14 @@ const createScoreBoard = (
     sizeWidth / 2
   );
 
+  const g = new G();
+  const rect = new Rect()
+    .size(sizeWidth, sizeWidth)
+    .x(0)
+    .y(0)
+    .fill("none")
+    .stroke("#000000");
+  g.add(rect);
   g.add(boardRect.e);
   g.add(frontText);
   g.add(rightText);
@@ -321,7 +325,7 @@ const createDiscards = (helper: ImageHelper, discards: DiscardsInput) => {
   g.add(right);
   g.add(opposite);
   g.add(left);
-  return { e: g, width: sizeWidth, height: sizeHeight };
+  return { e: new G().add(g), width: sizeWidth, height: sizeHeight };
 };
 
 export const createTable = (
