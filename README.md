@@ -82,4 +82,4 @@ table:
 
 [html の例](browser-mjimage/example/index.html)
 
-[CLI](./src/cmd/README.md)
+[CLI](./cmd/README.md)
