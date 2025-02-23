@@ -1,4 +1,4 @@
-import { Tile, BLOCK, BlockOther, WIND_MAP } from "../core/";
+import { Tile, BLOCK, BlockOther, WIND_MAP, STICK_CONTEXT } from "../core/";
 import { ImageHelper, createHand, ImageHelperConfig } from "../image/image";
 import { Svg, Text, G, Rect, Mark } from "../svgjs/svg";
 import { FontContext } from "../measure-text/";
@@ -76,8 +76,8 @@ const createStickAndDora = (
 
   const num100 = scoreBoard.sticks.dead;
   const num1000 = scoreBoard.sticks.reach;
-  const stickWidth = 125 * helper.scale;
-  const stickHeight = 27.5 * helper.scale;
+  const stickWidth = STICK_CONTEXT.WIDTH * helper.scale;
+  const stickHeight = STICK_CONTEXT.HEIGHT * helper.scale;
 
   let roundWidth = textWidth * 3;
   let roundHeight = textHeight;
@@ -96,7 +96,7 @@ const createStickAndDora = (
     .size(stickWidth, stickGroupHeight)
     .translate(0, roundHeight);
 
-  const stickFont = { family: font.family, size: font.size * 0.7 };
+  const stickFont = { family: font.family, size: font.size * 0.7 }; // FIXME STICK_CONTEXT.HEIGHT
   const stick1000 = helper
     .createStick(1000)
     .size(stickWidth, stickHeight)
@@ -107,8 +107,6 @@ const createStickAndDora = (
     .font(stickFont)
     .dx(stickWidth)
     .dy(stickHeight);
-  stickGroup.add(stick1000);
-  stickGroup.add(text1000);
 
   const stick100 = helper
     .createStick(100)
@@ -120,6 +118,9 @@ const createStickAndDora = (
     .font(stickFont)
     .dx(stickWidth)
     .dy(stickHeight * 3);
+
+  stickGroup.add(stick1000);
+  stickGroup.add(text1000);
   stickGroup.add(stick100);
   stickGroup.add(text100);
 
