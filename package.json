@@ -42,7 +42,6 @@
         "buffer": "^6.0.3",
         "process": "^0.11.10",
         "svg-sprite": "^2.0.2",
-        "svgdom": "0.1.14",
         "svgo": "^3.0.2",
         "tsx": "^4.19.1",
         "typescript": "^5.5.4",

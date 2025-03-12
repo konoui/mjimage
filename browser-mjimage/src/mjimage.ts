@@ -6,6 +6,8 @@ import {
   drawBlocks,
   ImageHelperConfig,
   SVG,
+  FONT_FAMILY,
+  STICK_CONTEXT,
 } from "@konoui/mjimage";
 
 interface InitializeConfig extends Omit<ImageHelperConfig, "scale"> {

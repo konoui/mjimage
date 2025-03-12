@@ -1,4 +1,11 @@
-import { Tile, BLOCK, BlockOther, WIND_MAP, STICK_CONTEXT } from "../core/";
+import {
+  Tile,
+  BLOCK,
+  BlockOther,
+  WIND_MAP,
+  STICK_CONTEXT,
+  FONT_FAMILY,
+} from "../core/";
 import { ImageHelper, createHand, ImageHelperConfig } from "../image/image";
 import { Svg, Text, G, Rect, Mark } from "../svgjs/svg";
 import { FontContext } from "../measure-text/";
@@ -79,7 +86,7 @@ const createStickAndDora = (
   const stickWidth = STICK_CONTEXT.WIDTH * helper.scale;
   const stickHeight = STICK_CONTEXT.HEIGHT * helper.scale;
 
-  let roundWidth = textWidth * 3;
+  const roundWidth = textWidth * 3;
   let roundHeight = textHeight;
   const roundX = (stickWidth + helper.tileWidth + textWidth - roundWidth) / 2;
 
@@ -96,7 +103,8 @@ const createStickAndDora = (
     .size(stickWidth, stickGroupHeight)
     .translate(0, roundHeight);
 
-  const stickFont = { family: font.family, size: font.size * 0.7 }; // FIXME STICK_CONTEXT.HEIGHT
+  // 36px is nearly equals to STICK_CONTEXT.HEIGHT with FONT_FAMILY
+  const stickFont = { family: FONT_FAMILY, size: 36 * helper.scale };
   const stick1000 = helper
     .createStick(1000)
     .size(stickWidth, stickHeight)
@@ -131,7 +139,6 @@ const createStickAndDora = (
   stickGroup.add(doraImg);
 
   const g = new G();
-  g.add(roundText);
   g.add(roundText);
   g.add(stickGroup);
 
