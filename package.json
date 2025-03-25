@@ -53,7 +53,7 @@
     "dependencies": {
         "eventmit": "^2.0.4",
         "fast-xml-parser": "^5.0.9",
-        "transformation-matrix": "^2.16.1",
+        "transformation-matrix": "^3.0.0",
         "valibot": "^0.42.1",
         "xstate": "^5.7.0"
     }
