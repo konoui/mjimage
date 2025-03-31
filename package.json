@@ -54,7 +54,7 @@
         "eventmit": "^2.0.4",
         "fast-xml-parser": "^5.0.9",
         "transformation-matrix": "^3.0.0",
-        "valibot": "^0.42.1",
+        "valibot": "^1.0.0",
         "xstate": "^5.7.0"
     }
 }
