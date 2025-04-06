@@ -1,6 +1,6 @@
 {
     "name": "@konoui/mjimage",
-    "version": "0.0.47",
+    "version": "0.0.48",
     "description": "Generates Mahjong tiles in SVG format.",
     "author": "konoui",
     "license": "MIT",
@@ -15,7 +15,7 @@
         "build": "vite build",
         "test": "vitest run",
         "e2e": "tsx src/e2e/index.ts",
-        "prepublishOnly": "npm run build"
+        "prepublishOnly": "npm update && npm run build"
     },
     "sideEffects": false,
     "type": "module",
