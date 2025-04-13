@@ -330,6 +330,14 @@ export class BlockShoKan extends Block {
     return Block.deserialize({ tiles: s, type: BLOCK.SHO_KAN }) as BlockShoKan;
   }
 
+  static fromPon(b: BlockPon, t: Tile) {
+    const idx = b.tiles.findIndex((t) => t.has(OP.HORIZONTAL));
+    // add a tile to front of the pon tile
+    const tiles = [...b.tiles];
+    tiles.splice(idx, 0, t.clone({ add: OP.HORIZONTAL }));
+    return new BlockShoKan(tiles);
+  }
+
   toString(): string {
     return toStringForSame(this.tiles);
   }

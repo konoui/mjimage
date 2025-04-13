@@ -8,6 +8,9 @@ import {
   BlockOther,
   BlockHand,
   sortCalledTiles,
+  BlockPair,
+  BlockPon,
+  BlockShoKan,
 } from "../core/parser";
 import { TYPE, OP, BLOCK, INPUT_SEPARATOR } from "../core/constants";
 
@@ -124,5 +127,20 @@ describe("sort called tiles", () => {
     const got = sortCalledTiles([...want]);
     expect(got).toStrictEqual(want);
     expect(got[1].has(OP.HORIZONTAL)).toBe(true);
+  });
+});
+
+describe("fromPon", () => {
+  test("from pon", () => {
+    const t = new Tile(TYPE.M, 3);
+    const pon = new BlockPon([t, t.clone({ add: OP.HORIZONTAL }), t]);
+    const want = [
+      t,
+      t.clone({ add: OP.HORIZONTAL }),
+      t.clone({ add: OP.HORIZONTAL }),
+      t,
+    ];
+    const got = BlockShoKan.fromPon(pon, t).tiles;
+    expect(got).toStrictEqual(want);
   });
 });
