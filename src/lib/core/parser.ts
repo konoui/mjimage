@@ -148,11 +148,16 @@ export abstract class Block {
     }
   }
 
+  static from(tiles: string) {
+    const blocks = new Parser(tiles).parse();
+    if (blocks.length != 1) throw new Error(`block must be 1: ${tiles}`);
+    return blocks[0];
+  }
+
   // deserialize json object. it validates the input type by comparing to parsed block type.
   static deserialize(v: SerializedBlock) {
-    const blocks = new Parser(v.tiles).parse();
-    if (blocks.length != 1) throw new Error(`block must be 1: ${v.tiles}`);
-    const gotType = blocks[0].type;
+    const b = Block.from(v.tiles);
+    const gotType = b.type;
     // TODO parse detect followings as hand
     if (
       !(
@@ -166,7 +171,7 @@ export abstract class Block {
         throw new Error(
           `input type is ${v.type} but got is ${gotType}: ${v.tiles}`
         );
-    return blockWrapper(blocks[0].tiles, v.type);
+    return blockWrapper(b.tiles, v.type);
   }
 
   serialize() {
@@ -350,6 +355,10 @@ export class BlockPair extends Block {
   toString(): string {
     return toStringForSame(this.tiles);
   }
+
+  static from(s: string) {
+    return Block.deserialize({ tiles: s, type: BLOCK.PAIR }) as BlockPair;
+  }
 }
 
 export class BlockThree extends Block {
@@ -384,6 +393,14 @@ export class BlockIsolated extends Block {
   constructor(tile: Tile) {
     super([tile], BLOCK.ISOLATED);
   }
+
+  static from(s: string) {
+    return Block.deserialize({
+      tiles: s,
+      type: BLOCK.ISOLATED,
+    }) as BlockIsolated;
+  }
+
   toString(): string {
     return this.tiles[0].toString();
   }
@@ -394,6 +411,11 @@ export class BlockHand extends Block {
   constructor(tiles: readonly Tile[]) {
     super(tiles, BLOCK.HAND);
   }
+
+  static from(s: string) {
+    return Block.deserialize({ tiles: s, type: BLOCK.HAND }) as BlockHand;
+  }
+
   toString(): string {
     return toStringForHand(this.tiles);
   }

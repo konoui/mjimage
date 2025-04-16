@@ -228,7 +228,7 @@ export class Controller {
             selected.events.length == 1,
             `found more than one selected: ${JSON.stringify(selected, null, 2)}`
           );
-          const block = Block.deserialize(c[0]);
+          const block = BlockPon.deserialize(c[0]);
           this.actor.send({
             type: selected.type,
             iam: e.wind,
