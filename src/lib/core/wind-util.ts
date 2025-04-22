@@ -47,8 +47,10 @@ export const nextWind = (w: Wind): Wind => {
  */
 export const prevWind = (w: Wind): Wind => {
   let n = Number(w.toString()[0]);
-  n = (n % 2) + 1;
-  return `${n}w` as Wind;
+  const cycle = [1, 4, 3, 2];
+  const index = cycle.indexOf(n);
+  const prev = cycle[(index + 1) % cycle.length];
+  return `${prev}w` as Wind;
 };
 
 export const callBlockIndex = (
