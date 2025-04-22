@@ -458,6 +458,19 @@ describe("double Calculator", () => {
       lastTile: new Tile(TYPE.M, 3, [OP.TSUMO]),
       want: [{ points: [{ name: "対々和", double: 2 }], fu: 50 }],
     },
+    {
+      input: "111w123s456m33m, -678m",
+      lastTile: new Tile(TYPE.M, 3, [OP.TSUMO]),
+      want: [
+        {
+          points: [
+            { name: "自風", double: 1 },
+            { name: "場風", double: 1 },
+          ],
+          fu: 32,
+        },
+      ],
+    },
   ];
   for (let tt of tests) {
     test(tt.input, () => {

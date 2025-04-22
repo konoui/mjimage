@@ -1031,7 +1031,7 @@ export class DoubleCalculator {
       const tile = block.tiles[0];
       if (tile.t == TYPE.Z) {
         if (tile.equals(this.cfg.myWind)) ret.push({ name: "自風", double: 1 });
-        else if (tile.equals(this.cfg.roundWind))
+        if (tile.equals(this.cfg.roundWind))
           ret.push({ name: "場風", double: 1 });
         else if (tile.n == 5) ret.push({ name: "白", double: 1 });
         else if (tile.n == 6) ret.push({ name: "發", double: 1 });
