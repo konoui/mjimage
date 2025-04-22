@@ -1,4 +1,13 @@
-import { Wind, Round, TYPE, WIND, createWindMap, OP, ROUND } from "../core/";
+import {
+  Wind,
+  Round,
+  TYPE,
+  WIND,
+  createWindMap,
+  OP,
+  ROUND,
+  prevWind,
+} from "../core/";
 import { TupleOfSize } from "../calculator";
 import { Tile } from "../core/parser";
 import { nextWind, nextRound, Type } from "../core";
@@ -40,7 +49,7 @@ export class PlaceManager {
 
   private update() {
     for (let playerID in this.pToW) {
-      const next = nextWind(this.pToW[playerID]);
+      const next = prevWind(this.pToW[playerID]);
       this.pToW[playerID] = next;
       this.wToP[next] = playerID;
     }

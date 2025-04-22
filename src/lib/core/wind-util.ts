@@ -29,12 +29,22 @@ export const prevRound = (r: Round) => {
   return nextRound(nextRound(nextRound(r)));
 };
 
+/**
+ * it returns next the wind. e.g.) 1w => 2w
+ * @param
+ * @returns
+ */
 export const nextWind = (w: Wind): Wind => {
   let n = Number(w.toString()[0]);
   n = (n % 4) + 1;
   return `${n}w` as Wind;
 };
 
+/**
+ * it returns previous the wind. e.g.) 1w => 4w
+ * @param
+ * @returns
+ */
 export const prevWind = (w: Wind): Wind => {
   let n = Number(w.toString()[0]);
   n = (n % 2) + 1;
