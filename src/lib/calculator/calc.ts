@@ -758,6 +758,7 @@ export interface BoardContext {
   finalWallWin?: boolean;
   finalDiscardWin?: boolean;
   oneShotWin?: boolean;
+  roundUp8000?: boolean;
 }
 
 export interface WinResult {
@@ -787,6 +788,7 @@ export class DoubleCalculator {
     finalWallWin: boolean;
     finalDiscardWin: boolean;
     oneShotWin: boolean;
+    roundUp8000: boolean;
     orig: BoardContext;
   };
   constructor(hand: Hand, params: BoardContext) {
@@ -806,6 +808,7 @@ export class DoubleCalculator {
       finalWallWin: params.finalWallWin ?? false,
       finalDiscardWin: params.finalDiscardWin ?? false,
       oneShotWin: params.oneShotWin ?? false,
+      roundUp8000: params.roundUp8000 ?? false,
       orig: params,
     };
   }
@@ -865,6 +868,12 @@ export class DoubleCalculator {
         break;
     }
     if (sum > 13 && sum < 26) base = 8000; // 数え役満
+    // 切り上げ満貫
+    if (this.cfg.roundUp8000) {
+      if ((fu == 30 && sum == 4) || (fu == 60 && sum == 3)) {
+        base = 2000;
+      }
+    }
 
     const isTsumo = patterns[idx].hand.some((b) =>
       b.tiles.some((t) => t.has(OP.TSUMO))

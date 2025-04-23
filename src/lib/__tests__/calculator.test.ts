@@ -556,17 +556,36 @@ describe("calc", () => {
     const h = new Hand(input);
     const c = new BlockCalculator(h);
     const cfg: BoardContext = {
-      doraMarkers: [new Tile(TYPE.M, 9, [OP.TSUMO])],
+      doraMarkers: [new Tile(TYPE.M, 9)],
       myWind: "1w",
       round: "1w1",
       ronWind: "2w",
     };
     const dc = new DoubleCalculator(h, cfg);
-    const hands = c.calc(new Tile(TYPE.M, 3, [OP.RON]));
+    const hands = c.calc(new Tile(TYPE.M, 3));
     const got = dc.calc(...hands);
 
     expect(!!got).toEqual(true);
     expect((got as WinResult).sum).toBe(7);
     expect((got as WinResult).point).toBe(18000);
+  });
+  test("round up 8000", () => {
+    const input = "123m123s123p789p5ss,t5s";
+    const h = new Hand(input);
+    const c = new BlockCalculator(h);
+    const cfg: BoardContext = {
+      doraMarkers: [new Tile(TYPE.M, 9)],
+      myWind: "2w",
+      round: "1w1",
+      ronWind: "2w",
+      roundUp8000: true,
+    };
+    const dc = new DoubleCalculator(h, cfg);
+    const hands = c.calc(new Tile(TYPE.M, 3));
+    const got = dc.calc(...hands);
+
+    expect(!!got).toEqual(true);
+    expect((got as WinResult).sum).toBe(4);
+    expect((got as WinResult).point).toBe(8000);
   });
 });
