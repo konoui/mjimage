@@ -497,6 +497,21 @@ describe("double Calculator", () => {
         },
       ],
     },
+    {
+      input: "99m66s777z,t9m,_33z_,7-77p",
+      lastTile: new Tile(TYPE.M, 9, [OP.TSUMO]),
+      want: [
+        {
+          points: [
+            { name: "中", double: 1 },
+            { name: "対々和", double: 2 },
+            { name: "三暗刻", double: 2 },
+            { name: "ドラ", double: 3 },
+          ],
+          fu: 56,
+        },
+      ],
+    },
   ];
   for (let tt of tests) {
     test(tt.input, () => {

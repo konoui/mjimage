@@ -1127,7 +1127,6 @@ export class DoubleCalculator {
     return cond ? [{ name: "対々和", double: 2 }] : [];
   }
   dD2(h: readonly Block[]) {
-    if (this.minus() != 0) return [];
     const l = h.filter((b) => {
       return (
         (b instanceof BlockAnKan || b instanceof BlockThree) &&
