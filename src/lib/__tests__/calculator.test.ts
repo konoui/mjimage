@@ -88,15 +88,23 @@ describe("Hand", () => {
   });
 });
 
-test("idempotency hand", () => {
-  const input = "123m123s123p1z,t1z";
-  const h = new Hand(input);
-  expect(h.drawn?.toString()).toEqual("t1z");
+describe("", () => {
+  test("idempotency hand", () => {
+    const input = "123m123s123p1z,t1z";
+    const h = new Hand(input);
+    expect(h.drawn?.toString()).toEqual("t1z");
 
-  const ch = new Hand(h.toString());
-  expect(ch.drawn?.toString()).toEqual("t1z");
+    const ch = new Hand(h.toString());
+    expect(ch.drawn?.toString()).toEqual("t1z");
 
-  expect(h.toString()).toEqual("123m123p123s1z,t1z");
+    expect(h.toString()).toEqual("123m123p123s1z,t1z");
+  });
+  test("idempotency hand with red", () => {
+    const input = "789m123r5789p123s";
+    const h = new Hand(input);
+    h.draw(new Tile(TYPE.P, 5));
+    expect(h.toString()).toEqual("789m123r5789p123s,t5p");
+  });
 });
 
 describe("Shanten Calculator", () => {

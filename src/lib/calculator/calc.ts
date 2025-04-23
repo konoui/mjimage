@@ -124,12 +124,13 @@ export class Hand {
     }
     if (this.drawn != null) {
       const drawn = this.drawn;
-      const idx = tiles.findIndex((t) => t.equals(drawn));
+      const idx = tiles.findIndex(
+        (t) => t.equals(drawn) && drawn.has(OP.RED) == t.has(OP.RED)
+      );
       assert(
         idx >= 0,
         `hand has drawn: ${this.drawn} but no tile in hands: ${tiles.join("")}`
       );
-
       tiles[idx] = tiles[idx].clone({ add: OP.TSUMO });
     }
     return tiles;
