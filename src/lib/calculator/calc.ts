@@ -977,7 +977,9 @@ export class DoubleCalculator {
 
         ...this.dA6(hand),
       ];
-      if (v.length > 0) v.push(...this.dX1(hand)); // doras are evaluated when other double exists
+      if (v.length == 0) continue;
+      // doras are evaluated when other double exists
+      v.push(...this.dX1(hand));
       ret.push({
         points: v,
         fu: fu,
@@ -1187,8 +1189,6 @@ export class DoubleCalculator {
     return cond ? [{ name: "混全帯么九", double: 2 - this.minus() }] : [];
   }
   dJ2(h: readonly Block[]) {
-    if (this.minus() != 0) return [];
-
     const m = {
       // 123m, 456m, 789m
       [TYPE.M]: [0, 0, 0],
@@ -1206,8 +1206,8 @@ export class DoubleCalculator {
       else if (tile.n == 7) m[tile.t][2]++;
     }
 
-    for (const v of Object.values(m)) {
-      if (v.filter((v) => v > 0).length == v.length)
+    for (const arr of Object.values(m)) {
+      if (arr[0] > 0 && arr[1] > 0 && arr[2] > 0)
         return [{ name: "一気通貫", double: 2 - this.minus() }];
     }
     return [];

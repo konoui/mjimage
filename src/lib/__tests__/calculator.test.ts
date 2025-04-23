@@ -405,8 +405,13 @@ describe("double Calculator", () => {
     },
     {
       input: "111333555s123m99s",
-      lastTile: new Tile(TYPE.S, 1),
-      want: [{ points: [], fu: 42 }],
+      lastTile: new Tile(TYPE.S, 9),
+      want: [
+        {
+          points: [{ name: "三暗刻", double: 2 }],
+          fu: 48,
+        },
+      ],
     },
     {
       input: "222333s234m88567s",
@@ -441,7 +446,7 @@ describe("double Calculator", () => {
       ],
     },
     {
-      input: "23456788mm, -234s, 2-34p",
+      input: "23456788m, -234s, 2-34p",
       lastTile: new Tile(TYPE.M, 3, [OP.TSUMO]),
       want: [
         {
@@ -468,6 +473,19 @@ describe("double Calculator", () => {
             { name: "場風", double: 1 },
           ],
           fu: 32,
+        },
+      ],
+    },
+    {
+      input: "124r56p66s3p, -789p, -213p",
+      lastTile: new Tile(TYPE.P, 3, [OP.RON]),
+      want: [
+        {
+          points: [
+            { name: "一気通貫", double: 1 },
+            { name: "赤ドラ", double: 1 },
+          ],
+          fu: 22,
         },
       ],
     },
@@ -529,7 +547,8 @@ describe("calc", () => {
     const got = dc.calc(...hands);
 
     // TODO
-    expect(!!got).toEqual(true);
+    expect(hands.length).toBe(1);
+    expect(!!got).toEqual(false);
     // console.log(got);
   });
   test("3", () => {
