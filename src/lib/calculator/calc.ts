@@ -8,6 +8,7 @@ import {
   Type,
   createWindMap,
   INPUT_SEPARATOR,
+  nextWind,
 } from "../core";
 import {
   Tile,
@@ -1461,5 +1462,9 @@ const minTile = (b: Block) => {
 const toDora = (doraMarker: Tile) => {
   const n = doraMarker.n;
   const t = doraMarker.t;
+  if (t == TYPE.Z) {
+    if (n == 4) return new Tile(t, 1);
+    else if (n == 7) return new Tile(t, 5);
+  }
   return new Tile(t, (n % 9) + 1);
 };
