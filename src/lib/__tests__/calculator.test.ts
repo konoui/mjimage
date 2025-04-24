@@ -7,7 +7,7 @@ import {
   BoardContext,
   WinResult,
 } from "../calculator";
-import { TYPE, OP } from "../core/constants";
+import { TYPE, OP, Wind } from "../core/constants";
 import { Block, Parser, Tile } from "../core/parser";
 import { handsToString } from "./utils/helper";
 describe("Hand", () => {
@@ -508,7 +508,21 @@ describe("double Calculator", () => {
             { name: "三暗刻", double: 2 },
             { name: "ドラ", double: 3 },
           ],
-          fu: 56,
+          fu: 72,
+        },
+      ],
+    },
+    {
+      input: "6789m789s444z6m,3-33z",
+      lastTile: new Tile(TYPE.M, 6, [OP.RON]),
+      myWind: "3w" as Wind,
+      want: [
+        {
+          points: [
+            { name: "自風", double: 1 },
+            { name: "ドラ", double: 1 },
+          ],
+          fu: 34,
         },
       ],
     },
@@ -519,7 +533,7 @@ describe("double Calculator", () => {
       const c = new BlockCalculator(h);
       const cfg: BoardContext = {
         doraMarkers: [new Tile(TYPE.M, 8)],
-        myWind: "1w",
+        myWind: tt.myWind ?? "1w",
         round: "1w1",
       };
       const dc = new DoubleCalculator(h, cfg);

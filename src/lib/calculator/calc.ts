@@ -1373,9 +1373,7 @@ export class DoubleCalculator {
     // 刻子
     const calcTriple = (b: Block, base: number) => {
       const tile = b.tiles[0];
-      if (tile.t == TYPE.Z && [5, 6, 7].includes(tile.n)) return base * 2;
-      else if (tile.t == TYPE.Z && [myWind, round].includes(tile.n))
-        return base * 2;
+      if (tile.t == TYPE.Z) return base * 2;
       else if (N19.includes(tile.n)) return base * 2;
       else return base;
     };
@@ -1383,8 +1381,8 @@ export class DoubleCalculator {
     for (const b of h) {
       switch (true) {
         case b instanceof BlockThree:
-          const v = b.tiles.some((t) => t.has(OP.RON)) ? 2 : 4;
-          fu += calcTriple(b, v);
+          const base = b.tiles.some((t) => t.has(OP.RON)) ? 2 : 4;
+          fu += calcTriple(b, base);
           break;
         case b instanceof BlockPon:
           fu += calcTriple(b, 2);
