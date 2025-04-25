@@ -641,14 +641,14 @@ export class BlockCalculator {
       this.handleBack(),
       [this.hand.called.concat()],
     ].sort((a, b) => b.length - a.length);
-    const ret = vvv[0].concat();
-    for (let i = 0; i < ret.length; i++) {
-      for (let j = 1; j < vvv.length; j++) {
-        for (const arr of vvv[j]) {
-          ret[i] = [...ret[i], ...arr];
-        }
-      }
-    }
+    // combine all patterns
+    const ret = vvv.reduce(
+      (acc, group) =>
+        group.length === 0
+          ? acc // 空の配列があればそのまま acc を返す
+          : acc.flatMap((p) => group.map((choice) => [...p, ...choice])),
+      [[]]
+    );
     return ret;
   }
 

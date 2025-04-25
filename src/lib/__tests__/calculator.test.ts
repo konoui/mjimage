@@ -357,6 +357,19 @@ describe("handleNumTypes", () => {
     ];
     expect(handsToString(got)).toStrictEqual(want);
   });
+
+  test("red handling2", () => {
+    const h = new Hand("34r55677m34r5567p, t4m");
+    const c = new BlockCalculator(h);
+    const got = (c as any).patternAll() as Block[][];
+    const want = [
+      ["345m", "4r56m", "345p", "r567p"],
+      ["345m", "4r56m", "34r5p", "567p"],
+      ["34r5m", "456m", "345p", "r567p"],
+      ["34r5m", "456m", "34r5p", "567p"],
+    ];
+    expect(handsToString(got)).toStrictEqual(want);
+  });
 });
 
 test("patternAll", () => {
@@ -567,14 +580,8 @@ describe("double Calculator", () => {
         {
           fu: 30,
           points: [
-            {
-              double: 1,
-              name: "門前清自摸和",
-            },
-            {
-              double: 2,
-              name: "赤ドラ",
-            },
+            { double: 1, name: "門前清自摸和" },
+            { double: 2, name: "赤ドラ" },
           ],
         },
       ],
