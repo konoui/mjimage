@@ -333,20 +333,33 @@ describe("Block Calculator with drawn", () => {
   });
 });
 
-test("commonByKind", () => {
-  const h = new Hand("111222333456m");
-  const c = new BlockCalculator(h);
-  const got = (c as any).handleNumType(TYPE.M) as Block[][];
-  const want = [
-    ["123m", "123m", "123m", "456m"],
-    ["111m", "234m"],
-    ["111m", "222m", "345m"],
-    ["111m", "222m", "333m", "456m"],
-  ];
-  expect(handsToString(got)).toStrictEqual(want);
+describe("handleNumTypes", () => {
+  test("handleNumType", () => {
+    const h = new Hand("111222333456m");
+    const c = new BlockCalculator(h);
+    const got = (c as any).handleNumType(new Tile(TYPE.M, 1)) as Block[][];
+    const want = [
+      ["123m", "123m", "123m", "456m"],
+      ["111m", "234m"],
+      ["111m", "222m", "345m"],
+      ["111m", "222m", "333m", "456m"],
+    ];
+    expect(handsToString(got)).toStrictEqual(want);
+  });
+
+  test("red handling", () => {
+    const h = new Hand("4r5667s,t5s");
+    const c = new BlockCalculator(h);
+    const got = (c as any).patternAll() as Block[][];
+    const want = [
+      ["456s", "r567s"],
+      ["4r56s", "567s"],
+    ];
+    expect(handsToString(got)).toStrictEqual(want);
+  });
 });
 
-test("handleCommon", () => {
+test("patternAll", () => {
   const h = new Hand("111222333456m111s");
   const c = new BlockCalculator(h);
   const got = (c as any).patternAll() as Block[][];
@@ -526,6 +539,19 @@ describe("double Calculator", () => {
         },
       ],
     },
+    // {
+    //   input: "22m234789p4r5667s,t5s",
+    //   lastTile: new Tile(TYPE.S, 5),
+    //   want: [
+    //     {
+    //       points: [
+    //         { name: "門前清自摸和", double: 1 },
+    //         { name: "赤ドラ", double: 1 },
+    //       ],
+    //       fu: 34,
+    //     },
+    //   ],
+    // },
   ];
   for (let tt of tests) {
     test(tt.input, () => {
@@ -538,10 +564,11 @@ describe("double Calculator", () => {
       };
       const dc = new DoubleCalculator(h, cfg);
       const hands = c.calc(tt.lastTile);
+
       const got = dc.calcPatterns(hands).map((v) => {
         return { points: v.points, fu: v.fu };
       });
-      //console.log(handsToString(hands));
+      // console.log(handsToString(hands));
       //console.log(JSON.stringify(got));
       expect(got).toStrictEqual(tt.want);
     });

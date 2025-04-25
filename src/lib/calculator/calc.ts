@@ -634,9 +634,9 @@ export class BlockCalculator {
     // [["123s", "123s"]]
     // result: [["123m", "123m", "123s", "123s"], ["111m", "333m", "123s", "123s"]]
     const vvv = [
-      this.handleNumType(TYPE.M),
-      this.handleNumType(TYPE.P),
-      this.handleNumType(TYPE.S),
+      this.addRedPattern(TYPE.M, this.handleNumType(new Tile(TYPE.M, 1))),
+      this.addRedPattern(TYPE.P, this.handleNumType(new Tile(TYPE.P, 1))),
+      this.addRedPattern(TYPE.S, this.handleNumType(new Tile(TYPE.S, 1))),
       this.handleZ(),
       this.handleBack(),
       [this.hand.called.concat()],
@@ -673,13 +673,65 @@ export class BlockCalculator {
     return z.length == 0 ? [] : [z];
   }
 
-  private handleNumType(
-    t: typeof TYPE.M | typeof TYPE.P | typeof TYPE.S,
-    n: number = 1
-  ): readonly Block[][] {
+  // TODO similar to markDrawn
+  private addRedPattern(t: Type, hands: readonly Block[][]) {
+    if (!(this.hand.get(t, 0) > 0 && this.hand.get(t, 5) >= 2)) return hands;
+
+    const nonRed = new Tile(t, 5);
+    const red = new Tile(t, 5, [OP.RED]);
+    const nonRedIndexes: [number, number, number][] = [];
+    let redIndex: [number, number, number] = [-1, -1, -1];
+    for (let i = 0; i < hands.length; i++) {
+      const hand = hands[i];
+      const m: { [key: string]: boolean } = {};
+      for (let j = 0; j < hand.length; j++) {
+        const block = hand[j];
+        const k = block.tiles.findIndex(
+          (t) => t.equals(nonRed) && !t.has(OP.RED)
+        );
+        const rk = block.tiles.findIndex((t) => t.equals(red) && t.has(OP.RED));
+        if (rk > -1) redIndex = [i, j, rk];
+        if (rk > -1 && k > -1) continue; // blockThree
+        if (k < 0) continue;
+        const key = buildKey(block);
+        if (m[key]) continue;
+        m[key] = true;
+        nonRedIndexes.push([i, j, k]);
+      }
+    }
+
+    const newHands: Block[][] = [];
+    for (const [hidx, bidx, tidx] of nonRedIndexes) {
+      const hand = hands[hidx];
+      const newHand = [...hand];
+
+      // 5 を r5 に変換
+      const nonRedblock = newHand[bidx];
+      newHand[bidx] = nonRedblock.clone({
+        replace: { idx: tidx, tile: red },
+      });
+
+      // r5 を 5 に変換
+      const redblock = newHand[redIndex[1]];
+      newHand[redIndex[1]] = redblock.clone({
+        replace: { idx: redIndex[2], tile: nonRed },
+      });
+      // 345 と 34r5 入れ変えても同じ
+      if (buildKey(nonRedblock) == buildKey(redblock)) continue;
+      newHands.push(newHand);
+    }
+
+    return [...hands, ...newHands];
+  }
+  private handleNumType(initialTile: Tile): readonly Block[][] {
+    const { t, n } = initialTile;
+    if (![TYPE.M, TYPE.S, TYPE.P].some((v) => v != t))
+      throw new Error(`unexpected type ${initialTile}`);
     if (n > 9) return [];
 
-    if (this.hand.get(t, n) == 0) return this.handleNumType(t, n + 1);
+    if (this.hand.get(t, n) == 0) {
+      return this.handleNumType(new Tile(t, n + 1));
+    }
 
     const ret: Block[][] = [];
     if (
@@ -693,7 +745,7 @@ export class BlockCalculator {
         new Tile(t, n + 1),
         new Tile(t, n + 2),
       ]);
-      let nested = this.handleNumType(t, n);
+      let nested = this.handleNumType(initialTile);
       this.hand.inc(tiles);
       if (nested.length == 0) nested = [[]];
       for (const arr of nested) {
@@ -704,7 +756,7 @@ export class BlockCalculator {
 
     if (this.hand.get(t, n) == 3) {
       const tiles = this.hand.dec(new Array(3).fill(new Tile(t, n)));
-      let nested = this.handleNumType(t, n);
+      let nested = this.handleNumType(initialTile);
       this.hand.inc(tiles);
       if (nested.length == 0) nested = [[]];
       for (const arr of nested) {
@@ -822,12 +874,9 @@ export class DoubleCalculator {
     let idx = 0;
     for (let i = 0; i < patterns.length; i++) {
       const pt = patterns[i];
-      const sum = pt.points.reduce(
-        (a: number, b: { name: string; double: number }) => {
-          return a + b.double;
-        },
-        0
-      );
+      const sum = pt.points.reduce((a: number, b: { double: number }) => {
+        return a + b.double;
+      }, 0);
       if (sum > max[0]) {
         idx = i;
         max = [sum, pt.fu];
