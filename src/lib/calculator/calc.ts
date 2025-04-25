@@ -700,6 +700,8 @@ export class BlockCalculator {
       }
     }
 
+    if (redIndex[2] < 0) return hands;
+
     const newHands: Block[][] = [];
     for (const [hidx, bidx, tidx] of nonRedIndexes) {
       const hand = hands[hidx];

@@ -539,19 +539,46 @@ describe("double Calculator", () => {
         },
       ],
     },
-    // {
-    //   input: "22m234789p4r5667s,t5s",
-    //   lastTile: new Tile(TYPE.S, 5),
-    //   want: [
-    //     {
-    //       points: [
-    //         { name: "門前清自摸和", double: 1 },
-    //         { name: "赤ドラ", double: 1 },
-    //       ],
-    //       fu: 34,
-    //     },
-    //   ],
-    // },
+    {
+      input: "22m234789p4r5667s,t5s",
+      lastTile: new Tile(TYPE.S, 5),
+      want: [
+        {
+          fu: 24,
+          points: [
+            { double: 1, name: "門前清自摸和" },
+            { double: 1, name: "赤ドラ" },
+          ],
+        },
+        {
+          fu: 20,
+          points: [
+            { double: 1, name: "門前清自摸和" },
+            { double: 1, name: "平和" },
+            { double: 1, name: "赤ドラ" },
+          ],
+        },
+      ],
+    },
+    {
+      input: "r567mr55678p456s44z, t4z",
+      lastTile: new Tile(TYPE.Z, 4),
+      want: [
+        {
+          fu: 30,
+          points: [
+            {
+              double: 1,
+              name: "門前清自摸和",
+            },
+            {
+              double: 2,
+              name: "赤ドラ",
+            },
+          ],
+        },
+      ],
+    },
   ];
   for (let tt of tests) {
     test(tt.input, () => {
