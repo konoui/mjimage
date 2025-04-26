@@ -1226,6 +1226,7 @@ export class DoubleCalculator {
     return [];
   }
   dG2(h: readonly Block[]) {
+    if (h.length == 7) return [];
     const l = h.filter((b) => {
       const t = b.tiles[0];
       return t.t == TYPE.Z && [5, 6, 7].includes(t.n);
