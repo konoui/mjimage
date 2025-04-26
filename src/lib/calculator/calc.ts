@@ -680,7 +680,7 @@ export class BlockCalculator {
     const nonRed = new Tile(t, 5);
     const red = new Tile(t, 5, [OP.RED]);
     const nonRedIndexes: [number, number, number][] = [];
-    let redIndex: [number, number, number] = [-1, -1, -1];
+    const redIndexes: [number, number, number][] = [];
     for (let i = 0; i < hands.length; i++) {
       const hand = hands[i];
       const m: { [key: string]: boolean } = {};
@@ -690,7 +690,7 @@ export class BlockCalculator {
           (t) => t.equals(nonRed) && !t.has(OP.RED)
         );
         const rk = block.tiles.findIndex((t) => t.equals(red) && t.has(OP.RED));
-        if (rk > -1) redIndex = [i, j, rk];
+        if (rk > -1) redIndexes.push([i, j, rk]);
         if (rk > -1 && k > -1) continue; // blockThree
         if (k < 0) continue;
         const key = buildKey(block);
@@ -700,7 +700,7 @@ export class BlockCalculator {
       }
     }
 
-    if (redIndex[2] < 0) return hands;
+    if (redIndexes.length == 0) return hands;
 
     const newHands: Block[][] = [];
     for (const [hidx, bidx, tidx] of nonRedIndexes) {
@@ -714,7 +714,10 @@ export class BlockCalculator {
       });
 
       // r5 を 5 に変換
+      const redIndex = redIndexes.find((index) => index[0] == hidx);
+      if (redIndex == null) continue;
       const redblock = newHand[redIndex[1]];
+      if (redblock == null) console.error(redIndex, nonRedIndexes);
       newHand[redIndex[1]] = redblock.clone({
         replace: { idx: redIndex[2], tile: nonRed },
       });

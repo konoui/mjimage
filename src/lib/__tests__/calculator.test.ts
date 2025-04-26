@@ -333,7 +333,7 @@ describe("Block Calculator with drawn", () => {
   });
 });
 
-describe("handleNumTypes", () => {
+describe("handleNumType/handleAll", () => {
   test("handleNumType", () => {
     const h = new Hand("111222333456m");
     const c = new BlockCalculator(h);
@@ -343,6 +343,19 @@ describe("handleNumTypes", () => {
       ["111m", "234m"],
       ["111m", "222m", "345m"],
       ["111m", "222m", "333m", "456m"],
+    ];
+    expect(handsToString(got)).toStrictEqual(want);
+  });
+
+  test("patternAll", () => {
+    const h = new Hand("111222333456m111s");
+    const c = new BlockCalculator(h);
+    const got = (c as any).patternAll() as Block[][];
+    const want = [
+      ["123m", "123m", "123m", "456m", "111s"],
+      ["111m", "234m", "111s"],
+      ["111m", "222m", "345m", "111s"],
+      ["111m", "222m", "333m", "456m", "111s"],
     ];
     expect(handsToString(got)).toStrictEqual(want);
   });
@@ -370,19 +383,14 @@ describe("handleNumTypes", () => {
     ];
     expect(handsToString(got)).toStrictEqual(want);
   });
-});
 
-test("patternAll", () => {
-  const h = new Hand("111222333456m111s");
-  const c = new BlockCalculator(h);
-  const got = (c as any).patternAll() as Block[][];
-  const want = [
-    ["123m", "123m", "123m", "456m", "111s"],
-    ["111m", "234m", "111s"],
-    ["111m", "222m", "345m", "111s"],
-    ["111m", "222m", "333m", "456m", "111s"],
-  ];
-  expect(handsToString(got)).toStrictEqual(want);
+  test("red handling3", () => {
+    const h = new Hand("44r55567m, t4m");
+    const c = new BlockCalculator(h);
+    const got = (c as any).patternAll() as Block[][];
+    const want = [["456m"], ["444m", "567m"], ["444m", "r555m"]];
+    expect(handsToString(got)).toStrictEqual(want);
+  });
 });
 
 describe("double Calculator", () => {
