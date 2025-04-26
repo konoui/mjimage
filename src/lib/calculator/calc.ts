@@ -1467,7 +1467,8 @@ export class DoubleCalculator {
     if (tile.t == TYPE.Z) {
       if ([5, 6, 7].includes(tile.n)) fu += 2;
       if (tile.n == round) fu += 2;
-      if (tile.n == myWind) fu += 2;
+      // 連風対子は無効
+      else if (tile.n == myWind) fu += 2;
     }
 
     // 平和
