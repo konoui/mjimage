@@ -634,9 +634,9 @@ export class BlockCalculator {
     // [["123s", "123s"]]
     // result: [["123m", "123m", "123s", "123s"], ["111m", "333m", "123s", "123s"]]
     const vvv = [
-      this.addRedPattern(TYPE.M, this.handleNumType(new Tile(TYPE.M, 1))),
-      this.addRedPattern(TYPE.P, this.handleNumType(new Tile(TYPE.P, 1))),
-      this.addRedPattern(TYPE.S, this.handleNumType(new Tile(TYPE.S, 1))),
+      this.addRedPattern(TYPE.M, this.handleNumType(TYPE.M)),
+      this.addRedPattern(TYPE.P, this.handleNumType(TYPE.P)),
+      this.addRedPattern(TYPE.S, this.handleNumType(TYPE.S)),
       this.handleZ(),
       this.handleBack(),
       [this.hand.called.concat()],
@@ -725,14 +725,14 @@ export class BlockCalculator {
 
     return [...hands, ...newHands];
   }
-  private handleNumType(initialTile: Tile): readonly Block[][] {
-    const { t, n } = initialTile;
-    if (![TYPE.M, TYPE.S, TYPE.P].some((v) => v != t))
-      throw new Error(`unexpected type ${initialTile}`);
+  private handleNumType(
+    t: typeof TYPE.M | typeof TYPE.S | typeof TYPE.P,
+    n: number = 1
+  ): readonly Block[][] {
     if (n > 9) return [];
 
     if (this.hand.get(t, n) == 0) {
-      return this.handleNumType(new Tile(t, n + 1));
+      return this.handleNumType(t, n + 1);
     }
 
     const ret: Block[][] = [];
@@ -747,7 +747,7 @@ export class BlockCalculator {
         new Tile(t, n + 1),
         new Tile(t, n + 2),
       ]);
-      let nested = this.handleNumType(initialTile);
+      let nested = this.handleNumType(t, n);
       this.hand.inc(tiles);
       if (nested.length == 0) nested = [[]];
       for (const arr of nested) {
@@ -758,7 +758,7 @@ export class BlockCalculator {
 
     if (this.hand.get(t, n) == 3) {
       const tiles = this.hand.dec(new Array(3).fill(new Tile(t, n)));
-      let nested = this.handleNumType(initialTile);
+      let nested = this.handleNumType(t, n);
       this.hand.inc(tiles);
       if (nested.length == 0) nested = [[]];
       for (const arr of nested) {

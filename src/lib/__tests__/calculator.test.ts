@@ -337,7 +337,7 @@ describe("handleNumTypes", () => {
   test("handleNumType", () => {
     const h = new Hand("111222333456m");
     const c = new BlockCalculator(h);
-    const got = (c as any).handleNumType(new Tile(TYPE.M, 1)) as Block[][];
+    const got = (c as any).handleNumType(TYPE.M) as Block[][];
     const want = [
       ["123m", "123m", "123m", "456m"],
       ["111m", "234m"],
