@@ -818,6 +818,7 @@ export interface BoardContext {
   finalDiscardWin?: boolean;
   oneShotWin?: boolean;
   roundUp8000?: boolean;
+  disableCountable32000?: boolean;
 }
 
 export interface WinResult {
@@ -848,6 +849,7 @@ export class DoubleCalculator {
     finalDiscardWin: boolean;
     oneShotWin: boolean;
     roundUp8000: boolean;
+    disableCountable32000: boolean;
     orig: BoardContext;
   };
   constructor(hand: Hand, params: BoardContext) {
@@ -868,6 +870,7 @@ export class DoubleCalculator {
       finalDiscardWin: params.finalDiscardWin ?? false,
       oneShotWin: params.oneShotWin ?? false,
       roundUp8000: params.roundUp8000 ?? false,
+      disableCountable32000: params.disableCountable32000 ?? false,
       orig: params,
     };
   }
@@ -923,7 +926,11 @@ export class DoubleCalculator {
         base = 2000;
         break;
     }
-    if (sum > 13 && sum < 26) base = 8000; // 数え役満
+    if (sum >= 13 && sum < 26) {
+      base = 8000; // 数え役満
+      if (this.cfg.disableCountable32000 && patterns[idx].points.length > 1)
+        base = 6000; // 3倍満
+    }
     // 切り上げ満貫
     if (this.cfg.roundUp8000) {
       if ((fu == 30 && sum == 4) || (fu == 60 && sum == 3)) {

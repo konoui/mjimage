@@ -589,7 +589,9 @@ export class Parser {
     // Note: dummy tile for validation
     const [_, isKind] = isTypeAlias(lastChar, [new Tile(TYPE.BACK, 1)]);
     if (!isKind)
-      throw new Error(`last character(${lastChar}) is not type value`);
+      throw new Error(
+        `last character: ${lastChar} is not type value: ${input}`
+      );
   }
 }
 
