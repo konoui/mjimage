@@ -611,7 +611,14 @@ export class BlockCalculator {
     let ret: Block[][] = [];
     for (const [t, n] of forHand()) {
       if (this.hand.get(t, n) >= 2) {
-        const tiles = this.hand.dec(new Array(2).fill(new Tile(t, n)));
+        const toDec = new Array(2).fill(new Tile(t, n));
+        // OP.RED をつけないと、最後の（面子の） dec で RED が消費される。
+        // e.g. 5s が 3枚あり、頭で 5s を2枚消費すると、patternAll で r5s と 5s のパータンを計算できなくなる。
+        // 明示的に OP.RED を頭で消費するようにする。
+        if (n == 5 && this.hand.get(t, 0) > 0 && this.hand.get(t, n) >= 3) {
+          toDec[1] = new Tile(t, n, [OP.RED]);
+        }
+        const tiles = this.hand.dec(toDec);
         // 1. calc all cases without two pairs
         // 2. remove non five blocks
         // 3. add two pairs to the head
