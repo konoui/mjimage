@@ -347,11 +347,11 @@ class MockWall extends Wall {
   pushTile(t: string) {
     this.wall.push(t);
   }
-  get doraMarkers() {
+  get doraIndicators() {
     return [new Tile(TYPE.Z, 8)];
   }
-  get blindDoraMarkers() {
-    return this.doraMarkers;
+  get hiddenDoraIndicators() {
+    return this.doraIndicators;
   }
 
   addExclude(...tiles: string[]) {

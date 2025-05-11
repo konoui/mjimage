@@ -6,9 +6,9 @@ import { shuffle } from "./managers";
 export interface IWall {
   kan(): Tile;
   draw(): Tile;
-  openDoraMarker(): Tile;
-  doraMarkers: readonly Tile[];
-  blindDoraMarkers: readonly Tile[];
+  openDoraIndicator(): Tile;
+  doraIndicators: readonly Tile[];
+  hiddenDoraIndicators: readonly Tile[];
   canKan: boolean;
   canDraw: boolean;
   export(): WallProps;
@@ -24,16 +24,16 @@ export interface WallProps {
   drawable: string[];
   dead: string[];
   replacement: string[];
-  doraMarkers: string[];
-  blindDoraMarkers: string[];
+  doraIndicators: string[];
+  hiddenDoraIndicators: string[];
 }
 
 export class Wall {
   private walls: WallProps = {
     replacement: [],
     dead: [],
-    doraMarkers: [],
-    blindDoraMarkers: [],
+    doraIndicators: [],
+    hiddenDoraIndicators: [],
     drawable: [],
   };
   private backup: WallProps;
@@ -54,17 +54,19 @@ export class Wall {
     return Tile.from(this.walls.drawable.pop()!);
   }
 
-  openDoraMarker() {
+  openDoraIndicator() {
     if (this.openedDoraCount >= 4)
       throw new Error("exceeded maximum open dora");
     this.openedDoraCount++;
-    return Tile.from(this.walls.doraMarkers[this.openedDoraCount - 1]);
+    return Tile.from(this.walls.doraIndicators[this.openedDoraCount - 1]);
   }
-  get doraMarkers() {
-    return this.walls.doraMarkers.slice(0, this.openedDoraCount).map(Tile.from);
+  get doraIndicators() {
+    return this.walls.doraIndicators
+      .slice(0, this.openedDoraCount)
+      .map(Tile.from);
   }
-  get blindDoraMarkers() {
-    return this.walls.blindDoraMarkers
+  get hiddenDoraIndicators() {
+    return this.walls.hiddenDoraIndicators
       .slice(0, this.openedDoraCount)
       .map(Tile.from);
   }
@@ -113,10 +115,10 @@ export class Wall {
       this.walls.dead.push(this.walls.drawable.pop()!);
     }
     for (let i = 0; i < 4; i++) {
-      this.walls.blindDoraMarkers.push(this.walls.dead.pop()!);
+      this.walls.hiddenDoraIndicators.push(this.walls.dead.pop()!);
     }
     for (let i = 0; i < 4; i++) {
-      this.walls.doraMarkers.push(this.walls.dead.pop()!);
+      this.walls.doraIndicators.push(this.walls.dead.pop()!);
     }
     for (let i = 0; i < 4; i++) {
       this.walls.replacement.push(this.walls.dead.pop()!);
@@ -129,8 +131,8 @@ export class Wall {
     return {
       drawable: walls.drawable.concat(),
       dead: walls.dead.concat(),
-      doraMarkers: walls.doraMarkers.concat(),
-      blindDoraMarkers: walls.blindDoraMarkers.concat(),
+      doraIndicators: walls.doraIndicators.concat(),
+      hiddenDoraIndicators: walls.hiddenDoraIndicators.concat(),
       replacement: walls.replacement.concat(),
     };
   }

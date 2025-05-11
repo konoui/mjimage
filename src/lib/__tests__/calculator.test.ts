@@ -3,9 +3,10 @@ import {
   BlockCalculator,
   Hand,
   HandData,
-  DoubleCalculator,
+  PointCalculator,
   BoardContext,
   WinResult,
+  Yaku,
 } from "../calculator";
 import { TYPE, OP, Wind } from "../core/constants";
 import { Block, Parser, Tile } from "../core/parser";
@@ -393,16 +394,21 @@ describe("handleNumType/handleAll", () => {
   });
 });
 
-describe("double Calculator", () => {
-  const tests = [
+describe("Point Calculator", () => {
+  const tests: {
+    input: string;
+    lastTile: Tile;
+    myWind?: Wind;
+    want: { yakus: Yaku[]; fu: number }[];
+  }[] = [
     {
       input: "123123s111222m22z",
       lastTile: new Tile(TYPE.S, 1, [OP.TSUMO]),
       want: [
         {
-          points: [
-            { name: "門前清自摸和", double: 1 },
-            { name: "一盃口", double: 1 },
+          yakus: [
+            { name: "門前清自摸和", han: 1 },
+            { name: "一盃口", han: 1 },
           ],
           fu: 34,
         },
@@ -413,11 +419,11 @@ describe("double Calculator", () => {
       lastTile: new Tile(TYPE.S, 1),
       want: [
         {
-          points: [
-            { name: "平和", double: 1 },
-            { name: "一盃口", double: 1 },
-            { name: "三色同順", double: 2 },
-            { name: "混全帯么九", double: 2 },
+          yakus: [
+            { name: "平和", han: 1 },
+            { name: "一盃口", han: 1 },
+            { name: "三色同順", han: 2 },
+            { name: "混全帯么九", han: 2 },
           ],
           fu: 30,
         },
@@ -428,18 +434,18 @@ describe("double Calculator", () => {
       lastTile: new Tile(TYPE.S, 1, [OP.TSUMO]),
       want: [
         {
-          points: [
-            { name: "門前清自摸和", double: 1 },
-            { name: "平和", double: 1 },
-            { name: "一盃口", double: 1 },
-            { name: "純全帯么九色", double: 3 },
+          yakus: [
+            { name: "門前清自摸和", han: 1 },
+            { name: "平和", han: 1 },
+            { name: "一盃口", han: 1 },
+            { name: "純全帯么九色", han: 3 },
           ],
           fu: 20,
         },
         {
-          points: [
-            { name: "門前清自摸和", double: 1 },
-            { name: "三暗刻", double: 2 },
+          yakus: [
+            { name: "門前清自摸和", han: 1 },
+            { name: "三暗刻", han: 2 },
           ],
           fu: 38,
         },
@@ -450,7 +456,7 @@ describe("double Calculator", () => {
       lastTile: new Tile(TYPE.S, 9),
       want: [
         {
-          points: [{ name: "三暗刻", double: 2 }],
+          yakus: [{ name: "三暗刻", han: 2 }],
           fu: 48,
         },
       ],
@@ -458,16 +464,16 @@ describe("double Calculator", () => {
     {
       input: "222333s234m88567s",
       lastTile: new Tile(TYPE.S, 2),
-      want: [{ points: [{ name: "断么九", double: 1 }], fu: 36 }],
+      want: [{ yakus: [{ name: "断么九", han: 1 }], fu: 36 }],
     },
     {
       input: "12344456789m123s",
       lastTile: new Tile(TYPE.S, 3),
       want: [
         {
-          points: [
-            { name: "一気通貫", double: 2 },
-            { name: "ドラ", double: 1 },
+          yakus: [
+            { name: "一気通貫", han: 2 },
+            { name: "ドラ", han: 1 },
           ],
           fu: 32,
         },
@@ -477,11 +483,11 @@ describe("double Calculator", () => {
       input: "112233m223344s22z",
       lastTile: new Tile(TYPE.M, 1),
       want: [
-        { points: [{ name: "七対子", double: 2 }], fu: 25 },
+        { yakus: [{ name: "七対子", han: 2 }], fu: 25 },
         {
-          points: [
-            { name: "平和", double: 1 },
-            { name: "ニ盃口", double: 3 },
+          yakus: [
+            { name: "平和", han: 1 },
+            { name: "ニ盃口", han: 3 },
           ],
           fu: 30,
         },
@@ -492,9 +498,9 @@ describe("double Calculator", () => {
       lastTile: new Tile(TYPE.M, 3, [OP.TSUMO]),
       want: [
         {
-          points: [
-            { name: "断么九", double: 1 },
-            { name: "三色同順", double: 1 },
+          yakus: [
+            { name: "断么九", han: 1 },
+            { name: "三色同順", han: 1 },
           ],
           fu: 24,
         },
@@ -503,16 +509,16 @@ describe("double Calculator", () => {
     {
       input: "111333m11p,5-5-55s, -3333s",
       lastTile: new Tile(TYPE.M, 3, [OP.TSUMO]),
-      want: [{ points: [{ name: "対々和", double: 2 }], fu: 50 }],
+      want: [{ yakus: [{ name: "対々和", han: 2 }], fu: 50 }],
     },
     {
       input: "111w123s456m33m, -678m",
       lastTile: new Tile(TYPE.M, 3, [OP.TSUMO]),
       want: [
         {
-          points: [
-            { name: "自風", double: 1 },
-            { name: "場風", double: 1 },
+          yakus: [
+            { name: "自風", han: 1 },
+            { name: "場風", han: 1 },
           ],
           fu: 32,
         },
@@ -523,9 +529,9 @@ describe("double Calculator", () => {
       lastTile: new Tile(TYPE.P, 3, [OP.RON]),
       want: [
         {
-          points: [
-            { name: "一気通貫", double: 1 },
-            { name: "赤ドラ", double: 1 },
+          yakus: [
+            { name: "一気通貫", han: 1 },
+            { name: "赤ドラ", han: 1 },
           ],
           fu: 22,
         },
@@ -536,11 +542,11 @@ describe("double Calculator", () => {
       lastTile: new Tile(TYPE.M, 9, [OP.TSUMO]),
       want: [
         {
-          points: [
-            { name: "中", double: 1 },
-            { name: "対々和", double: 2 },
-            { name: "三暗刻", double: 2 },
-            { name: "ドラ", double: 3 },
+          yakus: [
+            { name: "中", han: 1 },
+            { name: "対々和", han: 2 },
+            { name: "三暗刻", han: 2 },
+            { name: "ドラ", han: 3 },
           ],
           fu: 72,
         },
@@ -549,12 +555,12 @@ describe("double Calculator", () => {
     {
       input: "6789m789s444z6m,3-33z",
       lastTile: new Tile(TYPE.M, 6, [OP.RON]),
-      myWind: "3w" as Wind,
+      myWind: "3w",
       want: [
         {
-          points: [
-            { name: "自風", double: 1 },
-            { name: "ドラ", double: 1 },
+          yakus: [
+            { name: "自風", han: 1 },
+            { name: "ドラ", han: 1 },
           ],
           fu: 34,
         },
@@ -566,17 +572,17 @@ describe("double Calculator", () => {
       want: [
         {
           fu: 24,
-          points: [
-            { double: 1, name: "門前清自摸和" },
-            { double: 1, name: "赤ドラ" },
+          yakus: [
+            { han: 1, name: "門前清自摸和" },
+            { han: 1, name: "赤ドラ" },
           ],
         },
         {
           fu: 20,
-          points: [
-            { double: 1, name: "門前清自摸和" },
-            { double: 1, name: "平和" },
-            { double: 1, name: "赤ドラ" },
+          yakus: [
+            { han: 1, name: "門前清自摸和" },
+            { han: 1, name: "平和" },
+            { han: 1, name: "赤ドラ" },
           ],
         },
       ],
@@ -587,9 +593,9 @@ describe("double Calculator", () => {
       want: [
         {
           fu: 30,
-          points: [
-            { double: 1, name: "門前清自摸和" },
-            { double: 2, name: "赤ドラ" },
+          yakus: [
+            { han: 1, name: "門前清自摸和" },
+            { han: 2, name: "赤ドラ" },
           ],
         },
       ],
@@ -600,17 +606,17 @@ describe("double Calculator", () => {
       want: [
         {
           fu: 24,
-          points: [
-            { double: 1, name: "門前清自摸和" },
-            { double: 2, name: "赤ドラ" },
+          yakus: [
+            { han: 1, name: "門前清自摸和" },
+            { han: 2, name: "赤ドラ" },
           ],
         },
         {
           fu: 20,
-          points: [
-            { double: 1, name: "門前清自摸和" },
-            { double: 1, name: "平和" },
-            { double: 2, name: "赤ドラ" },
+          yakus: [
+            { han: 1, name: "門前清自摸和" },
+            { han: 1, name: "平和" },
+            { han: 2, name: "赤ドラ" },
           ],
         },
       ],
@@ -621,18 +627,16 @@ describe("double Calculator", () => {
       const h = new Hand(tt.input);
       const c = new BlockCalculator(h);
       const cfg: BoardContext = {
-        doraMarkers: [new Tile(TYPE.M, 8)],
+        doraIndicators: [new Tile(TYPE.M, 8)],
         myWind: tt.myWind ?? "1w",
         round: "1w1",
       };
-      const dc = new DoubleCalculator(h, cfg);
+      const dc = new PointCalculator(h, cfg);
       const hands = c.calc(tt.lastTile);
 
       const got = dc.calcPatterns(hands).map((v) => {
-        return { points: v.points, fu: v.fu };
+        return { yakus: v.yakus, fu: v.fu };
       });
-      // console.log(handsToString(hands));
-      //console.log(JSON.stringify(got));
       expect(got).toStrictEqual(tt.want);
     });
   }
@@ -644,12 +648,12 @@ describe("calc", () => {
     const h = new Hand(input);
     const c = new BlockCalculator(h);
     const cfg: BoardContext = {
-      doraMarkers: [new Tile(TYPE.M, 8)],
+      doraIndicators: [new Tile(TYPE.M, 8)],
       myWind: "1w",
       round: "1w1",
       ronWind: "2w",
     };
-    const dc = new DoubleCalculator(h, cfg);
+    const dc = new PointCalculator(h, cfg);
     const hands = c.calc(new Tile(TYPE.M, 3, [OP.RON]));
     const got = dc.calc(...hands);
 
@@ -664,12 +668,12 @@ describe("calc", () => {
     const h = new Hand(input);
     const c = new BlockCalculator(h);
     const cfg: BoardContext = {
-      doraMarkers: [new Tile(TYPE.M, 8)],
+      doraIndicators: [new Tile(TYPE.M, 8)],
       myWind: "1w",
       round: "1w1",
       ronWind: "2w",
     };
-    const dc = new DoubleCalculator(h, cfg);
+    const dc = new PointCalculator(h, cfg);
     const hands = c.calc(lastTile);
     const got = dc.calc(...hands);
 
@@ -683,12 +687,12 @@ describe("calc", () => {
     const h = new Hand(input);
     const c = new BlockCalculator(h);
     const cfg: BoardContext = {
-      doraMarkers: [new Tile(TYPE.M, 9)],
+      doraIndicators: [new Tile(TYPE.M, 9)],
       myWind: "1w",
       round: "1w1",
       ronWind: "2w",
     };
-    const dc = new DoubleCalculator(h, cfg);
+    const dc = new PointCalculator(h, cfg);
     const hands = c.calc(new Tile(TYPE.M, 3));
     const got = dc.calc(...hands);
 
@@ -701,13 +705,13 @@ describe("calc", () => {
     const h = new Hand(input);
     const c = new BlockCalculator(h);
     const cfg: BoardContext = {
-      doraMarkers: [new Tile(TYPE.M, 9)],
+      doraIndicators: [new Tile(TYPE.M, 9)],
       myWind: "2w",
       round: "1w1",
       ronWind: "2w",
       roundUp8000: true,
     };
-    const dc = new DoubleCalculator(h, cfg);
+    const dc = new PointCalculator(h, cfg);
     const hands = c.calc(new Tile(TYPE.M, 3));
     const got = dc.calc(...hands);
 

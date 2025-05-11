@@ -17,7 +17,7 @@ import {
   Hand,
   ShantenCalculator,
   BlockCalculator,
-  DoubleCalculator,
+  PointCalculator,
   WinResult,
   Efficiency,
   Candidate,
@@ -132,7 +132,7 @@ export class Controller {
         d.length == 0 || (d.length == 1 && d[0].t.has(OP.HORIZONTAL)) ? 2 : 1;
     }
     return {
-      doraMarkers: this.observer.doraMarkers,
+      doraIndicators: this.observer.doraIndicators,
       round: this.placeManager.round,
       myWind: w,
       sticks: this.observer.placeManager.sticks,
@@ -423,13 +423,13 @@ export class Controller {
   }
   finalResult(ret: WinResult, iam: Wind) {
     const hand = this.hand(iam);
-    const blindDoraMarkers = hand.reached
-      ? this.wall.blindDoraMarkers
+    const hiddenDoraIndicators = hand.reached
+      ? this.wall.hiddenDoraIndicators
       : undefined;
-    const final = new DoubleCalculator(hand, {
+    const final = new PointCalculator(hand, {
       ...ret.boardContext,
       sticks: this.placeManager.sticks,
-      blindDoraMarkers: blindDoraMarkers,
+      hiddenDoraIndicators,
     }).calc(ret.hand);
     assert(final);
     return final;
@@ -464,11 +464,11 @@ export class Controller {
     env.oneShotWin = params?.oneShot;
 
     const tc = new BlockCalculator(hand);
-    const dc = new DoubleCalculator(hand, env);
+    const dc = new PointCalculator(hand, env);
     const hands = tc.calc(t);
     const ret = dc.calc(...hands);
     if (!ret) return false;
-    if (ret.points.length == 0) return false;
+    if (ret.yakus.length == 0) return false;
 
     // case ron フリテン対応
     if (hand.draw == null) {
@@ -803,7 +803,7 @@ export abstract class BaseActor {
   scoreManager = new ScoreManager({}); // empty for init
   hands = createWindMap(new ActorHand("")); // empty for init
   counter = new Counter();
-  doraMarkers: Tile[] = []; // empty for init
+  doraIndicators: Tile[] = []; // empty for init
   eventHandler: EventHandler;
   constructor(id: string, eventHandler: EventHandler) {
     this.id = id;
@@ -826,7 +826,7 @@ export abstract class BaseActor {
         // reset
         this.counter.reset();
 
-        const doraMarker = Tile.from(e.doraMarker);
+        const doraIndicator = Tile.from(e.doraIndicator);
 
         this.setHands(e);
         this.placeManager = new PlaceManager(structuredClone(e.places), {
@@ -834,9 +834,9 @@ export abstract class BaseActor {
           sticks: structuredClone(e.sticks),
         });
         this.scoreManager = new ScoreManager(structuredClone(e.scores));
-        this.doraMarkers = [doraMarker];
+        this.doraIndicators = [doraIndicator];
 
-        this.counter.dec(doraMarker);
+        this.counter.dec(doraIndicator);
         for (const w of Object.values(WIND)) {
           if (w != e.wind) continue;
           this.counter.dec(...this.hand(w).hands);
@@ -908,9 +908,9 @@ export abstract class BaseActor {
         this.placeManager.incrementReachStick();
         break;
       case "NEW_DORA": {
-        const doraMarker = Tile.from(e.doraMarker);
-        this.doraMarkers.push(doraMarker);
-        this.counter.dec(doraMarker);
+        const doraIndicator = Tile.from(e.doraIndicator);
+        this.doraIndicators.push(doraIndicator);
+        this.counter.dec(doraIndicator);
         break;
       }
       case "TSUMO":

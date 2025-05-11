@@ -792,18 +792,23 @@ export const deserializeWinResult = (ret: SerializedWinResult): WinResult => {
     hand: ret.hand.map(Block.deserialize),
     boardContext: {
       ...bc,
-      doraMarkers: bc.doraMarkers.map(Tile.from),
-      blindDoraMarkers: bc.blindDoraMarkers?.map(Tile.from),
+      doraIndicators: bc.doraIndicators.map(Tile.from),
+      hiddenDoraIndicators: bc.hiddenDoraIndicators?.map(Tile.from),
     },
   };
 };
 
+export const serializeWinResult = (ret: WinResult) => {
+  const v = JSON.parse(JSON.stringify(ret)) as SerializedWinResult;
+  return v;
+};
+
 type SerializedBoardContext = Omit<
   BoardContext,
-  "doraMarkers" | "blindDoraMarkers"
+  "doraIndicators" | "hiddenDoraIndicators"
 > & {
-  doraMarkers: readonly string[];
-  blindDoraMarkers?: readonly string[];
+  doraIndicators: readonly string[];
+  hiddenDoraIndicators?: readonly string[];
 };
 
 export type SerializedWinResult = Omit<WinResult, "hand" | "boardContext"> & {
@@ -812,8 +817,8 @@ export type SerializedWinResult = Omit<WinResult, "hand" | "boardContext"> & {
 };
 
 export interface BoardContext {
-  doraMarkers: readonly Tile[];
-  blindDoraMarkers?: readonly Tile[];
+  doraIndicators: readonly Tile[];
+  hiddenDoraIndicators?: readonly Tile[];
   round: Round;
   myWind: Wind;
   ronWind?: Wind;
@@ -832,16 +837,18 @@ export interface WinResult {
   deltas: { readonly [w in Wind]: number };
   sum: number;
   fu: number;
-  points: readonly {
-    name: string;
-    double: number;
-  }[];
+  yakus: readonly Yaku[];
   point: number;
   hand: Block[]; // TODO readonly
   boardContext: BoardContext;
 }
 
-export class DoubleCalculator {
+export interface Yaku {
+  name: string;
+  han: number;
+}
+
+export class PointCalculator {
   hand: Hand;
   cfg: {
     doras: readonly Tile[];
@@ -862,11 +869,11 @@ export class DoubleCalculator {
   constructor(hand: Hand, params: BoardContext) {
     this.hand = hand;
     this.cfg = {
-      doras: params.doraMarkers.map((v) => toDora(v)), // convert to dora
+      doras: params.doraIndicators.map((v) => toDora(v)), // convert to dora
       blindDoras:
-        params.blindDoraMarkers == null
+        params.hiddenDoraIndicators == null
           ? []
-          : params.blindDoraMarkers.map((v) => toDora(v)),
+          : params.hiddenDoraIndicators.map((v) => toDora(v)),
       roundWind: Tile.from(params.round.substring(0, 2)),
       myWind: Tile.from(params.myWind),
       reached: params.reached ?? 0,
@@ -889,8 +896,8 @@ export class DoubleCalculator {
     let idx = 0;
     for (let i = 0; i < patterns.length; i++) {
       const pt = patterns[i];
-      const sum = pt.points.reduce((a: number, b: { double: number }) => {
-        return a + b.double;
+      const sum = pt.yakus.reduce((a: number, b: Yaku) => {
+        return a + b.han;
       }, 0);
       if (sum > max[0]) {
         idx = i;
@@ -935,7 +942,7 @@ export class DoubleCalculator {
     }
     if (sum >= 13 && sum < 26) {
       base = 8000; // 数え役満
-      if (this.cfg.disableCountable32000 && patterns[idx].points.length > 1)
+      if (this.cfg.disableCountable32000 && patterns[idx].yakus.length > 1)
         base = 6000; // 3倍満
     }
     // 切り上げ満貫
@@ -985,7 +992,7 @@ export class DoubleCalculator {
       deltas: deltas,
       sum: sum,
       fu: fu,
-      points: patterns[idx].points,
+      yakus: patterns[idx].yakus,
       point: deltas[myWind],
       hand: patterns[idx].hand,
       boardContext: this.cfg.orig,
@@ -994,7 +1001,7 @@ export class DoubleCalculator {
   }
   calcPatterns(hands: readonly Block[][]) {
     const ret: {
-      points: { name: string; double: number }[];
+      yakus: Yaku[];
       fu: number;
       hand: Block[];
     }[] = [];
@@ -1016,7 +1023,7 @@ export class DoubleCalculator {
 
       if (v.length == 0) continue;
       ret.push({
-        points: v,
+        yakus: v,
         fu: 30,
         hand: hand,
       });
@@ -1057,10 +1064,10 @@ export class DoubleCalculator {
         ...this.dA6(hand),
       ];
       if (v.length == 0) continue;
-      // doras are evaluated when other double exists
+      // doras are evaluated when other yaku exists
       v.push(...this.dX1(hand));
       ret.push({
-        points: v,
+        yakus: v,
         fu: fu,
         hand: hand,
       });
@@ -1072,71 +1079,70 @@ export class DoubleCalculator {
     return this.hand.menzen ? 0 : 1;
   }
 
-  dA1(h: readonly Block[]) {
-    if (this.cfg.reached == 1) return [{ name: "立直", double: 1 }];
-    if (this.cfg.reached == 2) return [{ name: "ダブル立直", double: 2 }];
+  dA1(h: readonly Block[]): Yaku[] {
+    if (this.cfg.reached == 1) return [{ name: "立直", han: 1 }];
+    if (this.cfg.reached == 2) return [{ name: "ダブル立直", han: 2 }];
     return [];
   }
-  dB1(h: readonly Block[]) {
+  dB1(h: readonly Block[]): Yaku[] {
     if (this.minus() != 0) return [];
     if (this.hand.drawn == null) [];
     const cond = h.some((b) => b.tiles.some((t) => t.has(OP.TSUMO)));
-    return cond ? [{ name: "門前清自摸和", double: 1 }] : [];
+    return cond ? [{ name: "門前清自摸和", han: 1 }] : [];
   }
-  dC1(h: readonly Block[]) {
+  dC1(h: readonly Block[]): Yaku[] {
     if (this.minus() != 0) return [];
-    const yaku = "平和";
+    const name = "平和";
     const fu = this.calcFu(h);
-    if (fu == 20) return [{ name: yaku, double: 1 }];
+    if (fu == 20) return [{ name: name, han: 1 }];
     if (!h.some((b) => b.tiles.some((t) => t.has(OP.TSUMO)))) {
-      if (fu == 30) return [{ name: yaku, double: 1 }];
+      if (fu == 30) return [{ name: name, han: 1 }];
     }
     return [];
   }
-  dD1(h: readonly Block[]) {
+  dD1(h: readonly Block[]): Yaku[] {
     const cond = h.some((block) =>
       block.tiles.some((t) => t.t == TYPE.Z || N19.includes(t.n))
     );
-    return cond ? [] : [{ name: "断么九", double: 1 }];
+    return cond ? [] : [{ name: "断么九", han: 1 }];
   }
-  dE1(h: readonly Block[]) {
+  dE1(h: readonly Block[]): Yaku[] {
     if (this.minus() != 0) return [];
 
     const count = countSameBlocks(h);
-    return count == 1 ? [{ name: "一盃口", double: 1 }] : [];
+    return count == 1 ? [{ name: "一盃口", han: 1 }] : [];
   }
-  dF1(h: readonly Block[]) {
-    const ret: { name: string; double: number }[] = [];
+  dF1(h: readonly Block[]): Yaku[] {
+    const ret: Yaku[] = [];
     h.forEach((block) => {
       if (block instanceof BlockPair) return;
       const tile = block.tiles[0];
       if (tile.t == TYPE.Z) {
-        if (tile.equals(this.cfg.myWind)) ret.push({ name: "自風", double: 1 });
-        if (tile.equals(this.cfg.roundWind))
-          ret.push({ name: "場風", double: 1 });
-        else if (tile.n == 5) ret.push({ name: "白", double: 1 });
-        else if (tile.n == 6) ret.push({ name: "發", double: 1 });
-        else if (tile.n == 7) ret.push({ name: "中", double: 1 });
+        if (tile.equals(this.cfg.myWind)) ret.push({ name: "自風", han: 1 });
+        if (tile.equals(this.cfg.roundWind)) ret.push({ name: "場風", han: 1 });
+        else if (tile.n == 5) ret.push({ name: "白", han: 1 });
+        else if (tile.n == 6) ret.push({ name: "發", han: 1 });
+        else if (tile.n == 7) ret.push({ name: "中", han: 1 });
       }
     });
     return ret;
   }
-  dG1(h: readonly Block[]) {
-    return this.cfg.oneShotWin ? [{ name: "一発", double: 1 }] : [];
+  dG1(h: readonly Block[]): Yaku[] {
+    return this.cfg.oneShotWin ? [{ name: "一発", han: 1 }] : [];
   }
-  dH1(h: readonly Block[]): { name: string; double: number }[] {
-    return this.cfg.replacementWin ? [{ name: "嶺上開花", double: 1 }] : [];
+  dH1(h: readonly Block[]): Yaku[] {
+    return this.cfg.replacementWin ? [{ name: "嶺上開花", han: 1 }] : [];
   }
-  dI1(h: readonly Block[]) {
-    return this.cfg.quadWin ? [{ name: "搶槓", double: 1 }] : [];
+  dI1(h: readonly Block[]): Yaku[] {
+    return this.cfg.quadWin ? [{ name: "搶槓", han: 1 }] : [];
   }
-  dJ1(h: readonly Block[]) {
-    return this.cfg.finalWallWin ? [{ name: "海底摸月", double: 1 }] : [];
+  dJ1(h: readonly Block[]): Yaku[] {
+    return this.cfg.finalWallWin ? [{ name: "海底摸月", han: 1 }] : [];
   }
-  dK1(h: readonly Block[]) {
-    return this.cfg.finalDiscardWin ? [{ name: "河底撈魚", double: 1 }] : [];
+  dK1(h: readonly Block[]): Yaku[] {
+    return this.cfg.finalDiscardWin ? [{ name: "河底撈魚", han: 1 }] : [];
   }
-  dX1(h: readonly Block[]) {
+  dX1(h: readonly Block[]): Yaku[] {
     let dcount = 0;
     let bcount = 0;
     let rcount = 0;
@@ -1148,18 +1154,18 @@ export class DoubleCalculator {
       }
     }
 
-    const ret: { name: string; double: number }[] = [];
-    if (dcount > 0) ret.push({ name: "ドラ", double: dcount });
-    if (rcount > 0) ret.push({ name: "赤ドラ", double: rcount });
+    const ret: Yaku[] = [];
+    if (dcount > 0) ret.push({ name: "ドラ", han: dcount });
+    if (rcount > 0) ret.push({ name: "赤ドラ", han: rcount });
     if (this.hand.reached && bcount > 0)
-      ret.push({ name: "裏ドラ", double: bcount });
+      ret.push({ name: "裏ドラ", han: bcount });
     return ret;
   }
 
-  dA2(h: readonly Block[]) {
-    return h.length == 7 ? [{ name: "七対子", double: 2 }] : [];
+  dA2(h: readonly Block[]): Yaku[] {
+    return h.length == 7 ? [{ name: "七対子", han: 2 }] : [];
   }
-  dB2(h: readonly Block[]) {
+  dB2(h: readonly Block[]): Yaku[] {
     const check = (bb: Block) => {
       return bb instanceof BlockRun || bb instanceof BlockChi;
     };
@@ -1176,12 +1182,11 @@ export class DoubleCalculator {
         const newTile = new Tile(filteredTypes[1], tile.n);
         return check(b) && newTile.equals(minTile(b));
       });
-      if (cond1 && cond2)
-        return [{ name: "三色同順", double: 2 - this.minus() }];
+      if (cond1 && cond2) return [{ name: "三色同順", han: 2 - this.minus() }];
     }
     return [];
   }
-  dC2(h: readonly Block[]) {
+  dC2(h: readonly Block[]): Yaku[] {
     if (h.length == 7) return [];
     const cond = h.every(
       (b) =>
@@ -1192,27 +1197,27 @@ export class DoubleCalculator {
         b instanceof BlockPon ||
         b instanceof BlockPair
     );
-    return cond ? [{ name: "対々和", double: 2 }] : [];
+    return cond ? [{ name: "対々和", han: 2 }] : [];
   }
-  dD2(h: readonly Block[]) {
+  dD2(h: readonly Block[]): Yaku[] {
     const l = h.filter((b) => {
       return (
         (b instanceof BlockAnKan || b instanceof BlockThree) &&
         !b.tiles.some((t) => t.has(OP.RON)) // ignore ron
       );
     }).length;
-    return l >= 3 ? [{ name: "三暗刻", double: 2 }] : [];
+    return l >= 3 ? [{ name: "三暗刻", han: 2 }] : [];
   }
-  dE2(h: readonly Block[]) {
+  dE2(h: readonly Block[]): Yaku[] {
     const l = h.filter(
       (b) =>
         b instanceof BlockAnKan ||
         b instanceof BlockShoKan ||
         b instanceof BlockDaiKan
     ).length;
-    return l >= 3 ? [{ name: "三槓子", double: 2 }] : [];
+    return l >= 3 ? [{ name: "三槓子", han: 2 }] : [];
   }
-  dF2(h: readonly Block[]) {
+  dF2(h: readonly Block[]): Yaku[] {
     const check = (b: Block) => {
       return (
         b instanceof BlockAnKan ||
@@ -1235,26 +1240,26 @@ export class DoubleCalculator {
         const newTile = new Tile(filteredTypes[1], tile.n);
         return check(b) && newTile.equals(minTile(b));
       });
-      if (cond1 && cond2) return [{ name: "三色同刻", double: 2 }];
+      if (cond1 && cond2) return [{ name: "三色同刻", han: 2 }];
     }
     return [];
   }
-  dG2(h: readonly Block[]) {
+  dG2(h: readonly Block[]): Yaku[] {
     if (h.length == 7) return [];
     const l = h.filter((b) => {
       const t = b.tiles[0];
       return t.t == TYPE.Z && [5, 6, 7].includes(t.n);
     }).length;
-    return l == 3 ? [{ name: "小三元", double: 2 }] : [];
+    return l == 3 ? [{ name: "小三元", han: 2 }] : [];
   }
-  dH2(h: readonly Block[]) {
+  dH2(h: readonly Block[]): Yaku[] {
     const cond = h.every((b) => {
       const values = b.tiles[0].t == TYPE.Z ? NZ : N19;
       return b.tiles.every((t) => values.includes(t.n));
     });
-    return cond ? [{ name: "混老頭", double: 2 }] : [];
+    return cond ? [{ name: "混老頭", han: 2 }] : [];
   }
-  dI2(h: readonly Block[]) {
+  dI2(h: readonly Block[]): Yaku[] {
     if (h.length == 7) return [];
     // 一つは BlockRun もしくは BlockChi がある。なければ、老頭に該当するため
     if (!h.some((b) => b instanceof BlockRun || b instanceof BlockChi))
@@ -1265,9 +1270,9 @@ export class DoubleCalculator {
       const values = block.tiles[0].t == TYPE.Z ? NZ : N19;
       return block.tiles.some((t) => values.includes(t.n));
     });
-    return cond ? [{ name: "混全帯么九", double: 2 - this.minus() }] : [];
+    return cond ? [{ name: "混全帯么九", han: 2 - this.minus() }] : [];
   }
-  dJ2(h: readonly Block[]) {
+  dJ2(h: readonly Block[]): Yaku[] {
     const m = {
       // 123m, 456m, 789m
       [TYPE.M]: [0, 0, 0],
@@ -1287,21 +1292,21 @@ export class DoubleCalculator {
 
     for (const arr of Object.values(m)) {
       if (arr[0] > 0 && arr[1] > 0 && arr[2] > 0)
-        return [{ name: "一気通貫", double: 2 - this.minus() }];
+        return [{ name: "一気通貫", han: 2 - this.minus() }];
     }
     return [];
   }
 
-  dA3(h: readonly Block[]) {
+  dA3(h: readonly Block[]): Yaku[] {
     const cond = !h.some((block) => block.tiles[0].t == TYPE.Z);
     if (cond) return [];
     for (const t of Object.values(TYPE)) {
       const ok = h.every((b) => b.tiles[0].t == TYPE.Z || b.tiles[0].t == t);
-      if (ok) return [{ name: "混一色", double: 3 - this.minus() }];
+      if (ok) return [{ name: "混一色", han: 3 - this.minus() }];
     }
     return [];
   }
-  dB3(h: readonly Block[]) {
+  dB3(h: readonly Block[]): Yaku[] {
     if (h.length == 7) return [];
     if (!h.some((b) => b instanceof BlockRun || b instanceof BlockChi))
       return [];
@@ -1310,25 +1315,25 @@ export class DoubleCalculator {
     const cond = h.every((b) => {
       return b.tiles.some((t) => N19.includes(t.n));
     });
-    return cond ? [{ name: "純全帯么九色", double: 3 - this.minus() }] : [];
+    return cond ? [{ name: "純全帯么九色", han: 3 - this.minus() }] : [];
   }
-  dC3(h: readonly Block[]) {
+  dC3(h: readonly Block[]): Yaku[] {
     if (this.minus() != 0) return [];
 
     const count = countSameBlocks(h);
-    return count == 2 ? [{ name: "ニ盃口", double: 3 }] : [];
+    return count == 2 ? [{ name: "ニ盃口", han: 3 }] : [];
   }
-  dA6(h: readonly Block[]) {
+  dA6(h: readonly Block[]): Yaku[] {
     if (h.some((block) => block.tiles[0].t == TYPE.Z)) return [];
     for (const t of Object.values(TYPE)) {
       if (t == TYPE.Z) continue;
       const ok = h.every((v) => v.tiles[0].t == t);
-      if (ok) return [{ name: "清一色", double: 6 - this.minus() }];
+      if (ok) return [{ name: "清一色", han: 6 - this.minus() }];
     }
     return [];
   }
 
-  dA13(h: readonly Block[]) {
+  dA13(h: readonly Block[]): Yaku[] {
     if (h.length != 13) return [];
     const double = h.some(
       (b) =>
@@ -1336,13 +1341,13 @@ export class DoubleCalculator {
         b.tiles.some((t) => t.has(OP.TSUMO) || t.has(OP.RON))
     );
     return double
-      ? [{ name: "国士無双13面待ち", double: 26 }]
-      : [{ name: "国士無双", double: 13 }];
+      ? [{ name: "国士無双13面待ち", han: 26 }]
+      : [{ name: "国士無双", han: 13 }];
   }
-  dB13(h: readonly Block[]) {
-    return h.length == 1 ? [{ name: "九蓮宝燈", double: 13 }] : [];
+  dB13(h: readonly Block[]): Yaku[] {
+    return h.length == 1 ? [{ name: "九蓮宝燈", han: 13 }] : [];
   }
-  dC13(h: readonly Block[]) {
+  dC13(h: readonly Block[]): Yaku[] {
     if (h.length == 7) return [];
     const cond1 = h.every(
       (b) =>
@@ -1357,10 +1362,10 @@ export class DoubleCalculator {
         b.tiles.every((t) => t.has(OP.TSUMO) || t.has(OP.RON))
     );
     return cond2
-      ? [{ name: "四暗刻単騎待ち", double: 26 }]
-      : [{ name: "四暗刻", double: 13 }];
+      ? [{ name: "四暗刻単騎待ち", han: 26 }]
+      : [{ name: "四暗刻", han: 13 }];
   }
-  dD13(h: readonly Block[]) {
+  dD13(h: readonly Block[]): Yaku[] {
     if (h.length == 13) return [];
     const z = [5, 6, 7];
     const cond =
@@ -1369,19 +1374,19 @@ export class DoubleCalculator {
           !(b instanceof BlockPair) &&
           b.tiles.some((t) => t.t == TYPE.Z && z.includes(t.n))
       ).length == 3;
-    return cond ? [{ name: "大三元", double: 13 }] : [];
+    return cond ? [{ name: "大三元", han: 13 }] : [];
   }
-  dE13(h: readonly Block[]) {
+  dE13(h: readonly Block[]): Yaku[] {
     const cond = h.every((b) => b.tiles[0].t == TYPE.Z);
-    return cond ? [{ name: "字一色", double: 13 }] : [];
+    return cond ? [{ name: "字一色", han: 13 }] : [];
   }
-  dF13(h: readonly Block[]) {
+  dF13(h: readonly Block[]): Yaku[] {
     const cond = h.every((b) =>
       b.tiles.every((t) => t.t != TYPE.Z && N19.includes(t.n))
     );
-    return cond ? [{ name: "清老頭", double: 13 }] : [];
+    return cond ? [{ name: "清老頭", han: 13 }] : [];
   }
-  dG13(h: readonly Block[]) {
+  dG13(h: readonly Block[]): Yaku[] {
     const cond =
       h.filter(
         (b) =>
@@ -1389,9 +1394,9 @@ export class DoubleCalculator {
           b instanceof BlockShoKan ||
           b instanceof BlockDaiKan
       ).length == 4;
-    return cond ? [{ name: "四槓子", double: 13 }] : [];
+    return cond ? [{ name: "四槓子", han: 13 }] : [];
   }
-  dH13(h: readonly Block[]) {
+  dH13(h: readonly Block[]): Yaku[] {
     if (h.length == 13) return [];
     if (h.length == 7) return [];
     const zn = [1, 2, 3, 4];
@@ -1403,24 +1408,24 @@ export class DoubleCalculator {
       .find((b) => b instanceof BlockPair)!
       .tiles.some((t) => t.t == TYPE.Z && zn.includes(t.n));
     return cond2
-      ? [{ name: "小四喜", double: 13 }]
-      : [{ name: "大四喜", double: 13 }];
+      ? [{ name: "小四喜", han: 13 }]
+      : [{ name: "大四喜", han: 13 }];
   }
-  dI13(h: readonly Block[]) {
+  dI13(h: readonly Block[]): Yaku[] {
     const check = (t: Tile) => {
       if (t.equals(new Tile(TYPE.Z, 6))) return true;
       if (t.t == TYPE.S && [2, 3, 4, 6, 8].includes(t.n)) return true;
       return false;
     };
     return h.every((b) => b.tiles.every((t) => check(t)))
-      ? [{ name: "緑一色", double: 13 }]
+      ? [{ name: "緑一色", han: 13 }]
       : [];
   }
   // TODO 天和・地和
-  dJ13(h: readonly Block[]) {
+  dJ13(h: readonly Block[]): Yaku[] {
     return [];
   }
-  dK13(h: readonly Block[]) {
+  dK13(h: readonly Block[]): Yaku[] {
     return [];
   }
 
@@ -1527,9 +1532,9 @@ const minTile = (b: Block) => {
   return [...b.tiles].sort(tileSortFunc)[0];
 };
 
-const toDora = (doraMarker: Tile) => {
-  const n = doraMarker.n;
-  const t = doraMarker.t;
+const toDora = (doraIndicator: Tile) => {
+  const n = doraIndicator.n;
+  const t = doraIndicator.t;
   if (t == TYPE.Z) {
     if (n == 4) return new Tile(t, 1);
     else if (n == 7) return new Tile(t, 5);

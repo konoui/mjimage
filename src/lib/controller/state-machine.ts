@@ -23,7 +23,7 @@ import {
   SerializedCandidate,
   ShantenCalculator,
   WinResult,
-  SerializedWinResult,
+  serializeWinResult,
 } from "./../calculator";
 import { nextWind, createWindMap } from "../core";
 import { assert } from "../myassert";
@@ -59,11 +59,6 @@ const serializeCandidate = (
       shanten: c.shanten,
     };
   });
-};
-
-const serializeWinResult = (ret: WinResult) => {
-  const v = JSON.parse(JSON.stringify(ret)) as SerializedWinResult;
-  return v;
 };
 
 const serializeWinResultOrFalse = (ret: WinResult | false) => {
@@ -424,7 +419,8 @@ export const createControllerMachine = (c: Controller) => {
               type: "DISTRIBUTE" as const,
               hands: hands,
               wind: w,
-              doraMarker: context.controller.wall.doraMarkers[0].toString(),
+              doraIndicator:
+                context.controller.wall.doraIndicators[0].toString(),
               sticks: context.controller.placeManager.sticks,
               round: context.controller.placeManager.round,
               players: context.controller.playerIDs,
@@ -724,13 +720,13 @@ export const createControllerMachine = (c: Controller) => {
         notify_new_dora_if_needed: ({ context, event }) => {
           const id = context.genEventID();
           if (event.type == "AN_KAN") {
-            const tile = context.controller.wall.openDoraMarker();
+            const tile = context.controller.wall.openDoraIndicator();
             for (const w of Object.values(WIND)) {
               const e = {
                 id: id,
                 type: "NEW_DORA" as const,
                 wind: w,
-                doraMarker: tile.toString(),
+                doraIndicator: tile.toString(),
               };
               context.controller.emit(e);
             }

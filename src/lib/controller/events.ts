@@ -33,7 +33,7 @@ export interface DistributeEvent {
   type: Extract<Event, "DISTRIBUTE">;
   hands: { [key in Wind]: string };
   wind: Wind;
-  doraMarker: string;
+  doraIndicator: string;
   players: string[];
   places: { [key: string]: Wind };
   sticks: { reach: number; dead: number };
@@ -114,7 +114,7 @@ export interface ReachAcceptedEvent {
 export interface NewDoraEvent {
   id: string;
   type: Extract<Event, "NEW_DORA">;
-  doraMarker: string;
+  doraIndicator: string;
   wind: Wind;
 }
 
