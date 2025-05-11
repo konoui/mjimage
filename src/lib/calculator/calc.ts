@@ -841,6 +841,7 @@ export interface WinResult {
   point: number;
   hand: Block[]; // TODO readonly
   boardContext: BoardContext;
+  description: string;
 }
 
 export interface Yaku {
@@ -891,11 +892,14 @@ export class PointCalculator {
 
   calc(...hands: readonly Block[][]): WinResult | false {
     const patterns = this.calcPatterns(hands);
+    let is32000 = false;
+    let isCountable32000 = false;
     if (patterns.length == 0) return false;
     let max = [0, 0]; // [yayu, fu]
     let idx = 0;
     for (let i = 0; i < patterns.length; i++) {
       const pt = patterns[i];
+      is32000 = pt.is32000 ?? false;
       const sum = pt.yakus.reduce((a: number, b: Yaku) => {
         return a + b.han;
       }, 0);
@@ -944,6 +948,7 @@ export class PointCalculator {
       base = 8000; // 数え役満
       if (this.cfg.disableCountable32000 && patterns[idx].yakus.length > 1)
         base = 6000; // 3倍満
+      else isCountable32000 = true;
     }
     // 切り上げ満貫
     if (this.cfg.roundUp8000) {
@@ -958,6 +963,7 @@ export class PointCalculator {
     const myWind = this.cfg.orig.myWind;
     const isParent = myWind == WIND.E;
 
+    let desc = "";
     const deltas = createWindMap(0);
     if (!isTsumo) {
       const deadPoint = this.cfg.sticks.dead * 300;
@@ -967,6 +973,7 @@ export class PointCalculator {
       const point = ceil(base * coefficient) + deadPoint;
       deltas[myWind] += point;
       deltas[this.cfg.orig.ronWind] -= point;
+      desc = `${point}`;
     } else {
       const deadPoint = this.cfg.sticks.dead * 100;
       if (isParent) {
@@ -975,19 +982,29 @@ export class PointCalculator {
         deltas[WIND.S] -= point + deadPoint;
         deltas[WIND.W] -= point + deadPoint;
         deltas[WIND.N] -= point + deadPoint;
+        desc = `${point}`;
       } else {
         for (const key of Object.values(WIND)) {
           if (key == myWind) continue;
           const coefficient = key == WIND.E ? 2 : 1;
-          const point = ceil(base * coefficient) + deadPoint;
-          deltas[key] -= point;
-          deltas[myWind] += point;
+          const point = ceil(base * coefficient);
+          deltas[key] -= point + deadPoint;
+          deltas[myWind] += point + deadPoint;
         }
+        desc = `${base}-${base * 2}`;
       }
     }
 
     deltas[myWind] += 1000 * this.cfg.sticks.reach;
 
+    let description;
+    if (is32000) description = "役満";
+    else if (isCountable32000) description = "数え役満";
+    else if (base == 2000) description = `${fu}符${sum}飜 満貫${desc}`;
+    else if (base == 3000) description = `${fu}符${sum}飜 跳満${desc}`;
+    else if (base == 4000) description = `${fu}符${sum}飜 倍満${desc}`;
+    else if (base == 6000) description = `${fu}符${sum}飜 三倍満${desc}`;
+    else description = `${fu}符${sum}飜 ${desc}`;
     const v = {
       deltas: deltas,
       sum: sum,
@@ -996,6 +1013,7 @@ export class PointCalculator {
       point: deltas[myWind],
       hand: patterns[idx].hand,
       boardContext: this.cfg.orig,
+      description,
     };
     return v;
   }
@@ -1004,6 +1022,7 @@ export class PointCalculator {
       yakus: Yaku[];
       fu: number;
       hand: Block[];
+      is32000?: boolean;
     }[] = [];
     if (hands.length == 0) return ret;
     for (const hand of hands) {
@@ -1026,6 +1045,7 @@ export class PointCalculator {
         yakus: v,
         fu: 30,
         hand: hand,
+        is32000: true,
       });
     }
 

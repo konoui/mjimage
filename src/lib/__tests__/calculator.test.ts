@@ -649,18 +649,15 @@ describe("calc", () => {
     const c = new BlockCalculator(h);
     const cfg: BoardContext = {
       doraIndicators: [new Tile(TYPE.M, 8)],
-      myWind: "1w",
+      myWind: "2w",
       round: "1w1",
-      ronWind: "2w",
     };
     const dc = new PointCalculator(h, cfg);
-    const hands = c.calc(new Tile(TYPE.M, 3, [OP.RON]));
+    const hands = c.calc(new Tile(TYPE.M, 3, [OP.TSUMO]));
     const got = dc.calc(...hands);
 
     // TODO
     expect(!!got).toEqual(true);
-
-    // console.log(got);
   });
   test("2", () => {
     const input = "-123s,-234s,-456m, -567m, 11m";
