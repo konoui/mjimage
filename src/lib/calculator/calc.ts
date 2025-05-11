@@ -991,7 +991,7 @@ export class PointCalculator {
           deltas[key] -= point + deadPoint;
           deltas[myWind] += point + deadPoint;
         }
-        desc = `${base}-${base * 2}`;
+        desc = `${ceil(base * 1)}-${ceil(base * 2)}`;
       }
     }
 
