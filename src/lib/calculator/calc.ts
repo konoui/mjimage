@@ -840,7 +840,7 @@ export interface WinResult {
   fu: number;
   yakus: readonly Yaku[];
   point: number;
-  basePoint: number;
+  rawPoint: number;
   hand: Block[]; // TODO readonly
   boardContext: BoardContext;
   description: string;
@@ -1004,7 +1004,7 @@ export class PointCalculator {
       }
     }
 
-    const basePoint = deltas[myWind] - this.cfg.sticks.dead * 100;
+    const rawPoint = deltas[myWind] - this.cfg.sticks.dead * 300;
     deltas[myWind] += 1000 * this.cfg.sticks.reach;
 
     let description;
@@ -1021,7 +1021,7 @@ export class PointCalculator {
       fu: fu,
       yakus: patterns[idx].yakus,
       point: deltas[myWind],
-      basePoint: basePoint,
+      rawPoint: rawPoint,
       hand: patterns[idx].hand,
       boardContext: this.cfg.orig,
       description,
