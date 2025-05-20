@@ -829,16 +829,18 @@ export interface BoardContext {
   finalWallWin?: boolean;
   finalDiscardWin?: boolean;
   oneShotWin?: boolean;
-  roundUp8000?: boolean;
+  enableRoundUp8000?: boolean;
   disableCountable32000?: boolean;
+  disableDouble32000?: boolean;
 }
 
 export interface WinResult {
   deltas: { readonly [w in Wind]: number };
-  sum: number;
+  han: number;
   fu: number;
   yakus: readonly Yaku[];
   point: number;
+  basePoint: number;
   hand: Block[]; // TODO readonly
   boardContext: BoardContext;
   description: string;
@@ -847,6 +849,7 @@ export interface WinResult {
 export interface Yaku {
   name: string;
   han: number;
+  is32000?: boolean;
 }
 
 export class PointCalculator {
@@ -863,8 +866,9 @@ export class PointCalculator {
     finalWallWin: boolean;
     finalDiscardWin: boolean;
     oneShotWin: boolean;
-    roundUp8000: boolean;
+    enableRoundUp8000: boolean;
     disableCountable32000: boolean;
+    disableDouble32000: boolean;
     orig: BoardContext;
   };
   constructor(hand: Hand, params: BoardContext) {
@@ -884,8 +888,9 @@ export class PointCalculator {
       finalWallWin: params.finalWallWin ?? false,
       finalDiscardWin: params.finalDiscardWin ?? false,
       oneShotWin: params.oneShotWin ?? false,
-      roundUp8000: params.roundUp8000 ?? false,
+      enableRoundUp8000: params.enableRoundUp8000 ?? false,
       disableCountable32000: params.disableCountable32000 ?? false,
+      disableDouble32000: params.disableDouble32000 ?? false,
       orig: params,
     };
   }
@@ -900,15 +905,15 @@ export class PointCalculator {
     for (let i = 0; i < patterns.length; i++) {
       const pt = patterns[i];
       is32000 = pt.is32000 ?? false;
-      const sum = pt.yakus.reduce((a: number, b: Yaku) => {
+      const han = pt.yakus.reduce((a: number, b: Yaku) => {
         return a + b.han;
       }, 0);
-      if (sum > max[0]) {
+      if (han > max[0]) {
         idx = i;
-        max = [sum, pt.fu];
-      } else if (sum == max[0] && pt.fu > max[1]) {
+        max = [han, pt.fu];
+      } else if (han == max[0] && pt.fu > max[1]) {
         idx = i;
-        max = [sum, pt.fu];
+        max = [han, pt.fu];
       }
     }
 
@@ -917,10 +922,10 @@ export class PointCalculator {
     };
 
     const fu = max[1] != 25 ? ceil(max[1], 10) : 25; // 七対子
-    const sum = max[0];
+    const han = max[0];
     // 40符以上の4飜は満貫の2000にする。
-    let base = Math.min(fu * 2 ** (sum + 2), 2000);
-    switch (sum) {
+    let base = Math.min(fu * 2 ** (han + 2), 2000);
+    switch (han) {
       case 26:
         base = 16000;
         break;
@@ -944,15 +949,18 @@ export class PointCalculator {
         base = 2000;
         break;
     }
-    if (sum >= 13 && sum < 26) {
-      base = 8000; // 数え役満
-      if (this.cfg.disableCountable32000 && patterns[idx].yakus.length > 1)
-        base = 6000; // 3倍満
-      else isCountable32000 = true;
+    // 数え役満
+    if (
+      han >= 13 &&
+      han < 26 &&
+      patterns[idx].yakus.every((v) => v.is32000 == null || v.is32000 == false)
+    ) {
+      base = this.cfg.disableCountable32000 ? 6000 : 8000; // 3倍満にする
+      isCountable32000 = !this.cfg.disableCountable32000;
     }
     // 切り上げ満貫
-    if (this.cfg.roundUp8000) {
-      if ((fu == 30 && sum == 4) || (fu == 60 && sum == 3)) {
+    if (this.cfg.enableRoundUp8000) {
+      if ((fu == 30 && han == 4) || (fu == 60 && han == 3)) {
         base = 2000;
       }
     }
@@ -970,47 +978,50 @@ export class PointCalculator {
       if (this.cfg.orig.ronWind == null)
         throw new Error("ron wind is not specified in the parameters");
       const coefficient = isParent ? 6 : 4;
-      const point = ceil(base * coefficient) + deadPoint;
+      const basePoint = ceil(base * coefficient);
+      const point = basePoint + deadPoint;
       deltas[myWind] += point;
       deltas[this.cfg.orig.ronWind] -= point;
       desc = `${point}`;
     } else {
       const deadPoint = this.cfg.sticks.dead * 100;
       if (isParent) {
-        const point = ceil(base * 2);
-        deltas[WIND.E] += point * 3 + deadPoint * 3;
-        deltas[WIND.S] -= point + deadPoint;
-        deltas[WIND.W] -= point + deadPoint;
-        deltas[WIND.N] -= point + deadPoint;
-        desc = `${point}`;
+        const basePoint = ceil(base * 2);
+        deltas[WIND.E] += basePoint * 3 + deadPoint * 3;
+        deltas[WIND.S] -= basePoint + deadPoint;
+        deltas[WIND.W] -= basePoint + deadPoint;
+        deltas[WIND.N] -= basePoint + deadPoint;
+        desc = `${basePoint}`;
       } else {
         for (const key of Object.values(WIND)) {
           if (key == myWind) continue;
           const coefficient = key == WIND.E ? 2 : 1;
-          const point = ceil(base * coefficient);
-          deltas[key] -= point + deadPoint;
-          deltas[myWind] += point + deadPoint;
+          const basePoint = ceil(base * coefficient);
+          deltas[key] -= basePoint + deadPoint;
+          deltas[myWind] += basePoint + deadPoint;
         }
         desc = `${ceil(base * 1)}-${ceil(base * 2)}`;
       }
     }
 
+    const basePoint = deltas[myWind] - this.cfg.sticks.dead * 100;
     deltas[myWind] += 1000 * this.cfg.sticks.reach;
 
     let description;
     if (is32000) description = "役満";
     else if (isCountable32000) description = "数え役満";
-    else if (base == 2000) description = `${fu}符${sum}飜 満貫${desc}`;
-    else if (base == 3000) description = `${fu}符${sum}飜 跳満${desc}`;
-    else if (base == 4000) description = `${fu}符${sum}飜 倍満${desc}`;
-    else if (base == 6000) description = `${fu}符${sum}飜 三倍満${desc}`;
-    else description = `${fu}符${sum}飜 ${desc}`;
-    const v = {
+    else if (base == 2000) description = `${fu}符${han}飜 満貫${desc}`;
+    else if (base == 3000) description = `${fu}符${han}飜 跳満${desc}`;
+    else if (base == 4000) description = `${fu}符${han}飜 倍満${desc}`;
+    else if (base == 6000) description = `${fu}符${han}飜 三倍満${desc}`;
+    else description = `${fu}符${han}飜 ${desc}`;
+    const v: WinResult = {
       deltas: deltas,
-      sum: sum,
+      han: han,
       fu: fu,
       yakus: patterns[idx].yakus,
       point: deltas[myWind],
+      basePoint: basePoint,
       hand: patterns[idx].hand,
       boardContext: this.cfg.orig,
       description,
@@ -1038,8 +1049,10 @@ export class PointCalculator {
         ...this.dI13(hand),
         ...this.dJ13(hand),
         ...this.dK13(hand),
-      ];
-
+      ].map((y) => {
+        if (this.cfg.disableDouble32000 && y.han > 13) y.han = 13;
+        return y;
+      });
       if (v.length == 0) continue;
       ret.push({
         yakus: v,
@@ -1361,29 +1374,29 @@ export class PointCalculator {
         b.tiles.some((t) => t.has(OP.TSUMO) || t.has(OP.RON))
     );
     return double
-      ? [{ name: "国士無双13面待ち", han: 26 }]
-      : [{ name: "国士無双", han: 13 }];
+      ? [{ name: "国士無双13面待ち", han: 26, is32000: true }]
+      : [{ name: "国士無双", han: 13, is32000: true }];
   }
   dB13(h: readonly Block[]): Yaku[] {
-    return h.length == 1 ? [{ name: "九蓮宝燈", han: 13 }] : [];
+    return h.length == 1 ? [{ name: "九蓮宝燈", han: 13, is32000: true }] : [];
   }
   dC13(h: readonly Block[]): Yaku[] {
     if (h.length == 7) return [];
     const cond1 = h.every(
       (b) =>
         b instanceof BlockAnKan ||
-        (b instanceof BlockThree && !b.tiles.some((t) => t.has(OP.RON))) ||
+        (b instanceof BlockThree && b.tiles.every((t) => !t.has(OP.RON))) ||
         b instanceof BlockPair
     );
     if (!cond1) return [];
     const cond2 = h.some(
       (b) =>
         b instanceof BlockPair &&
-        b.tiles.every((t) => t.has(OP.TSUMO) || t.has(OP.RON))
+        b.tiles.some((t) => t.has(OP.TSUMO) || t.has(OP.RON))
     );
     return cond2
-      ? [{ name: "四暗刻単騎待ち", han: 26 }]
-      : [{ name: "四暗刻", han: 13 }];
+      ? [{ name: "四暗刻単騎待ち", han: 26, is32000: true }]
+      : [{ name: "四暗刻", han: 13, is32000: true }];
   }
   dD13(h: readonly Block[]): Yaku[] {
     if (h.length == 13) return [];
@@ -1394,17 +1407,17 @@ export class PointCalculator {
           !(b instanceof BlockPair) &&
           b.tiles.some((t) => t.t == TYPE.Z && z.includes(t.n))
       ).length == 3;
-    return cond ? [{ name: "大三元", han: 13 }] : [];
+    return cond ? [{ name: "大三元", han: 13, is32000: true }] : [];
   }
   dE13(h: readonly Block[]): Yaku[] {
     const cond = h.every((b) => b.tiles[0].t == TYPE.Z);
-    return cond ? [{ name: "字一色", han: 13 }] : [];
+    return cond ? [{ name: "字一色", han: 13, is32000: true }] : [];
   }
   dF13(h: readonly Block[]): Yaku[] {
     const cond = h.every((b) =>
       b.tiles.every((t) => t.t != TYPE.Z && N19.includes(t.n))
     );
-    return cond ? [{ name: "清老頭", han: 13 }] : [];
+    return cond ? [{ name: "清老頭", han: 13, is32000: true }] : [];
   }
   dG13(h: readonly Block[]): Yaku[] {
     const cond =
@@ -1414,7 +1427,7 @@ export class PointCalculator {
           b instanceof BlockShoKan ||
           b instanceof BlockDaiKan
       ).length == 4;
-    return cond ? [{ name: "四槓子", han: 13 }] : [];
+    return cond ? [{ name: "四槓子", han: 13, is32000: true }] : [];
   }
   dH13(h: readonly Block[]): Yaku[] {
     if (h.length == 13) return [];
@@ -1428,8 +1441,8 @@ export class PointCalculator {
       .find((b) => b instanceof BlockPair)!
       .tiles.some((t) => t.t == TYPE.Z && zn.includes(t.n));
     return cond2
-      ? [{ name: "小四喜", han: 13 }]
-      : [{ name: "大四喜", han: 13 }];
+      ? [{ name: "小四喜", han: 13, is32000: true }]
+      : [{ name: "大四喜", han: 13, is32000: true }];
   }
   dI13(h: readonly Block[]): Yaku[] {
     const check = (t: Tile) => {
@@ -1438,7 +1451,7 @@ export class PointCalculator {
       return false;
     };
     return h.every((b) => b.tiles.every((t) => check(t)))
-      ? [{ name: "緑一色", han: 13 }]
+      ? [{ name: "緑一色", han: 13, is32000: true }]
       : [];
   }
   // TODO 天和・地和

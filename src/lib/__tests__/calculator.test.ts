@@ -694,7 +694,7 @@ describe("calc", () => {
     const got = dc.calc(...hands);
 
     expect(!!got).toEqual(true);
-    expect((got as WinResult).sum).toBe(7);
+    expect((got as WinResult).han).toBe(7);
     expect((got as WinResult).point).toBe(18000);
   });
   test("round up 8000", () => {
@@ -706,14 +706,40 @@ describe("calc", () => {
       myWind: "2w",
       round: "1w1",
       ronWind: "2w",
-      roundUp8000: true,
+      enableRoundUp8000: true,
     };
     const dc = new PointCalculator(h, cfg);
     const hands = c.calc(new Tile(TYPE.M, 3));
     const got = dc.calc(...hands);
 
     expect(!!got).toEqual(true);
-    expect((got as WinResult).sum).toBe(4);
+    expect((got as WinResult).han).toBe(4);
     expect((got as WinResult).point).toBe(8000);
+  });
+  test("double 32000", () => {
+    const input = "111m222m333m444m22s";
+    const h = new Hand(input);
+    const c = new BlockCalculator(h);
+    const cfg: BoardContext = {
+      doraIndicators: [new Tile(TYPE.M, 9)],
+      myWind: "1w",
+      round: "1w1",
+      ronWind: "2w",
+    };
+    let dc = new PointCalculator(h, cfg);
+    const hands = c.calc(new Tile(TYPE.S, 2, [OP.TSUMO]));
+    const got = dc.calc(...hands);
+
+    expect(!!got).toEqual(true);
+    expect((got as WinResult).han).toBe(26);
+    expect((got as WinResult).point).toBe(96000);
+
+    const got2 = new PointCalculator(h, {
+      ...cfg,
+      disableDouble32000: true,
+    }).calc(...hands);
+    expect(!!got2).toEqual(true);
+    expect((got2 as WinResult).han).toBe(13);
+    expect((got2 as WinResult).point).toBe(48000);
   });
 });
