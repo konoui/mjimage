@@ -153,6 +153,7 @@ const parseStringInput = (input: string): RawTableInput => {
 
   const i: RawTableInput = {};
 
+  // TODO support 1w,2w,3w,4w aliases
   let labels = [WIND.E, WIND.S, WIND.W, WIND.N, board];
   for (;;) {
     const line = lines.shift();

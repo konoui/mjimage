@@ -48,29 +48,29 @@ export const BLOCK = {
 } as const;
 
 export const WIND = {
-  E: "1w",
-  S: "2w",
-  W: "3w",
-  N: "4w",
+  E: "1z",
+  S: "2z",
+  W: "3z",
+  N: "4z",
 } as const;
 
 export const ROUND = {
-  E1: "1w1",
-  E2: "1w2",
-  E3: "1w3",
-  E4: "1w4",
-  S1: "2w1",
-  S2: "2w2",
-  S3: "2w3",
-  S4: "2w4",
-  W1: "3w1",
-  W2: "3w2",
-  W3: "3w3",
-  W4: "3w4",
-  N1: "4w1",
-  N2: "4w2",
-  N3: "4w3",
-  N4: "4w4",
+  E1: "1z1",
+  E2: "1z2",
+  E3: "1z3",
+  E4: "1z4",
+  S1: "2z1",
+  S2: "2z2",
+  S3: "2z3",
+  S4: "2z4",
+  W1: "3z1",
+  W2: "3z2",
+  W3: "3z3",
+  W4: "3z4",
+  N1: "4z1",
+  N2: "4z2",
+  N3: "4z3",
+  N4: "4z4",
 } as const;
 
 export const WIND_MAP = {

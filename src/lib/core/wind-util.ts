@@ -1,4 +1,4 @@
-import { Round, Wind, WIND, BLOCK, Block } from ".";
+import { Round, Wind, WIND, BLOCK, Block, TYPE } from ".";
 import { assert } from "../myassert";
 
 export function createWindMap<T>(initial: T, clone = false) {
@@ -37,7 +37,7 @@ export const prevRound = (r: Round) => {
 export const nextWind = (w: Wind): Wind => {
   let n = Number(w.toString()[0]);
   n = (n % 4) + 1;
-  return `${n}w` as Wind;
+  return `${n}${TYPE.Z}` as Wind;
 };
 
 /**
@@ -50,7 +50,7 @@ export const prevWind = (w: Wind): Wind => {
   const cycle = [1, 4, 3, 2];
   const index = cycle.indexOf(n);
   const prev = cycle[(index + 1) % cycle.length];
-  return `${prev}w` as Wind;
+  return `${prev}${TYPE.Z}` as Wind;
 };
 
 export const callBlockIndex = (

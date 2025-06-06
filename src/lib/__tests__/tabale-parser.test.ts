@@ -1,22 +1,22 @@
 import { parseTableInput, TableInput } from "../image/table-parser";
-import { WIND } from "../core";
+import { ROUND, WIND } from "../core";
 describe("parse-table", () => {
   test("simple", () => {
     const input = `
   table:
-    1w:
+    1z:
       discard: 1m
       hand: 1m
       score: 0
-    2w:
+    2z:
       discard: 2m
       hand: 2m
       score: 3000
-    3w:
+    3z:
       discard: 3m
       hand: 3m
       score: 25000
-    4w:
+    4z:
       discard: 4m
       hand: 4m
       score: 12000
@@ -25,7 +25,7 @@ describe("parse-table", () => {
       sticks:
         reach: 1
         dead: 3
-      round: 1w1
+      round: 1z1
     `;
     const want: TableInput = {
       [WIND.E]: {
@@ -49,13 +49,13 @@ describe("parse-table", () => {
         score: 12000,
       },
       board: {
-        round: "1w1",
+        round: ROUND.E1,
         sticks: {
           reach: 1,
           dead: 3,
         },
         doras: "1m",
-        front: "1w",
+        front: WIND.E,
       },
     };
     const got = parseTableInput(input);

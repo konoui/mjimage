@@ -48,9 +48,9 @@ describe("controller", () => {
     // 2w が 1p をつも切りリーチをする
     // それをロンする
     const wall = new MockWall();
-    wall.setInitialHand("1w", "123m456m789m123s1p");
+    wall.setInitialHand("1z", "123m456m789m123s1p");
     wall.pushTile("1z");
-    wall.setInitialHand("2w", "123m456m789m123s1z");
+    wall.setInitialHand("2z", "123m456m789m123s1z");
     wall.pushTile("1p");
 
     c.wall = wall;
@@ -58,8 +58,8 @@ describe("controller", () => {
 
     const sum = c.scoreManager.summary;
     expect([
-      sum[c.placeManager.playerID("1w")],
-      sum[c.placeManager.playerID("2w")],
+      sum[c.placeManager.playerID("1z")],
+      sum[c.placeManager.playerID("2z")],
     ]).toStrictEqual([25000 + 12000, 25000 - 12000]);
   });
   test("同順フリテン", () => {
@@ -81,11 +81,11 @@ describe("controller", () => {
     // 点数と 2本場になることをチェック
     const wall = new MockWall();
     wall.addExclude("1z");
-    wall.setInitialHand("1w", "123m456m789m123s1z");
+    wall.setInitialHand("1z", "123m456m789m123s1z");
     wall.pushTile("1p");
-    wall.setInitialHand("2w", "2p");
+    wall.setInitialHand("2z", "2p");
     wall.pushTile("1z");
-    wall.setInitialHand("3w", "7z");
+    wall.setInitialHand("3z", "7z");
     wall.pushTile("1z");
 
     c.wall = wall;
@@ -132,8 +132,8 @@ describe("controller", () => {
 
     const sum = c.scoreManager.summary;
     expect([
-      sum[c.placeManager.playerID("1w")],
-      sum[c.placeManager.playerID("2w")],
+      sum[c.placeManager.playerID("1z")],
+      sum[c.placeManager.playerID("2z")],
     ]).toStrictEqual([25000 + 3900, 25000 - 3900]);
 
     const sticks = c.placeManager.sticks;
@@ -156,13 +156,13 @@ describe("controller", () => {
     // p2 が 1s をカカンしたのをロンする
     const wall = new MockWall();
     wall.addExclude("1s", "4s");
-    wall.setInitialHand("1w", "123m456m789m23s11p");
+    wall.setInitialHand("1z", "123m456m789m23s11p");
     wall.pushTile("2z");
-    wall.setInitialHand("2w", "123m456m11s");
+    wall.setInitialHand("2z", "123m456m11s");
     wall.pushTile("4z");
-    wall.setInitialHand("3w", "567s");
+    wall.setInitialHand("3z", "567s");
     wall.pushTile("1s");
-    wall.setInitialHand("4w", "7z");
+    wall.setInitialHand("4z", "7z");
 
     const mp1 = p1 as MockPlayer;
     mp1.doChankan = true;
@@ -203,8 +203,8 @@ describe("controller", () => {
 
     const sum = c.scoreManager.summary;
     expect([
-      sum[c.placeManager.playerID("1w")],
-      sum[c.placeManager.playerID("2w")],
+      sum[c.placeManager.playerID("1z")],
+      sum[c.placeManager.playerID("2z")],
     ]).toStrictEqual([25000 + 11600, 25000 - 11600]);
   });
   test("リーチ後、自分が捨てた牌でロンできない", () => {});
@@ -213,62 +213,62 @@ describe("controller", () => {
 describe("callable", () => {
   test("can-chi", () => {
     const { c } = createLocalGame();
-    c.observer.hands["1w"] = new ActorHand("406m1345p333z111z");
-    const got = c.doChi("1w", "4w", new Tile(TYPE.M, 7));
+    c.observer.hands["1z"] = new ActorHand("406m1345p333z111z");
+    const got = c.doChi("1z", "4z", new Tile(TYPE.M, 7));
     expect(got.toString()).toBe("-7r56m");
   });
   test("can-chi/食い替え", () => {
     const { c } = createLocalGame();
-    c.observer.hands["1w"] = new ActorHand("56m");
-    const got = c.doChi("1w", "4w", new Tile(TYPE.M, 7));
+    c.observer.hands["1z"] = new ActorHand("56m");
+    const got = c.doChi("1z", "4z", new Tile(TYPE.M, 7));
     expect(got).toBe(false);
   });
   test("can-chi/食い替え", () => {
     const { c } = createLocalGame();
-    c.observer.hands["1w"] = new ActorHand("333345666m");
-    const got = c.doChi("1w", "4w", new Tile(TYPE.M, 6));
+    c.observer.hands["1z"] = new ActorHand("333345666m");
+    const got = c.doChi("1z", "4z", new Tile(TYPE.M, 6));
     expect(got).toBe(false);
   });
   test("can-ron", () => {
     const { c } = createLocalGame();
-    c.observer.hands["1w"] = new ActorHand("406m123456p1123s");
-    const got = c.doWin("1w", new Tile(TYPE.S, 4), { discardedBy: "2w" });
+    c.observer.hands["1z"] = new ActorHand("406m123456p1123s");
+    const got = c.doWin("1z", new Tile(TYPE.S, 4), { discardedBy: "2z" });
     expect(!!got).toBe(true);
   });
   test("can-pon", () => {
     const { c } = createLocalGame();
-    c.observer.hands["1w"] = new ActorHand("50m333444z");
-    const got = c.doPon("1w", "2w", new Tile(TYPE.M, 5));
+    c.observer.hands["1z"] = new ActorHand("50m333444z");
+    const got = c.doPon("1z", "2z", new Tile(TYPE.M, 5));
     expect(got.toString()).toBe("r55-5m");
   });
   test("can-pon", () => {
     const { c } = createLocalGame();
-    c.observer.hands["1w"] = new ActorHand("505m333444z");
-    const got = c.doPon("1w", "2w", new Tile(TYPE.M, 5));
+    c.observer.hands["1z"] = new ActorHand("505m333444z");
+    const got = c.doPon("1z", "2z", new Tile(TYPE.M, 5));
     expect(got.toString()).toBe("r55-5m,55-5m");
   });
   test("can-pon", () => {
     const { c } = createLocalGame();
-    c.observer.hands["1w"] = new ActorHand("433m");
-    const got = c.doPon("1w", "4w", new Tile(TYPE.M, 3));
+    c.observer.hands["1z"] = new ActorHand("433m");
+    const got = c.doPon("1z", "4z", new Tile(TYPE.M, 3));
     expect(got.toString()).toBe("-333m");
   });
   test("can-pon", () => {
     const { c } = createLocalGame();
-    c.observer.hands["1w"] = new ActorHand("433m");
-    const got = c.doPon("1w", "3w", new Tile(TYPE.M, 3));
+    c.observer.hands["1z"] = new ActorHand("433m");
+    const got = c.doPon("1z", "3z", new Tile(TYPE.M, 3));
     expect(got.toString()).toBe("3-33m");
   });
   test("can-dai-kan", () => {
     const { c } = createLocalGame();
-    c.observer.hands["1w"] = new ActorHand("505m");
-    const got = c.doDaiKan("1w", "4w", new Tile(TYPE.M, 5));
+    c.observer.hands["1z"] = new ActorHand("505m");
+    const got = c.doDaiKan("1z", "4z", new Tile(TYPE.M, 5));
     expect(got.toString()).toBe("-5r555m");
   });
   test("can-dai-kan", () => {
     const { c } = createLocalGame();
-    c.observer.hands["1w"] = new ActorHand("555m");
-    const got = c.doDaiKan("1w", "2w", new Tile(TYPE.M, 5, [OP.RED]));
+    c.observer.hands["1z"] = new ActorHand("555m");
+    const got = c.doDaiKan("1z", "2z", new Tile(TYPE.M, 5, [OP.RED]));
     expect(got.toString()).toBe("555-r5m");
   });
 });

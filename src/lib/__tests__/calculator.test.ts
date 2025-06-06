@@ -8,7 +8,7 @@ import {
   WinResult,
   Yaku,
 } from "../calculator";
-import { TYPE, OP, Wind } from "../core/constants";
+import { TYPE, OP, Wind, WIND, ROUND } from "../core/constants";
 import { Block, Parser, Tile } from "../core/parser";
 import { handsToString } from "./utils/helper";
 describe("Hand", () => {
@@ -555,7 +555,7 @@ describe("Point Calculator", () => {
     {
       input: "6789m789s444z6m,3-33z",
       lastTile: new Tile(TYPE.M, 6, [OP.RON]),
-      myWind: "3w",
+      myWind: WIND.W,
       want: [
         {
           yakus: [
@@ -628,8 +628,8 @@ describe("Point Calculator", () => {
       const c = new BlockCalculator(h);
       const cfg: BoardContext = {
         doraIndicators: [new Tile(TYPE.M, 8)],
-        myWind: tt.myWind ?? "1w",
-        round: "1w1",
+        myWind: tt.myWind ?? WIND.E,
+        round: ROUND.E1,
       };
       const dc = new PointCalculator(h, cfg);
       const hands = c.calc(tt.lastTile);
@@ -649,8 +649,8 @@ describe("calc", () => {
     const c = new BlockCalculator(h);
     const cfg: BoardContext = {
       doraIndicators: [new Tile(TYPE.M, 8)],
-      myWind: "2w",
-      round: "1w1",
+      myWind: WIND.S,
+      round: ROUND.E1,
     };
     const dc = new PointCalculator(h, cfg);
     const hands = c.calc(new Tile(TYPE.M, 3, [OP.TSUMO]));
@@ -666,9 +666,9 @@ describe("calc", () => {
     const c = new BlockCalculator(h);
     const cfg: BoardContext = {
       doraIndicators: [new Tile(TYPE.M, 8)],
-      myWind: "1w",
-      round: "1w1",
-      ronWind: "2w",
+      myWind: WIND.E,
+      round: ROUND.E1,
+      ronWind: WIND.S,
     };
     const dc = new PointCalculator(h, cfg);
     const hands = c.calc(lastTile);
@@ -685,9 +685,9 @@ describe("calc", () => {
     const c = new BlockCalculator(h);
     const cfg: BoardContext = {
       doraIndicators: [new Tile(TYPE.M, 9)],
-      myWind: "1w",
-      round: "1w1",
-      ronWind: "2w",
+      myWind: WIND.E,
+      round: ROUND.E1,
+      ronWind: WIND.S,
     };
     const dc = new PointCalculator(h, cfg);
     const hands = c.calc(new Tile(TYPE.M, 3));
@@ -703,9 +703,9 @@ describe("calc", () => {
     const c = new BlockCalculator(h);
     const cfg: BoardContext = {
       doraIndicators: [new Tile(TYPE.M, 9)],
-      myWind: "2w",
-      round: "1w1",
-      ronWind: "2w",
+      myWind: WIND.S,
+      round: ROUND.E1,
+      // FIXME      ronWind: "2w",
       enableRoundUp8000: true,
     };
     const dc = new PointCalculator(h, cfg);
@@ -722,9 +722,9 @@ describe("calc", () => {
     const c = new BlockCalculator(h);
     const cfg: BoardContext = {
       doraIndicators: [new Tile(TYPE.M, 9)],
-      myWind: "1w",
-      round: "1w1",
-      ronWind: "2w",
+      myWind: WIND.E,
+      round: ROUND.E1,
+      ronWind: WIND.S,
     };
     let dc = new PointCalculator(h, cfg);
     const hands = c.calc(new Tile(TYPE.S, 2, [OP.TSUMO]));
