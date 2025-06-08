@@ -705,7 +705,6 @@ describe("calc", () => {
       doraIndicators: [new Tile(TYPE.M, 9)],
       myWind: WIND.S,
       round: ROUND.E1,
-      // FIXME      ronWind: "2w",
       enableRoundUp8000: true,
     };
     const dc = new PointCalculator(h, cfg);
