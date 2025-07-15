@@ -695,7 +695,7 @@ describe("calc", () => {
 
     expect(!!got).toEqual(true);
     expect((got as WinResult).han).toBe(7);
-    expect((got as WinResult).point).toBe(18000);
+    expect((got as WinResult).points).toBe(18000);
   });
   test("round up 8000", () => {
     const input = "123m123s123p789p5ss,t5s";
@@ -713,7 +713,7 @@ describe("calc", () => {
 
     expect(!!got).toEqual(true);
     expect((got as WinResult).han).toBe(4);
-    expect((got as WinResult).point).toBe(8000);
+    expect((got as WinResult).points).toBe(8000);
   });
   test("double 32000", () => {
     const input = "111m222m333m444m22s";
@@ -731,7 +731,7 @@ describe("calc", () => {
 
     expect(!!got).toEqual(true);
     expect((got as WinResult).han).toBe(26);
-    expect((got as WinResult).point).toBe(96000);
+    expect((got as WinResult).points).toBe(96000);
 
     const got2 = new PointCalculator(h, {
       ...cfg,
@@ -739,6 +739,6 @@ describe("calc", () => {
     }).calc(...hands);
     expect(!!got2).toEqual(true);
     expect((got2 as WinResult).han).toBe(13);
-    expect((got2 as WinResult).point).toBe(48000);
+    expect((got2 as WinResult).points).toBe(48000);
   });
 });

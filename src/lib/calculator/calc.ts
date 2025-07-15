@@ -839,8 +839,8 @@ export interface WinResult {
   han: number;
   fu: number;
   yakus: readonly Yaku[];
-  point: number;
-  rawPoint: number;
+  points: number;
+  rawPoints: number;
   hand: Block[]; // TODO readonly
   boardContext: BoardContext;
   description: string;
@@ -1020,8 +1020,8 @@ export class PointCalculator {
       han: han,
       fu: fu,
       yakus: patterns[idx].yakus,
-      point: deltas[myWind],
-      rawPoint: rawPoint,
+      points: deltas[myWind],
+      rawPoints: rawPoint,
       hand: patterns[idx].hand,
       boardContext: this.cfg.orig,
       description,
