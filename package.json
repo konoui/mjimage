@@ -51,7 +51,7 @@
         "vitest": "^3.0.4"
     },
     "dependencies": {
-        "eventmit": "^2.0.4",
+        "eventmit": "^3.0.0",
         "fast-xml-parser": "^5.0.9",
         "transformation-matrix": "^3.0.0",
         "valibot": "^1.0.0",
