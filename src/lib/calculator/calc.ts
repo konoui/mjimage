@@ -1565,7 +1565,7 @@ const minTile = (b: Block) => {
   return [...b.tiles].sort(tileSortFunc)[0];
 };
 
-const toDora = (doraIndicator: Tile) => {
+export const toDora = (doraIndicator: Tile) => {
   const n = doraIndicator.n;
   const t = doraIndicator.t;
   if (t == TYPE.Z) {
