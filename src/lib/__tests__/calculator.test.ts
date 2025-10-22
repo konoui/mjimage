@@ -66,7 +66,7 @@ describe("Hand", () => {
 
     expect(() => {
       h.discard(tsumo);
-    }).toThrow(/unable to decrease/);
+    }).toThrow(/invalid hand:/);
   });
 
   test("inc/dec", () => {
@@ -89,7 +89,7 @@ describe("Hand", () => {
   });
 });
 
-describe("", () => {
+describe("Hand2", () => {
   test("idempotency hand", () => {
     const input = "123m123s123p1z,t1z";
     const h = new Hand(input);
@@ -105,6 +105,12 @@ describe("", () => {
     const h = new Hand(input);
     h.draw(new Tile(TYPE.P, 5));
     expect(h.toString()).toEqual("789m123r5789p123s,t5p");
+  });
+  test("pass massive input", () => {
+    const input = "2345s123123123s12s";
+    expect(() => {
+      new Hand(input);
+    }).toThrow(/invalid hand: tile 2s exists more than 4 times in /);
   });
 });
 

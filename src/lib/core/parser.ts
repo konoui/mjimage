@@ -233,6 +233,7 @@ const toStringForSame = (tiles: readonly Tile[]) => {
 };
 
 const toStringForHand = (tiles: readonly Tile[]) => {
+  if (tiles.length == 0) return "";
   let preType: Type = tiles[0].t;
   let ret = "";
   for (const tile of tiles) {

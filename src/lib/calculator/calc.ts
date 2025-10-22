@@ -173,12 +173,14 @@ export class Hand {
   inc(tiles: readonly Tile[]): readonly Tile[] {
     const backup: Tile[] = [];
     for (const t of tiles) {
-      if (
-        (t.t != TYPE.BACK && this.get(t.t, t.n) >= 4) ||
-        (t.has(OP.RED) && this.get(t.t, 0) > 0)
-      ) {
+      const isInvalidCount = t.t != TYPE.BACK && this.get(t.t, t.n) >= 4;
+      const isInvalidRed = t.has(OP.RED) && this.get(t.t, 0) > 0;
+      if (isInvalidCount || isInvalidRed) {
         this.dec(backup);
-        throw new Error(`unable to increase ${t} in ${this.toString()}`);
+        const msg = isInvalidCount
+          ? `tile ${t} exists more than 4 times`
+          : `red tile ${t} appears more than 1 times`;
+        throw new Error(`invalid hand: ${msg} in ${this.toString()}`);
       }
 
       backup.push(t);
@@ -194,11 +196,14 @@ export class Hand {
   dec(tiles: readonly Tile[]): readonly Tile[] {
     const backup: Tile[] = [];
     for (const t of tiles) {
-      if (this.get(t.t, t.n) < 1 || (t.has(OP.RED) && this.get(t.t, 0) <= 0)) {
+      const isInvalidCount = this.get(t.t, t.n) < 1;
+      const isInvalidRed = t.has(OP.RED) && this.get(t.t, 0) <= 0;
+      if (isInvalidCount || isInvalidRed) {
         this.inc(backup);
-        throw new Error(
-          `unable to decrease ${t.toString()} in ${this.toString()}`
-        );
+        const msg = isInvalidCount
+          ? `tile ${t} is not in`
+          : `red tile ${t} is not in`;
+        throw new Error(`invalid hand: ${msg} in ${this.toString()}`);
       }
 
       backup.push(t);
