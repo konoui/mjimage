@@ -72,12 +72,18 @@ export class Tile {
     public readonly ops: readonly Operator[] = []
   ) {}
 
+  /**
+   * 一つの牌を表す文字列から牌を返す。
+   */
   static from(s: string) {
     const tiles = new Parser(s).tiles();
     if (tiles.length != 1) throw new Error(`input is not a single tile ${s}`);
     return tiles[0];
   }
 
+  /**
+   * 文字列の牌を返す。
+   */
   toString(): string {
     if (this.t === TYPE.BACK) return this.t;
     return `${[...this.ops].sort(operatorSortFunc).join("")}${this.n}${this.t}`;
@@ -87,6 +93,9 @@ export class Tile {
     return this.toString();
   }
 
+  /**
+   * 牌の情報を上書きしたイミュータブルな牌を返す。
+   */
   clone(override?: {
     t?: Type;
     n?: number;
@@ -113,14 +122,24 @@ export class Tile {
     return new Tile(t, n, Array.from(s));
   }
 
+  /**
+   * 指定したオペレータを持つ場合 true を返す。
+   */
   has(op: Operator) {
     return this.ops.includes(op);
   }
 
+  /**
+   * 数牌である場合 true を返す。
+   */
   isNum() {
     return this.t == TYPE.M || this.t == TYPE.P || this.t == TYPE.S;
   }
 
+  /**
+   * 同じ牌の場合 true を返す。
+   * オペレーターの比較判定は行われない。
+   */
   equals(t: Tile): boolean {
     if (t.t == TYPE.BACK && this.t == TYPE.BACK) return true;
     return this.t == t.t && this.n == t.n;
@@ -148,6 +167,9 @@ export abstract class Block {
     }
   }
 
+  /**
+   * 文字列からブロックを生成する。
+   */
   static from(tiles: string) {
     const blocks = new Parser(tiles).parse();
     if (blocks.length != 1) throw new Error(`block must be 1: ${tiles}`);
@@ -185,20 +207,32 @@ export abstract class Block {
     return this.serialize();
   }
 
+  /**
+   * ブロックのタイプを返す。
+   */
   get type() {
     return this._type;
   }
 
+  /**
+   * ブロックを構成する牌の配列を返す。
+   */
   get tiles(): readonly Tile[] {
     return this._tiles;
   }
 
   abstract toString(): string;
 
+  /**
+   * 指定したブロックタイプの場合 true を返す。
+   */
   is(type: BlockType): boolean {
     return this._type == type;
   }
 
+  /**
+   * 鳴いたブロックの場合 true を返す。
+   */
   isCalled(): boolean {
     return [
       BLOCK.PON.toString(),
@@ -209,7 +243,10 @@ export abstract class Block {
     ].includes(this._type.toString());
   }
 
-  // clone the block with the operators
+  /**
+   * 同じイミュータブルなブロックを生成する。
+   * オペレータも同じになる。
+   */
   clone(override?: {
     replace?: {
       idx: number;
@@ -298,6 +335,16 @@ export class BlockAnKan extends Block {
     super(tiles, BLOCK.AN_KAN);
   }
 
+  /**
+   * ブロックを構成する全て表向きの牌の配列を返す。
+   */
+  get tiles() {
+    return super.tiles;
+  }
+
+  /**
+   * ブロックを構成する裏返しの牌を含む牌の配列を返す。
+   */
   get tilesWithBack() {
     const pick = this.tiles[0].clone({ remove: OP.RED });
     const sample = isNum5(pick) ? pick.clone({ add: OP.RED }) : pick;
@@ -336,6 +383,9 @@ export class BlockShoKan extends Block {
     return Block.deserialize({ tiles: s, type: BLOCK.SHO_KAN }) as BlockShoKan;
   }
 
+  /**
+   * ポンしたブロックから小明槓を生成する。
+   */
   static fromPon(b: BlockPon, t: Tile) {
     const idx = b.tiles.findIndex((t) => t.has(OP.HORIZONTAL));
     // add a tile to front of the pon tile
@@ -422,7 +472,9 @@ export class BlockHand extends Block {
   }
 }
 
-// block other means tsumo/dora etc...
+/**
+ * ツモ・ドラといったその他のブロックを表す。
+ */
 export class BlockOther extends Block {
   constructor(tiles: readonly Tile[], type: BlockType) {
     super(tiles, type);
@@ -478,21 +530,34 @@ const blockWrapper = (
 
 type TileBase = { n: number; ops?: readonly Operator[] };
 
+/**
+ * 文字列をパースし、牌やブロックを返すクラス
+ */
 export class Parser {
   readonly maxInputLength = 600;
   constructor(readonly input: string) {
     this.input = input.replace(/\s/g, "");
   }
 
+  /**
+   * パースしたブロックの配列を返す。
+   */
   parse() {
     const parsed = this.tileSeparators();
     return this.makeBlocks(parsed);
   }
 
+  /**
+   * パースした牌の配列を返す。
+   */
   tiles(): readonly Tile[] {
     return this.tileSeparators().filter((v) => v != INPUT_SEPARATOR);
   }
 
+  /**
+   * パースした牌もしくはセパレータ文字の配列を返す。
+   * セパレータ前後は一塊のブロックを意味する。
+   */
   tileSeparators(): readonly (Tile | Separator)[] {
     const l = new Lexer(this.input);
     const res: (Tile | Separator)[] = [];
@@ -582,7 +647,7 @@ export class Parser {
     return res;
   }
 
-  validate(input: string) {
+  private validate(input: string) {
     if (input.length == 0) return;
     if (input.length > this.maxInputLength)
       throw new Error(`exceeded maximum input length(${input.length})`);

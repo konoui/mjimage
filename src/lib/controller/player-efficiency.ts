@@ -4,17 +4,29 @@ import { Tile } from "../core/parser";
 import { Candidate } from "../calculator";
 import { Counter } from "./managers";
 
-// Player will calculate num of remaining tiles from river and called
+/**
+ * 河、手牌、鳴きの枚数を考慮した有効牌の情報を表す。
+ */
 export interface PlayerCandidate {
-  // When the tile is discarded
+  /**
+   * 想定する打牌を表す。
+   */
   tile: Tile;
-  // Then sum of available candidates
+  /**
+   * 打牌した場合の有効牌の枚数の合計を表す。
+   */
   sum: number;
-  // pair of candidate tile and number of remaining
+  /**
+   * 打牌した場合の有効牌とその枚数をそれぞれ表す。
+   */
   candidates: {
     tile: Tile;
     n: number;
   }[];
+  /**
+   * 打牌し有効牌を引いた場合のシャンテン数を表す。
+   * 多くの場合、現在のシャンテン数 -1 となる。
+   */
   shanten: number;
 }
 
@@ -26,6 +38,9 @@ const weight = (t: Tile, doras: Tile[]) => {
 };
 
 export class PlayerEfficiency {
+  /**
+   * 有効牌情報から河、手牌、鳴きの枚数を考慮した有効牌情報の配列を返す。
+   */
   static calcPlayerCandidates(counter: Counter, candidates: Candidate[]) {
     let playerCandidates: PlayerCandidate[] = [];
     for (let s of candidates) {

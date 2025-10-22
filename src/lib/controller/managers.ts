@@ -93,6 +93,11 @@ export function shuffle<T>(array: T[]) {
   return array;
 }
 
+/**
+ * 牌の枚数をカウントするカウンターを表す。
+ * 5枚目の牌や、2枚目の赤牌の場合、例外を投げる。
+ * 山を含む残りの枚数を確認することができる。
+ */
 export class Counter {
   private c: {
     [TYPE.M]: TupleOfSize<number, 10>;

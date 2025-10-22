@@ -8,7 +8,7 @@ import {
   WIND,
   ROUND,
   createWindMap,
-  callBlockIndex,
+  getCallBlockIndex,
   BLOCK,
   prevWind,
 } from "../core/";
@@ -487,7 +487,7 @@ export class Controller {
     if (hand.get(t.t, t.n) < 2) return false;
 
     const sample = t.clone({ removeAll: true });
-    const idx = callBlockIndex(w, discardedBy, BLOCK.PON);
+    const idx = getCallBlockIndex(w, discardedBy, BLOCK.PON);
 
     const blocks: BlockPon[] = [];
     const base = new BlockPon([sample, sample, sample]).clone({
@@ -724,7 +724,7 @@ export class Controller {
     const sample = t.clone({ removeAll: true });
     if (hand.get(sample.t, sample.n) != 3) return false;
 
-    const idx = callBlockIndex(w, discardedBy, BLOCK.DAI_KAN);
+    const idx = getCallBlockIndex(w, discardedBy, BLOCK.DAI_KAN);
     let block = new BlockDaiKan([sample, sample, sample, sample]).clone({
       replace: { idx, tile: sample.clone({ add: OP.HORIZONTAL }) },
     });

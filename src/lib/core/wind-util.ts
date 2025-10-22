@@ -1,4 +1,4 @@
-import { Round, Wind, WIND, BLOCK, Block, TYPE } from ".";
+import { Round, Wind, WIND, BLOCK, TYPE } from ".";
 import { assert } from "../myassert";
 
 export function createWindMap<T>(initial: T, clone = false) {
@@ -15,6 +15,9 @@ export function createWindMap<T>(initial: T, clone = false) {
   return m;
 }
 
+/**
+ * 次の局を返す
+ */
 export const nextRound = (r: Round) => {
   let w = r.substring(0, 2) as Wind;
   let n = Number(r.substring(2, 3));
@@ -25,14 +28,15 @@ export const nextRound = (r: Round) => {
   return `${w}${n}` as Round;
 };
 
+/**
+ * 前の局を返す
+ */
 export const prevRound = (r: Round) => {
   return nextRound(nextRound(nextRound(r)));
 };
 
 /**
- * it returns next the wind. e.g.) 1w => 2w
- * @param
- * @returns
+ * 次の風を返す。 e.g.) 1w => 2w
  */
 export const nextWind = (w: Wind): Wind => {
   let n = Number(w.toString()[0]);
@@ -41,9 +45,7 @@ export const nextWind = (w: Wind): Wind => {
 };
 
 /**
- * it returns previous the wind. e.g.) 1w => 4w
- * @param
- * @returns
+ * 前の風を返す。 e.g.) 1w => 4w
  */
 export const prevWind = (w: Wind): Wind => {
   let n = Number(w.toString()[0]);
@@ -53,7 +55,10 @@ export const prevWind = (w: Wind): Wind => {
   return `${prev}${TYPE.Z}` as Wind;
 };
 
-export const callBlockIndex = (
+/**
+ * 鳴いた人と捨てた人からブロック作成時の鳴いた牌を示すインデックスを返す。
+ */
+export const getCallBlockIndex = (
   caller: Wind,
   discardedBy: Wind,
   type: typeof BLOCK.PON | typeof BLOCK.DAI_KAN

@@ -8,17 +8,30 @@ export interface SerializedCandidate {
   shanten: number;
 }
 
-// Controller tell candidates to players
+/**
+ * 打牌した場合の有効牌の情報を表す。
+ */
 export interface Candidate {
+  /**
+   * 想定する打牌を表す。
+   */
   tile: Tile;
+  /**
+   * 打牌した場合の有効牌を表す。
+   */
   candidates: readonly Tile[];
-  // next shanten if draw a candidate
+  /**
+   * 打牌し有効牌を引いた場合のシャンテン数を表す。
+   * 多くの場合、現在のシャンテン数 -1 となる。
+   */
   shanten: number;
 }
 
 export class Efficiency {
-  // ツモった後の14枚の手配から、牌効率に従って捨てるべき牌を返す。
-  // choices は、通常なら hand.hand を指定する。ただし、リーチしている場合は捨てる牌が限られているので choices で制限する。
+  /**
+   * ツモ後の14枚の手配から、シャンテン数が最小になる打牌候補の配列を返す。
+   * choices は、通常なら hand.hands を指定する。ただし、リーチしている場合は打牌が限られているので choices で制限する。
+   */
   static calcCandidates(
     hand: Hand,
     choices: Tile[],
@@ -61,7 +74,10 @@ export class Efficiency {
     return Array.from(map.values());
   }
 
-  // 積もる前の13枚の手配から、有効牌の一覧を返す
+  /**
+   * ツモ前の13枚の手配から、有効牌の一覧とシャンテン数を返す
+   * シャンテン数は有効牌を引いた場合の値となる。多くの場合、現在のシャンテン数 -1 となる。
+   */
   static candidateTiles(
     hand: Hand,
     options?: {

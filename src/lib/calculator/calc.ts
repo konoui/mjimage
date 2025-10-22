@@ -8,7 +8,6 @@ import {
   Type,
   createWindMap,
   INPUT_SEPARATOR,
-  nextWind,
 } from "../core";
 import {
   Tile,
@@ -53,6 +52,9 @@ export interface HandData {
   reached: boolean;
 }
 
+/**
+ * 全ての牌を順番に返すジェネレーター
+ */
 export function* forHand(options?: { skipBack?: boolean; filterBy?: Type[] }) {
   const types =
     options?.filterBy && options.filterBy.length > 0
@@ -110,6 +112,9 @@ export class Hand {
       throw new Error(`unexpected block ${b.type} ${b.toString()}`);
     }
   }
+  /**
+   * 手牌の配列を返す。晒された牌は含まれない。
+   */
   get hands() {
     const tiles: Tile[] = [];
     for (const [t, n] of forHand()) {
@@ -135,6 +140,9 @@ export class Hand {
     }
     return tiles;
   }
+  /**
+   * 晒された牌を含む手牌を整形した文字列で返す。
+   */
   toString() {
     const called =
       this.called.length > 0
@@ -149,27 +157,49 @@ export class Hand {
     const b = new BlockHand(tiles).toString();
     return `${b}${tsumo}${called}`;
   }
+  /**
+   * 鳴いたブロックの配列を返す
+   */
   get called() {
     return this.data.called;
   }
+  /**
+   * リーチ中かどうかを返す
+   */
   get reached() {
     return this.data.reached;
   }
+  /**
+   * ツモ牌を返す。打牌後は null を返す。
+   */
   get drawn() {
     return this.data.tsumo;
   }
+  /**
+   * 面前かどうかを返す。
+   */
   get menzen() {
     return !this.called.some((v) => !(v instanceof BlockAnKan));
   }
+  /**
+   * 手牌において、指定した牌の種類の合計枚数を返す
+   */
   sum(type: Type) {
     let sum = 0;
     for (const [t, n] of forHand({ filterBy: [type] })) sum += this.get(t, n);
     return sum;
   }
+  /**
+   * 手牌において、牌の合計枚数を返す。
+   * 赤のみを取得する場合は n に 0 を指定する。
+   */
   get(t: Type, n: number) {
     if (t == TYPE.BACK) return this.data[t][1];
     return this.data[t][n];
   }
+  /**
+   * 指定した牌を手牌に加える。draw に比べプリミティブな操作となる。
+   */
   inc(tiles: readonly Tile[]): readonly Tile[] {
     const backup: Tile[] = [];
     for (const t of tiles) {
@@ -193,6 +223,9 @@ export class Hand {
     }
     return backup;
   }
+  /**
+   * 指定した牌からなくす。discard に比べプリミティブな操作となる。
+   */
   dec(tiles: readonly Tile[]): readonly Tile[] {
     const backup: Tile[] = [];
     for (const t of tiles) {
@@ -224,22 +257,34 @@ export class Hand {
 
     return backup;
   }
+  /**
+   * ツモとして手牌に加える。
+   */
   draw(t: Tile) {
     const ts = t.clone({ add: OP.TSUMO });
     this.inc([ts]);
     this.data.tsumo = ts;
     return;
   }
+  /**
+   * 打牌として手牌から捨てる
+   */
   discard(t: Tile) {
     this.dec([t]);
     this.data.tsumo = null;
     return;
   }
+  /**
+   * リーチ宣言をする
+   */
   reach() {
     if (!this.menzen) throw new Error("cannot reach");
     if (this.data.reached) throw new Error("already reached");
     this.data.reached = true;
   }
+  /**
+   * 他家の打牌を指定したブロックで鳴く。鳴く牌はブロック内で表現する。
+   */
   call(b: BlockPon | BlockChi | BlockDaiKan) {
     const toRemove = b.tiles.filter((v) => !v.has(OP.HORIZONTAL));
     if (toRemove.length != b.tiles.length - 1)
@@ -250,6 +295,9 @@ export class Hand {
     this.data.tsumo = null;
     return;
   }
+  /**
+   * ツモした牌を指定したブロックで鳴く。鳴く牌はブロック内で表現する。
+   */
   kan(b: BlockAnKan | BlockShoKan) {
     if (b instanceof BlockAnKan) {
       this.dec(b.tiles);
@@ -291,6 +339,10 @@ export class ShantenCalculator {
   constructor(hand: Hand) {
     this.hand = hand;
   }
+  /**
+   * シャンテン数を返す。
+   * @returns
+   */
   calc() {
     return Math.min(
       this.sevenPairs(),
@@ -298,6 +350,9 @@ export class ShantenCalculator {
       this.fourSetsOnePair()
     );
   }
+  /**
+   * 七対子のシャンテン数を返す。
+   */
   sevenPairs() {
     if (this.hand.called.length > 0) return Infinity;
     let nPairs = 0;
@@ -312,6 +367,9 @@ export class ShantenCalculator {
     return 13 - 2 * nPairs - nIsolated;
   }
 
+  /**
+   * 国士無双のシャンテン数を返す。
+   */
   thirteenOrphans() {
     if (this.hand.called.length > 0) return Infinity;
     let nOrphans = 0;
@@ -327,6 +385,9 @@ export class ShantenCalculator {
     return nPairs >= 1 ? 12 - nOrphans : 13 - nOrphans;
   }
 
+  /**
+   * 標準形のシャンテン数を返す。
+   */
   fourSetsOnePair() {
     const calc = (hasPair: boolean) => {
       const z = [0, 0, 0];
@@ -497,6 +558,12 @@ export class BlockCalculator {
     this.hand = hand;
   }
 
+  /**
+   * あがりの形になりうる構成の配列を返す。
+   * 最後のあがり牌によっては、標準形でもカンチャン、リャンメンなど複数の構成になりうるのでその全てを返す。
+   * @param lastTile
+   * @returns
+   */
   calc(lastTile: Tile): readonly Block[][] {
     return this.markDrawn(
       [
@@ -509,6 +576,12 @@ export class BlockCalculator {
     );
   }
 
+  /**
+   * 指定したブロックにおいて、最後のあがり牌を考慮したあがりの形になりうる構成の配列を返す。
+   * @param hands
+   * @param lastTile
+   * @returns
+   */
   markDrawn(hands: readonly Block[][], lastTile: Tile): readonly Block[][] {
     if (hands.length == 0) return [];
     const op =
@@ -553,6 +626,11 @@ export class BlockCalculator {
     return newHands;
   }
 
+  /**
+   * 現在の手牌において、七対子のあがり形となりうる構成の配列を返す。
+   * あがり牌は考慮されない。
+   * @returns
+   */
   sevenPairs(): readonly Block[][] {
     if (this.hand.called.length > 0) return [];
     const ret: Block[] = [];
@@ -570,6 +648,11 @@ export class BlockCalculator {
     return [ret];
   }
 
+  /**
+   * 現在の手牌において、国士無双のあがり形となりうる構成の配列を返す。
+   * あがり牌は考慮されない。
+   * @returns
+   */
   thirteenOrphans(): readonly Block[][] {
     const ret: Block[] = [];
     let foundPairs = false;
@@ -588,6 +671,11 @@ export class BlockCalculator {
     return [ret];
   }
 
+  /**
+   * 現在の手牌において、九蓮宝燈のあがり形となりうる構成の配列を返す。
+   * あがり牌は考慮されない。
+   * @returns
+   */
   nineGates(): readonly Block[][] {
     const cond = (t: Type, n: number, wantCount: number[]) =>
       wantCount.includes(this.hand.get(t, n));
@@ -612,6 +700,11 @@ export class BlockCalculator {
     return [];
   }
 
+  /**
+   * 現在の手牌において、標準形のあがり形となりうる構成の配列を返す。
+   * あがり牌は考慮されない。
+   * @returns
+   */
   fourSetsOnePair(): readonly Block[][] {
     let ret: Block[][] = [];
     for (const [t, n] of forHand()) {
@@ -821,6 +914,9 @@ export type SerializedWinResult = Omit<WinResult, "hand" | "boardContext"> & {
   boardContext: SerializedBoardContext;
 };
 
+/**
+ * あがり計算に必要な追加情報を表す。
+ */
 export interface BoardContext {
   doraIndicators: readonly Tile[];
   hiddenDoraIndicators?: readonly Tile[];
@@ -839,6 +935,9 @@ export interface BoardContext {
   disableDouble32000?: boolean;
 }
 
+/**
+ * あがりを表す
+ */
 export interface WinResult {
   deltas: { readonly [w in Wind]: number };
   han: number;
@@ -851,6 +950,9 @@ export interface WinResult {
   description: string;
 }
 
+/**
+ * 役を表す
+ */
 export interface Yaku {
   name: string;
   han: number;
@@ -900,6 +1002,9 @@ export class PointCalculator {
     };
   }
 
+  /**
+   * 現在の手牌の構成の配列の中から、点数が最大になるあがりを返す。
+   */
   calc(...hands: readonly Block[][]): WinResult | false {
     const patterns = this.calcPatterns(hands);
     let is32000 = false;
@@ -1033,6 +1138,9 @@ export class PointCalculator {
     };
     return v;
   }
+  /**
+   * 現在の手牌の構成の配列の中から、あがりになる構成の配列を返す。
+   */
   calcPatterns(hands: readonly Block[][]) {
     const ret: {
       yakus: Yaku[];
@@ -1570,6 +1678,9 @@ const minTile = (b: Block) => {
   return [...b.tiles].sort(tileSortFunc)[0];
 };
 
+/**
+ * ドラ表示牌を入力としてドラの牌を返す
+ */
 export const toDora = (doraIndicator: Tile) => {
   const n = doraIndicator.n;
   const t = doraIndicator.t;
