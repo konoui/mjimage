@@ -1135,6 +1135,7 @@ export class PointCalculator {
 
     return {
       ...bestHand,
+      fu: scoreInfo.fu, // ceiled value
       deltas,
       points: deltas[scoreInfo.myWind],
       basePoints,
