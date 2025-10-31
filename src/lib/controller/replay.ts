@@ -1,11 +1,11 @@
 import { assert } from "../myassert";
-import { Controller, History } from "./";
+import { Controller, GameHistory } from "./";
 
 export class Replayer {
   index = 0;
-  histories: History[] = [];
+  histories: GameHistory[] = [];
   constructor(v: string) {
-    this.histories = JSON.parse(v) as History[];
+    this.histories = JSON.parse(v) as GameHistory[];
   }
   next() {
     assert(this.index < this.histories.length);

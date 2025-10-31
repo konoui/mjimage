@@ -33,8 +33,8 @@ export class ScoreManager {
 }
 
 export class PlaceManager {
-  private pToW: { [key: string]: Wind } = {};
-  private wToP = createWindMap("");
+  private playerToWind: { [id: string]: Wind } = {};
+  private windToPlayer = createWindMap("");
   round: Round;
   sticks: { reach: number; dead: number };
   constructor(
@@ -43,15 +43,16 @@ export class PlaceManager {
   ) {
     this.round = params?.round ?? ROUND.E1;
     this.sticks = structuredClone(params?.sticks) ?? { reach: 0, dead: 0 };
-    this.pToW = structuredClone(initial);
-    for (let playerID in this.pToW) this.wToP[this.pToW[playerID]] = playerID;
+    this.playerToWind = structuredClone(initial);
+    for (let playerID in this.playerToWind)
+      this.windToPlayer[this.playerToWind[playerID]] = playerID;
   }
 
   private update() {
-    for (let playerID in this.pToW) {
-      const next = prevWind(this.pToW[playerID]);
-      this.pToW[playerID] = next;
-      this.wToP[next] = playerID;
+    for (let playerID in this.playerToWind) {
+      const next = prevWind(this.playerToWind[playerID]);
+      this.playerToWind[playerID] = next;
+      this.windToPlayer[next] = playerID;
     }
   }
   incrementDeadStick() {
@@ -75,13 +76,13 @@ export class PlaceManager {
     return this.round == r;
   }
   wind(id: string) {
-    return this.pToW[id];
+    return this.playerToWind[id];
   }
   playerID(w: Wind) {
-    return this.wToP[w];
+    return this.windToPlayer[w];
   }
   get playerMap() {
-    return structuredClone(this.pToW);
+    return structuredClone(this.playerToWind);
   }
 }
 
@@ -105,7 +106,7 @@ export class Counter {
     [TYPE.P]: TupleOfSize<number, 10>;
     [TYPE.Z]: TupleOfSize<number, 8>;
   };
-  safeMap = createWindMap({} as { [name: string]: boolean }, true);
+  safeTileMap = createWindMap({} as { [name: string]: boolean }, true);
   constructor(public disable = false) {
     this.c = this.initial();
   }
@@ -128,10 +129,10 @@ export class Counter {
   }
   addTileToSafeMap(t: Tile, targetUser: Wind) {
     if (this.disable) return;
-    this.safeMap[targetUser][this.key(t.t, t.n)] = true;
+    this.safeTileMap[targetUser][this.key(t.t, t.n)] = true;
   }
   isSafeTile(k: Type, n: number, targetUser: Wind) {
-    return this.safeMap[targetUser][this.key(k, n)];
+    return this.safeTileMap[targetUser][this.key(k, n)];
   }
   private key(k: Type, n: number) {
     return `${k}${n}`;

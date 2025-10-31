@@ -32,8 +32,11 @@ export class Player extends BaseActor {
     // 枚数が多いものを優先する
     // 同じ枚数の場合は価値が少ないものを選択する
     // TODO 安全牌を残す
-    const c = Efficiency.calcCandidates(this.hand(this.myWind), tiles);
-    const candidates = PlayerEfficiency.calcPlayerCandidates(this.counter, c);
+    const c = Efficiency.calcEffectiveTiles(this.hand(this.myWind), tiles);
+    const candidates = PlayerEfficiency.analyzePlayerEfficiency(
+      this.counter,
+      c
+    );
     const sorted = candidates.sort((a, b) => b.sum - a.sum);
     const filtered = sorted.filter((v) => v.sum == sorted[0].sum);
     const ct = PlayerEfficiency.selectMinPriority(

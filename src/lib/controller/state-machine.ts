@@ -19,8 +19,8 @@ import {
   Tile,
 } from "../core/parser";
 import {
-  Candidate,
-  SerializedCandidate,
+  TileAnalysis,
+  SerializedTileAnalysis,
   ShantenCalculator,
   WinResult,
   serializeWinResult,
@@ -48,14 +48,14 @@ const serializeBlockOrFalse = (b: Block | false) => {
   return b.serialize();
 };
 
-const serializeCandidate = (
-  cs: Candidate[] | false
-): SerializedCandidate[] | false => {
+const serializeTileAnalyses = (
+  cs: TileAnalysis[] | false
+): SerializedTileAnalysis[] | false => {
   if (cs === false) return false;
   return cs.map((c) => {
     return {
       tile: c.tile.toString(),
-      candidates: c.candidates.map((v) => v.toString()),
+      effectiveTiles: c.effectiveTiles.map((v) => v.toString()),
       shanten: c.shanten,
     };
   });
@@ -449,7 +449,7 @@ export const createControllerMachine = (c: Controller) => {
                   )?.replacementWin,
                 })
               ),
-              REACH: serializeCandidate(context.controller.doReach(w)),
+              REACH: serializeTileAnalyses(context.controller.doReach(w)),
               AN_KAN: serializeBlocksOrFalse(context.controller.doAnKan(w)),
               SHO_KAN: serializeBlocksOrFalse(context.controller.doShoKan(w)),
               DISCARD: context.controller.doDiscard(w).map((v) => v.toString()),

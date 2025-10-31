@@ -139,6 +139,7 @@ export const parseTableInput = (s: string) => {
 
 // ====
 
+// YAMLライクな形式をパースして構造化データに変換
 const parseStringInput = (input: string): RawTableInput => {
   const table = "table";
   const board = "board";
@@ -151,9 +152,9 @@ const parseStringInput = (input: string): RawTableInput => {
   if (!tableLabel.startsWith(table))
     throw new Error(`input does not start with table: ${tableLabel}`);
 
-  const i: RawTableInput = {};
+  const result: RawTableInput = {};
 
-  // TODO support 1w,2w,3w,4w aliases
+  // 1w,2w,3w,4w エイリアスをサポート
   let labels = [WIND.E, WIND.S, WIND.W, WIND.N, board];
   for (;;) {
     const line = lines.shift();
@@ -162,42 +163,45 @@ const parseStringInput = (input: string): RawTableInput => {
     const label = labels.find((l) => line.startsWith(l))!;
     if (label == null) throw new Error(`encountered unexpected line ${line}`);
 
-    // update
+    // 処理済みラベルを除去
     labels = labels.filter((l) => !line.startsWith(l));
     if (label == board) {
-      const [bi, count] = handleBoard([...lines]);
-      i.board = bi;
+      const [boardInput, count] = parseBoardSection([...lines]);
+      result.board = boardInput;
       for (let i = 0; i < count; i++) lines.shift();
     } else {
-      const [wi, count] = handleWind([...lines]);
-      i[label as Wind] = wi;
+      const [windInput, count] = parseWindSection([...lines]);
+      result[label as Wind] = windInput;
       for (let i = 0; i < count; i++) lines.shift();
     }
   }
-  return i;
+  return result;
 };
 
-const trim = (s: string, label: string) => {
+// キー値ペアから値部分を抽出
+const extractValue = (s: string, label: string) => {
   return s.replace(label, "").replace(":", "").trim();
 };
 
-const handleWind = (lines: string[]) => {
+// 風牌セクションをパース
+const parseWindSection = (lines: string[]) => {
   const hand = "hand";
   const discard = "discard";
   const score = "score";
-  const r: RawWindInput = {};
+  const result: RawWindInput = {};
   let i = 0;
   for (; i < lines.length; i++) {
     const line = lines[i];
-    if (line.startsWith(hand)) r.hand = trim(line, hand);
-    else if (line.startsWith(discard)) r.discard = trim(line, discard);
-    else if (line.startsWith(score)) r.score = Number(trim(line, score));
+    if (line.startsWith(hand)) result.hand = extractValue(line, hand);
+    else if (line.startsWith(discard)) result.discard = extractValue(line, discard);
+    else if (line.startsWith(score)) result.score = Number(extractValue(line, score));
     else break;
   }
-  return [r, i] as const;
+  return [result, i] as const;
 };
 
-const handleBoard = (lines: string[]) => {
+// ボードセクションをパース
+const parseBoardSection = (lines: string[]) => {
   const doras = "doras";
   const round = "round";
   const front = "front";
@@ -205,32 +209,32 @@ const handleBoard = (lines: string[]) => {
   const reach = "reach";
   const dead = "dead";
 
-  const r: RawBoardInput = {};
+  const result: RawBoardInput = {};
 
   let i = 0;
   for (; i < lines.length; i++) {
     const line = lines[i];
     if (line.startsWith(doras)) {
-      r.doras = trim(line, doras);
+      result.doras = extractValue(line, doras);
     } else if (line.startsWith(round)) {
-      r.round = trim(line, round) as Round;
+      result.round = extractValue(line, round) as Round;
     } else if (line.startsWith(front)) {
-      r.front = trim(line, front) as Wind;
+      result.front = extractValue(line, front) as Wind;
     } else if (line.startsWith(sticks)) {
-      r.sticks = {};
+      result.sticks = {};
       const next = lines[i + 1] ?? "";
       const nextNext = lines[i + 2] ?? "";
-      if (next.startsWith(reach)) r.sticks.reach = Number(trim(next, reach));
-      if (next.startsWith(dead)) r.sticks.dead = Number(trim(next, dead));
+      if (next.startsWith(reach)) result.sticks.reach = Number(extractValue(next, reach));
+      if (next.startsWith(dead)) result.sticks.dead = Number(extractValue(next, dead));
       if (nextNext.startsWith(reach))
-        r.sticks.reach = Number(trim(nextNext, reach));
+        result.sticks.reach = Number(extractValue(nextNext, reach));
       if (nextNext.startsWith(dead))
-        r.sticks.dead = Number(trim(nextNext, dead));
-      if (r.sticks.dead != null) i++;
-      if (r.sticks.reach != null) i++;
+        result.sticks.dead = Number(extractValue(nextNext, dead));
+      if (result.sticks.dead != null) i++;
+      if (result.sticks.reach != null) i++;
     } else break;
   }
-  return [r, i] as const;
+  return [result, i] as const;
 };
 
 // ====

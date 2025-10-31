@@ -23,9 +23,9 @@ import {
   BlockThree,
   BlockRun,
   BlockHand,
-  tileSortFunc,
+  compareTiles,
   SerializedBlock,
-  isNum5,
+  is5Tile,
 } from "../core/parser";
 import { assert } from "../myassert";
 
@@ -113,7 +113,7 @@ export class Hand {
     }
   }
   /**
-   * 手牌の配列を返す。晒された牌は含まれない。
+   * 手の内の牌の配列を返す。晒された牌は含まれない。
    */
   get hands() {
     const tiles: Tile[] = [];
@@ -158,7 +158,7 @@ export class Hand {
     return `${b}${tsumo}${called}`;
   }
   /**
-   * 鳴いたブロックの配列を返す
+   * 晒したブロックの配列を返す
    */
   get called() {
     return this.data.called;
@@ -224,7 +224,7 @@ export class Hand {
     return backup;
   }
   /**
-   * 指定した牌からなくす。discard に比べプリミティブな操作となる。
+   * 指定した牌を手牌からなくす。discard に比べプリミティブな操作となる。
    */
   dec(tiles: readonly Tile[]): readonly Tile[] {
     const backup: Tile[] = [];
@@ -248,7 +248,7 @@ export class Hand {
       }
 
       // r5 ではなく 5 で減算される際に最後の牌が red であれば red を 0 にする。
-      if (isNum5(t) && this.get(t.t, 5) == 0 && this.get(t.t, 0) > 0) {
+      if (is5Tile(t) && this.get(t.t, 5) == 0 && this.get(t.t, 0) > 0) {
         this.data[t.t][0] = 0;
         const c = backup.pop()!.clone({ add: OP.RED });
         backup.push(c);
@@ -258,7 +258,7 @@ export class Hand {
     return backup;
   }
   /**
-   * ツモとして手牌に加える。
+   * ツモ牌として手牌に加える。
    */
   draw(t: Tile) {
     const ts = t.clone({ add: OP.TSUMO });
@@ -296,7 +296,7 @@ export class Hand {
     return;
   }
   /**
-   * ツモした牌を指定したブロックで鳴く。鳴く牌はブロック内で表現する。
+   * ツモした牌を指定したブロックでカンする。鳴く牌はブロック内で表現する。
    */
   kan(b: BlockAnKan | BlockShoKan) {
     if (b instanceof BlockAnKan) {
@@ -313,7 +313,7 @@ export class Hand {
       if (idx == -1) throw new Error(`unable to find ${b.tiles[0]}`);
       let t = b.tiles[0];
       // 適当に選んだ牌が red であればエラーが発生しないように red を削除して dec する
-      t = isNum5(t) ? t.clone({ remove: OP.RED }) : t;
+      t = is5Tile(t) ? t.clone({ remove: OP.RED }) : t;
       this.dec([t]);
       // remove an existing pon block and add kakan block
       this.data.called = [
@@ -341,13 +341,12 @@ export class ShantenCalculator {
   }
   /**
    * シャンテン数を返す。
-   * @returns
    */
   calc() {
     return Math.min(
       this.sevenPairs(),
       this.thirteenOrphans(),
-      this.fourSetsOnePair()
+      this.standardType()
     );
   }
   /**
@@ -388,7 +387,7 @@ export class ShantenCalculator {
   /**
    * 標準形のシャンテン数を返す。
    */
-  fourSetsOnePair() {
+  standardType() {
     const calc = (hasPair: boolean) => {
       const z = [0, 0, 0];
       for (const [t, n] of forHand({ filterBy: [TYPE.Z] })) {
@@ -405,9 +404,9 @@ export class ShantenCalculator {
       else if (bb == 1) b[2] = 1;
 
       let min = 13;
-      const mr = this.patternNumType(TYPE.M);
-      const pr = this.patternNumType(TYPE.P);
-      const sr = this.patternNumType(TYPE.S);
+      const mr = this.calcNumberTilePatterns(TYPE.M);
+      const pr = this.calcNumberTilePatterns(TYPE.P);
+      const sr = this.calcNumberTilePatterns(TYPE.S);
       for (const m of [mr.patternA, mr.patternB]) {
         for (const p of [pr.patternA, pr.patternB]) {
           for (const s of [sr.patternA, sr.patternB]) {
@@ -416,7 +415,7 @@ export class ShantenCalculator {
             for (let i = 0; i < 3; i++) {
               v[i] += m[i] + p[i] + s[i] + z[i] + b[i];
             }
-            const r = this.calcCommon(v[0], v[1], v[2], hasPair);
+            const r = this.calcStandardType(v[0], v[1], v[2], hasPair);
             if (r < min) min = r;
           }
         }
@@ -439,7 +438,7 @@ export class ShantenCalculator {
     }
     return min;
   }
-  private patternNumType(
+  private calcNumberTilePatterns(
     t: typeof TYPE.M | typeof TYPE.S | typeof TYPE.P,
     n = 1
   ): {
@@ -448,7 +447,7 @@ export class ShantenCalculator {
   } {
     if (n > 9) return this.groupRemainingTiles(t);
 
-    let max = this.patternNumType(t, n + 1);
+    let max = this.calcNumberTilePatterns(t, n + 1);
 
     if (
       n <= 7 &&
@@ -461,7 +460,7 @@ export class ShantenCalculator {
         new Tile(t, n + 1),
         new Tile(t, n + 2),
       ]);
-      const r = this.patternNumType(t, n);
+      const r = this.calcNumberTilePatterns(t, n);
       this.hand.inc(tiles);
       r.patternA[0]++, r.patternB[0]++;
       if (
@@ -480,7 +479,7 @@ export class ShantenCalculator {
 
     if (this.hand.get(t, n) >= 3) {
       const tiles = this.hand.dec(new Array(3).fill(new Tile(t, n)));
-      const r = this.patternNumType(t, n);
+      const r = this.calcNumberTilePatterns(t, n);
       this.hand.inc(tiles);
       r.patternA[0]++, r.patternB[0]++;
       if (
@@ -527,7 +526,7 @@ export class ShantenCalculator {
       patternB: [0, nSerialPairs, nIsolated],
     };
   }
-  private calcCommon(
+  private calcStandardType(
     nSet: number,
     nSerialPair: number,
     nIsolated: number,
@@ -559,10 +558,8 @@ export class BlockCalculator {
   }
 
   /**
-   * あがりの形になりうる構成の配列を返す。
+   * あがりの形になりうる手牌の構成の配列を返す。
    * 最後のあがり牌によっては、標準形でもカンチャン、リャンメンなど複数の構成になりうるのでその全てを返す。
-   * @param lastTile
-   * @returns
    */
   calc(lastTile: Tile): readonly Block[][] {
     return this.markDrawn(
@@ -570,17 +567,14 @@ export class BlockCalculator {
         ...this.sevenPairs(),
         ...this.thirteenOrphans(),
         ...this.nineGates(),
-        ...this.fourSetsOnePair(),
+        ...this.standardType(),
       ],
       lastTile
     );
   }
 
   /**
-   * 指定したブロックにおいて、最後のあがり牌を考慮したあがりの形になりうる構成の配列を返す。
-   * @param hands
-   * @param lastTile
-   * @returns
+   * あがりの形になりうる手牌の構成の配列に対して、最後のあがり牌を考慮したあがりの形になりうる手牌の構成の配列を返す。
    */
   markDrawn(hands: readonly Block[][], lastTile: Tile): readonly Block[][] {
     if (hands.length == 0) return [];
@@ -627,9 +621,8 @@ export class BlockCalculator {
   }
 
   /**
-   * 現在の手牌において、七対子のあがり形となりうる構成の配列を返す。
-   * あがり牌は考慮されない。
-   * @returns
+   * 現在の手牌において、七対子のあがり形となりうる手牌の構成の配列を返す。
+   * あがり牌は考慮されない。最大で要素は 1 となる。
    */
   sevenPairs(): readonly Block[][] {
     if (this.hand.called.length > 0) return [];
@@ -649,9 +642,8 @@ export class BlockCalculator {
   }
 
   /**
-   * 現在の手牌において、国士無双のあがり形となりうる構成の配列を返す。
+   * 現在の手牌において、国士無双のあがり形となりうる手牌の構成の配列を返す。
    * あがり牌は考慮されない。
-   * @returns
    */
   thirteenOrphans(): readonly Block[][] {
     const ret: Block[] = [];
@@ -672,9 +664,8 @@ export class BlockCalculator {
   }
 
   /**
-   * 現在の手牌において、九蓮宝燈のあがり形となりうる構成の配列を返す。
+   * 現在の手牌において、九蓮宝燈のあがり形となりうる手牌の構成の配列を返す。
    * あがり牌は考慮されない。
-   * @returns
    */
   nineGates(): readonly Block[][] {
     const cond = (t: Type, n: number, wantCount: number[]) =>
@@ -701,11 +692,10 @@ export class BlockCalculator {
   }
 
   /**
-   * 現在の手牌において、標準形のあがり形となりうる構成の配列を返す。
+   * 現在の手牌において、標準形のあがり形となりうる手牌の構成の配列を返す。
    * あがり牌は考慮されない。
-   * @returns
    */
-  fourSetsOnePair(): readonly Block[][] {
+  standardType(): readonly Block[][] {
     let ret: Block[][] = [];
     for (const [t, n] of forHand()) {
       if (this.hand.get(t, n) >= 2) {
@@ -720,7 +710,7 @@ export class BlockCalculator {
         // 1. calc all cases without two pairs
         // 2. remove non five blocks
         // 3. add two pairs to the head
-        const v = this.patternAll()
+        const v = this.calcAllBlockCombinations()
           .filter((arr) => arr.length == 4)
           .map((arr) => {
             arr.unshift(new BlockPair(tiles[0], tiles[1]));
@@ -734,7 +724,7 @@ export class BlockCalculator {
     return ret;
   }
 
-  private patternAll(): readonly Block[][] {
+  private calcAllBlockCombinations(): readonly Block[][] {
     // [["123m", "123m"], ["222m", "333m"]]
     // [["123s", "123s"]]
     // result: [["123m", "123m", "123s", "123s"], ["111m", "333m", "123s", "123s"]]
@@ -930,22 +920,18 @@ export interface BoardContext {
   finalWallWin?: boolean;
   finalDiscardWin?: boolean;
   oneShotWin?: boolean;
-  enableRoundUp8000?: boolean;
-  disableCountable32000?: boolean;
-  disableDouble32000?: boolean;
+  enableRoundUpMangan?: boolean;
+  disableCountableYakuman?: boolean;
+  disableDoubleYakuman?: boolean;
 }
 
 /**
  * あがりを表す
  */
-export interface WinResult {
+export interface WinResult extends WinningHand {
   deltas: { readonly [w in Wind]: number };
-  han: number;
-  fu: number;
-  yakus: readonly Yaku[];
   points: number;
-  rawPoints: number;
-  hand: Block[]; // TODO readonly
+  basePoints: number;
   boardContext: BoardContext;
   description: string;
 }
@@ -956,14 +942,113 @@ export interface WinResult {
 export interface Yaku {
   name: string;
   han: number;
-  is32000?: boolean;
+  isYakuman?: boolean;
 }
+
+/**
+ * あがりの構成になる手牌の情報
+ */
+interface WinningHand {
+  hand: Block[];
+  fu: number;
+  yakus: readonly Yaku[];
+  han: number;
+  isYakuman?: boolean;
+}
+
+const SCORING = {
+  MANGAN: 2000,
+  HANEMAN: 3000,
+  DOUBLE: 4000,
+  TRIPLE: 6000,
+  YAKUMAN: 8000,
+  DOUBLE_YAKUMAN: 16000,
+  DEAD_STICK: 300,
+  REACH_STICK: 1000,
+} as const;
+
+const HAN_SCORING_TABLE = [
+  { minHan: 26, points: SCORING.DOUBLE_YAKUMAN },
+  { minHan: 13, points: SCORING.YAKUMAN },
+  { minHan: 11, points: SCORING.TRIPLE },
+  { minHan: 8, points: SCORING.DOUBLE },
+  { minHan: 6, points: SCORING.HANEMAN },
+  { minHan: 5, points: SCORING.MANGAN },
+] as const;
+
+const SCORE_NAMES = {
+  [SCORING.MANGAN]: "満貫",
+  [SCORING.HANEMAN]: "跳満",
+  [SCORING.DOUBLE]: "倍満",
+  [SCORING.TRIPLE]: "三倍満",
+} as const;
+
+const POINT_COEFFICIENT = {
+  PARENT_RON: 6,
+  CHILD_RON: 4,
+  PARENT_TSUMO: 2,
+  CHILD_TUMO_FROM_PARENT: 2,
+  CHILD_TUMO_FROM_CHILD: 1,
+} as const;
+
+/**
+ * あがりの説明を返す。
+ */
+export function getPointDescription(params: {
+  base: number;
+  fu: number;
+  han: number;
+  isTsumo: boolean;
+  isParent: boolean;
+  isYakuman?: boolean;
+  isCountableYakuman?: boolean;
+}): string {
+  if (params.isYakuman) return "役満";
+  if (params.isCountableYakuman) return "数え役満";
+
+  const pointDesc = generatePointDescription(
+    params.base,
+    params.isTsumo,
+    params.isParent
+  );
+
+  const scoreName = SCORE_NAMES[params.base as keyof typeof SCORE_NAMES];
+  return scoreName
+    ? `${params.fu}符${params.han}飜 ${scoreName}${pointDesc}`
+    : `${params.fu}符${params.han}飜 ${pointDesc}`;
+}
+
+function generatePointDescription(
+  base: number,
+  isTsumo: boolean,
+  isParent: boolean
+): string {
+  if (!isTsumo) {
+    // RON: 単一の点数
+    const coefficient = isParent
+      ? POINT_COEFFICIENT.PARENT_RON
+      : POINT_COEFFICIENT.CHILD_RON;
+    return `${myCeil(base * coefficient)}`;
+  } else if (isParent) {
+    // 親のツモ: 単一の点数
+    return `${myCeil(base * POINT_COEFFICIENT.PARENT_TSUMO)}`;
+  } else {
+    // 子のツモ: 範囲表示
+    return `${myCeil(base * POINT_COEFFICIENT.CHILD_TUMO_FROM_CHILD)}-${myCeil(
+      base * POINT_COEFFICIENT.CHILD_TUMO_FROM_PARENT
+    )}`;
+  }
+}
+
+const myCeil = (v: number, p = 100) => {
+  return Math.ceil(v / p) * p;
+};
 
 export class PointCalculator {
   hand: Hand;
   cfg: {
     doras: readonly Tile[];
-    blindDoras: readonly Tile[];
+    hiddenDoras: readonly Tile[];
     roundWind: Tile;
     myWind: Tile;
     reached: 0 | 1 | 2;
@@ -973,16 +1058,16 @@ export class PointCalculator {
     finalWallWin: boolean;
     finalDiscardWin: boolean;
     oneShotWin: boolean;
-    enableRoundUp8000: boolean;
-    disableCountable32000: boolean;
-    disableDouble32000: boolean;
+    enableRoundUpMangan: boolean;
+    disableCountableYakuman: boolean;
+    disableDoubleYakuman: boolean;
     orig: BoardContext;
   };
   constructor(hand: Hand, params: BoardContext) {
     this.hand = hand;
     this.cfg = {
       doras: params.doraIndicators.map((v) => toDora(v)), // convert to dora
-      blindDoras:
+      hiddenDoras:
         params.hiddenDoraIndicators == null
           ? []
           : params.hiddenDoraIndicators.map((v) => toDora(v)),
@@ -995,9 +1080,9 @@ export class PointCalculator {
       finalWallWin: params.finalWallWin ?? false,
       finalDiscardWin: params.finalDiscardWin ?? false,
       oneShotWin: params.oneShotWin ?? false,
-      enableRoundUp8000: params.enableRoundUp8000 ?? false,
-      disableCountable32000: params.disableCountable32000 ?? false,
-      disableDouble32000: params.disableDouble32000 ?? false,
+      enableRoundUpMangan: params.enableRoundUpMangan ?? false,
+      disableCountableYakuman: params.disableCountableYakuman ?? false,
+      disableDoubleYakuman: params.disableDoubleYakuman ?? false,
       orig: params,
     };
   }
@@ -1006,148 +1091,46 @@ export class PointCalculator {
    * 現在の手牌の構成の配列の中から、点数が最大になるあがりを返す。
    */
   calc(...hands: readonly Block[][]): WinResult | false {
-    const patterns = this.calcPatterns(hands);
-    let is32000 = false;
-    let isCountable32000 = false;
-    if (patterns.length == 0) return false;
-    let max = [0, 0]; // [yayu, fu]
-    let idx = 0;
-    for (let i = 0; i < patterns.length; i++) {
-      const pt = patterns[i];
-      is32000 = pt.is32000 ?? false;
-      const han = pt.yakus.reduce((a: number, b: Yaku) => {
-        return a + b.han;
-      }, 0);
-      if (han > max[0]) {
-        idx = i;
-        max = [han, pt.fu];
-      } else if (han == max[0] && pt.fu > max[1]) {
-        idx = i;
-        max = [han, pt.fu];
-      }
-    }
+    const patterns = this.getWinningHands(hands);
+    if (patterns.length === 0) return false;
 
-    const ceil = (v: number, p = 100) => {
-      return Math.ceil(v / p) * p;
-    };
-
-    const fu = max[1] != 25 ? ceil(max[1], 10) : 25; // 七対子
-    const han = max[0];
-    // 40符以上の4飜は満貫の2000にする。
-    let base = Math.min(fu * 2 ** (han + 2), 2000);
-    switch (han) {
-      case 26:
-        base = 16000;
-        break;
-      case 13:
-        base = 8000;
-        break;
-      case 12:
-      case 11:
-        base = 6000;
-        break;
-      case 10:
-      case 9:
-      case 8:
-        base = 4000;
-        break;
-      case 7:
-      case 6:
-        base = 3000;
-        break;
-      case 5:
-        base = 2000;
-        break;
-    }
-    // 数え役満
-    if (
-      han >= 13 &&
-      han < 26 &&
-      patterns[idx].yakus.every((v) => v.is32000 == null || v.is32000 == false)
-    ) {
-      base = this.cfg.disableCountable32000 ? 6000 : 8000; // 3倍満にする
-      isCountable32000 = !this.cfg.disableCountable32000;
-    }
-    // 切り上げ満貫
-    if (this.cfg.enableRoundUp8000) {
-      if ((fu == 30 && han == 4) || (fu == 60 && han == 3)) {
-        base = 2000;
-      }
-    }
-
-    const isTsumo = patterns[idx].hand.some((b) =>
-      b.tiles.some((t) => t.has(OP.TSUMO))
+    const bestHand = this.selectBestHand(patterns);
+    const scoreInfo = this.calculateScore(bestHand);
+    const deltas = this.calculateDeltas(
+      scoreInfo.base,
+      scoreInfo.isTsumo,
+      scoreInfo.isParent,
+      scoreInfo.myWind,
+      this.cfg.orig.ronWind
     );
-    const myWind = this.cfg.orig.myWind;
-    const isParent = myWind == WIND.E;
 
-    let desc = "";
-    const deltas = createWindMap(0);
-    if (!isTsumo) {
-      const deadPoint = this.cfg.sticks.dead * 300;
-      if (this.cfg.orig.ronWind == null)
-        throw new Error("ron wind is not specified in the parameters");
-      const coefficient = isParent ? 6 : 4;
-      const basePoint = ceil(base * coefficient);
-      const point = basePoint + deadPoint;
-      deltas[myWind] += point;
-      deltas[this.cfg.orig.ronWind] -= point;
-      desc = `${point}`;
-    } else {
-      const deadPoint = this.cfg.sticks.dead * 100;
-      if (isParent) {
-        const basePoint = ceil(base * 2);
-        deltas[WIND.E] += basePoint * 3 + deadPoint * 3;
-        deltas[WIND.S] -= basePoint + deadPoint;
-        deltas[WIND.W] -= basePoint + deadPoint;
-        deltas[WIND.N] -= basePoint + deadPoint;
-        desc = `${basePoint}`;
-      } else {
-        for (const key of Object.values(WIND)) {
-          if (key == myWind) continue;
-          const coefficient = key == WIND.E ? 2 : 1;
-          const basePoint = ceil(base * coefficient);
-          deltas[key] -= basePoint + deadPoint;
-          deltas[myWind] += basePoint + deadPoint;
-        }
-        desc = `${ceil(base * 1)}-${ceil(base * 2)}`;
-      }
-    }
+    const basePoints =
+      deltas[scoreInfo.myWind] - this.cfg.sticks.dead * SCORING.DEAD_STICK;
+    const description = getPointDescription({
+      base: scoreInfo.base,
+      fu: scoreInfo.fu,
+      han: scoreInfo.han,
+      isTsumo: scoreInfo.isTsumo,
+      isParent: scoreInfo.isParent,
+      isYakuman: scoreInfo.isYakuman,
+      isCountableYakuman: scoreInfo.isCountableYakuman,
+    });
 
-    const rawPoint = deltas[myWind] - this.cfg.sticks.dead * 300;
-    deltas[myWind] += 1000 * this.cfg.sticks.reach;
-
-    let description;
-    if (is32000) description = "役満";
-    else if (isCountable32000) description = "数え役満";
-    else if (base == 2000) description = `${fu}符${han}飜 満貫${desc}`;
-    else if (base == 3000) description = `${fu}符${han}飜 跳満${desc}`;
-    else if (base == 4000) description = `${fu}符${han}飜 倍満${desc}`;
-    else if (base == 6000) description = `${fu}符${han}飜 三倍満${desc}`;
-    else description = `${fu}符${han}飜 ${desc}`;
-    const v: WinResult = {
-      deltas: deltas,
-      han: han,
-      fu: fu,
-      yakus: patterns[idx].yakus,
-      points: deltas[myWind],
-      rawPoints: rawPoint,
-      hand: patterns[idx].hand,
+    return {
+      ...bestHand,
+      deltas,
+      points: deltas[scoreInfo.myWind],
+      basePoints,
       boardContext: this.cfg.orig,
       description,
     };
-    return v;
   }
+
   /**
    * 現在の手牌の構成の配列の中から、あがりになる構成の配列を返す。
    */
-  calcPatterns(hands: readonly Block[][]) {
-    const ret: {
-      yakus: Yaku[];
-      fu: number;
-      hand: Block[];
-      is32000?: boolean;
-    }[] = [];
+  getWinningHands(hands: readonly Block[][]) {
+    const ret: WinningHand[] = [];
     if (hands.length == 0) return ret;
     for (const hand of hands) {
       const v = [
@@ -1163,15 +1146,16 @@ export class PointCalculator {
         ...this.dJ13(hand),
         ...this.dK13(hand),
       ].map((y) => {
-        if (this.cfg.disableDouble32000 && y.han > 13) y.han = 13;
+        if (this.cfg.disableDoubleYakuman && y.han > 13) y.han = 13;
         return y;
       });
       if (v.length == 0) continue;
       ret.push({
         yakus: v,
+        han: v.reduce((sum, yaku) => sum + yaku.han, 0),
         fu: 30,
         hand: hand,
-        is32000: true,
+        isYakuman: true,
       });
     }
 
@@ -1214,6 +1198,7 @@ export class PointCalculator {
       v.push(...this.dX1(hand));
       ret.push({
         yakus: v,
+        han: v.reduce((sum, yaku) => sum + yaku.han, 0),
         fu: fu,
         hand: hand,
       });
@@ -1221,6 +1206,168 @@ export class PointCalculator {
 
     return ret;
   }
+
+  private selectBestHand(winningHand: readonly WinningHand[]) {
+    let bestIdx = 0;
+    let maxScore = [0, 0]; // [han, fu]
+
+    for (let i = 0; i < winningHand.length; i++) {
+      const { han, fu } = winningHand[i];
+      if (han > maxScore[0] || (han === maxScore[0] && fu > maxScore[1])) {
+        bestIdx = i;
+        maxScore = [han, fu];
+      }
+    }
+
+    return winningHand[bestIdx];
+  }
+
+  private calculateScore(bestHand: WinningHand) {
+    const { han } = bestHand;
+    const fu = bestHand.fu !== 25 ? myCeil(bestHand.fu, 10) : 25;
+    const isYakuman = bestHand.isYakuman ?? false;
+
+    let base = this.getBasePoints(han, fu);
+    let isCountableYakuman = false;
+
+    // 数え役満処理
+    if (han >= 13 && han < 26 && !this.hasYakuman(bestHand.yakus)) {
+      base = this.cfg.disableCountableYakuman
+        ? SCORING.TRIPLE
+        : SCORING.YAKUMAN;
+      isCountableYakuman = !this.cfg.disableCountableYakuman;
+    }
+
+    // 切り上げ満貫
+    if (this.cfg.enableRoundUpMangan && this.isRoundUpMangan(fu, han)) {
+      base = SCORING.MANGAN;
+    }
+
+    const isTsumo = this.isTsumoWin(bestHand.hand);
+    const myWind = this.cfg.orig.myWind;
+    const isParent = myWind === WIND.E;
+
+    return {
+      base,
+      fu,
+      han,
+      isYakuman: isCountableYakuman ? true : isYakuman,
+      isCountableYakuman,
+      isTsumo,
+      myWind,
+      isParent,
+    };
+  }
+
+  private hasYakuman(yakus: readonly Yaku[]): boolean {
+    return yakus.some((yaku) => yaku.isYakuman);
+  }
+
+  private isRoundUpMangan(fu: number, han: number): boolean {
+    return (fu === 30 && han === 4) || (fu === 60 && han === 3);
+  }
+
+  private isTsumoWin(hand: Block[]): boolean {
+    return hand.some((block) => block.tiles.some((tile) => tile.has(OP.TSUMO)));
+  }
+
+  /**
+   * Wind をキーとした点数移動の構成を返す
+   */
+  private calculateDeltas(
+    base: number,
+    isTsumo: boolean,
+    isParent: boolean,
+    myWind: Wind,
+    ronWind?: Wind
+  ) {
+    const deltas = createWindMap(0);
+
+    if (!isTsumo) {
+      this.calculateRonDeltas(deltas, base, isParent, myWind, ronWind!);
+    } else {
+      this.calculateTsumoDeltas(deltas, base, isParent, myWind);
+    }
+
+    this.addStickPoints(deltas, myWind);
+    return deltas;
+  }
+
+  private calculateRonDeltas(
+    deltas: { [key in Wind]: number },
+    base: number,
+    isParent: boolean,
+    myWind: Wind,
+    ronWind: Wind
+  ) {
+    if (ronWind == null) {
+      throw new Error("ron wind is not specified in the parameters");
+    }
+
+    const coefficient = isParent
+      ? POINT_COEFFICIENT.PARENT_RON
+      : POINT_COEFFICIENT.CHILD_RON;
+    const basePoints = myCeil(base * coefficient);
+    const deadPoints = this.cfg.sticks.dead * SCORING.DEAD_STICK;
+    const totalPoints = basePoints + deadPoints;
+
+    deltas[myWind] += totalPoints;
+    deltas[ronWind] -= totalPoints;
+  }
+
+  private calculateTsumoDeltas(
+    deltas: { [key in Wind]: number },
+    base: number,
+    isParent: boolean,
+    myWind: Wind
+  ) {
+    const deadPoints = this.cfg.sticks.dead * (SCORING.DEAD_STICK / 3);
+    if (isParent) this.calculateParentTsumoDeltas(deltas, base, deadPoints);
+    else this.calculateChildTsumoDeltas(deltas, base, myWind, deadPoints);
+  }
+
+  private calculateParentTsumoDeltas(
+    deltas: { [key in Wind]: number },
+    base: number,
+    deadPoints: number
+  ) {
+    const basePoints = myCeil(base * POINT_COEFFICIENT.PARENT_TSUMO);
+    deltas[WIND.E] += basePoints * 3 + deadPoints * 3;
+    deltas[WIND.S] -= basePoints + deadPoints;
+    deltas[WIND.W] -= basePoints + deadPoints;
+    deltas[WIND.N] -= basePoints + deadPoints;
+  }
+
+  private calculateChildTsumoDeltas(
+    deltas: { [key in Wind]: number },
+    base: number,
+    myWind: Wind,
+    deadPoint: number
+  ) {
+    for (const key of Object.values(WIND)) {
+      if (key == myWind) continue;
+      const coefficient =
+        key == WIND.E
+          ? POINT_COEFFICIENT.CHILD_TUMO_FROM_PARENT
+          : POINT_COEFFICIENT.CHILD_TUMO_FROM_CHILD;
+      const basePoints = myCeil(base * coefficient);
+      deltas[key] -= basePoints + deadPoint;
+      deltas[myWind] += basePoints + deadPoint;
+    }
+  }
+
+  private addStickPoints(deltas: { [key in Wind]: number }, myWind: Wind) {
+    deltas[myWind] += SCORING.REACH_STICK * this.cfg.sticks.reach;
+  }
+
+  private getBasePoints(han: number, fu: number): number {
+    for (const { minHan, points } of HAN_SCORING_TABLE) {
+      if (han >= minHan) return points;
+    }
+    // 40符以上の4飜は満貫の2000にする。
+    return Math.min(fu * 2 ** (han + 2), SCORING.MANGAN);
+  }
+
   private minus() {
     return this.hand.menzen ? 0 : 1;
   }
@@ -1295,7 +1442,7 @@ export class PointCalculator {
     for (const b of h) {
       for (const t of b.tiles) {
         for (const d of this.cfg.doras) if (t.equals(d)) dcount++;
-        for (const d of this.cfg.blindDoras) if (t.equals(d)) bcount++;
+        for (const d of this.cfg.hiddenDoras) if (t.equals(d)) bcount++;
         if (t.has(OP.RED)) rcount++;
       }
     }
@@ -1487,11 +1634,13 @@ export class PointCalculator {
         b.tiles.some((t) => t.has(OP.TSUMO) || t.has(OP.RON))
     );
     return double
-      ? [{ name: "国士無双13面待ち", han: 26, is32000: true }]
-      : [{ name: "国士無双", han: 13, is32000: true }];
+      ? [{ name: "国士無双13面待ち", han: 26, isYakuman: true }]
+      : [{ name: "国士無双", han: 13, isYakuman: true }];
   }
   dB13(h: readonly Block[]): Yaku[] {
-    return h.length == 1 ? [{ name: "九蓮宝燈", han: 13, is32000: true }] : [];
+    return h.length == 1
+      ? [{ name: "九蓮宝燈", han: 13, isYakuman: true }]
+      : [];
   }
   dC13(h: readonly Block[]): Yaku[] {
     if (h.length == 7) return [];
@@ -1508,8 +1657,8 @@ export class PointCalculator {
         b.tiles.some((t) => t.has(OP.TSUMO) || t.has(OP.RON))
     );
     return cond2
-      ? [{ name: "四暗刻単騎待ち", han: 26, is32000: true }]
-      : [{ name: "四暗刻", han: 13, is32000: true }];
+      ? [{ name: "四暗刻単騎待ち", han: 26, isYakuman: true }]
+      : [{ name: "四暗刻", han: 13, isYakuman: true }];
   }
   dD13(h: readonly Block[]): Yaku[] {
     if (h.length == 13) return [];
@@ -1520,17 +1669,17 @@ export class PointCalculator {
           !(b instanceof BlockPair) &&
           b.tiles.some((t) => t.t == TYPE.Z && z.includes(t.n))
       ).length == 3;
-    return cond ? [{ name: "大三元", han: 13, is32000: true }] : [];
+    return cond ? [{ name: "大三元", han: 13, isYakuman: true }] : [];
   }
   dE13(h: readonly Block[]): Yaku[] {
     const cond = h.every((b) => b.tiles[0].t == TYPE.Z);
-    return cond ? [{ name: "字一色", han: 13, is32000: true }] : [];
+    return cond ? [{ name: "字一色", han: 13, isYakuman: true }] : [];
   }
   dF13(h: readonly Block[]): Yaku[] {
     const cond = h.every((b) =>
       b.tiles.every((t) => t.t != TYPE.Z && N19.includes(t.n))
     );
-    return cond ? [{ name: "清老頭", han: 13, is32000: true }] : [];
+    return cond ? [{ name: "清老頭", han: 13, isYakuman: true }] : [];
   }
   dG13(h: readonly Block[]): Yaku[] {
     const cond =
@@ -1540,7 +1689,7 @@ export class PointCalculator {
           b instanceof BlockShoKan ||
           b instanceof BlockDaiKan
       ).length == 4;
-    return cond ? [{ name: "四槓子", han: 13, is32000: true }] : [];
+    return cond ? [{ name: "四槓子", han: 13, isYakuman: true }] : [];
   }
   dH13(h: readonly Block[]): Yaku[] {
     if (h.length == 13) return [];
@@ -1554,8 +1703,8 @@ export class PointCalculator {
       .find((b) => b instanceof BlockPair)!
       .tiles.some((t) => t.t == TYPE.Z && zn.includes(t.n));
     return cond2
-      ? [{ name: "小四喜", han: 13, is32000: true }]
-      : [{ name: "大四喜", han: 13, is32000: true }];
+      ? [{ name: "小四喜", han: 13, isYakuman: true }]
+      : [{ name: "大四喜", han: 13, isYakuman: true }];
   }
   dI13(h: readonly Block[]): Yaku[] {
     const check = (t: Tile) => {
@@ -1564,7 +1713,7 @@ export class PointCalculator {
       return false;
     };
     return h.every((b) => b.tiles.every((t) => check(t)))
-      ? [{ name: "緑一色", han: 13, is32000: true }]
+      ? [{ name: "緑一色", han: 13, isYakuman: true }]
       : [];
   }
   // TODO 天和・地和
@@ -1575,6 +1724,9 @@ export class PointCalculator {
     return [];
   }
 
+  /**
+   * 手牌の構成から符を計算する
+   */
   calcFu(h: readonly Block[]) {
     const base = 20;
     let fu = base;
@@ -1675,7 +1827,7 @@ const countSameBlocks = (h: readonly Block[]) => {
 };
 
 const minTile = (b: Block) => {
-  return [...b.tiles].sort(tileSortFunc)[0];
+  return [...b.tiles].sort(compareTiles)[0];
 };
 
 /**

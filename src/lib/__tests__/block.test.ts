@@ -11,17 +11,17 @@ import { handsToString } from "./utils/helper";
 describe("efficiency", () => {
   test("duplicated da tile", () => {
     const h = new Hand("5678m05p4567p055s,t6s");
-    const ret = Efficiency.calcCandidates(h, h.hands, { arrangeRed: true });
+    const ret = Efficiency.calcEffectiveTiles(h, h.hands, { arrangeRed: true });
     expect(ret.length).toBe(6);
   });
 
   test("four sets one pair", () => {
     const h = new Hand("115588s116699p11z");
-    const ss = new ShantenCalculator(h).fourSetsOnePair();
+    const ss = new ShantenCalculator(h).standardType();
     expect(ss).toBe(3);
 
-    const ret = Efficiency.calcCandidates(h, h.hands, {
-      fourSetsOnePair: true,
+    const ret = Efficiency.calcEffectiveTiles(h, h.hands, {
+      standardTypeOnly: true,
     });
     expect(ret[0].shanten).toBe(2);
   });
@@ -33,8 +33,8 @@ describe("block", () => {
     const sc = new ShantenCalculator(h);
     expect(sc.calc()).toBe(0);
 
-    const candidates = Efficiency.candidateTiles(h);
-    expect("1m,4m,7m").toBe(candidates.candidates.toString());
+    const candidates = Efficiency.getEffectiveTiles(h);
+    expect("1m,4m,7m").toBe(candidates.effectiveTiles.toString());
 
     h.discard(new Tile(TYPE.M, 2));
     expect(sc.calc()).toBe(1);

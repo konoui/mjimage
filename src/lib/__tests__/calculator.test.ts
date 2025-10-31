@@ -197,7 +197,7 @@ describe("Shanten Calculator", () => {
       let got: number = -1;
       if (tt.handler == "Seven") got = c.sevenPairs();
       else if (tt.handler == "Orphans") got = c.thirteenOrphans();
-      else if (tt.handler == "Common") got = c.fourSetsOnePair();
+      else if (tt.handler == "Common") got = c.standardType();
       else throw new Error(`unexpected handler ${tt.handler}`);
       expect(got).toBe(tt.want);
     });
@@ -304,7 +304,7 @@ describe("Block Calculator", () => {
       let got: readonly Block[][] = [];
       if (tt.handler == "Seven") got = c.sevenPairs();
       else if (tt.handler == "Orphans") got = c.thirteenOrphans();
-      else if (tt.handler == "Common") got = c.fourSetsOnePair();
+      else if (tt.handler == "Common") got = c.standardType();
       else if (tt.handler == "Nine") got = c.nineGates();
       else throw new Error(`unexpected handler ${tt.handler}`);
       expect(handsToString(got)).toStrictEqual(tt.want);
@@ -354,10 +354,10 @@ describe("handleNumType/handleAll", () => {
     expect(handsToString(got)).toStrictEqual(want);
   });
 
-  test("patternAll", () => {
+  test("calcAllBlockCombinations()", () => {
     const h = new Hand("111222333456m111s");
     const c = new BlockCalculator(h);
-    const got = (c as any).patternAll() as Block[][];
+    const got = (c as any).calcAllBlockCombinations() as Block[][];
     const want = [
       ["123m", "123m", "123m", "456m", "111s"],
       ["111m", "234m", "111s"],
@@ -370,7 +370,7 @@ describe("handleNumType/handleAll", () => {
   test("red handling", () => {
     const h = new Hand("4r5667s,t5s");
     const c = new BlockCalculator(h);
-    const got = (c as any).patternAll() as Block[][];
+    const got = (c as any).calcAllBlockCombinations() as Block[][];
     const want = [
       ["456s", "r567s"],
       ["4r56s", "567s"],
@@ -381,7 +381,7 @@ describe("handleNumType/handleAll", () => {
   test("red handling2", () => {
     const h = new Hand("34r55677m34r5567p, t4m");
     const c = new BlockCalculator(h);
-    const got = (c as any).patternAll() as Block[][];
+    const got = (c as any).calcAllBlockCombinations() as Block[][];
     const want = [
       ["345m", "4r56m", "345p", "r567p"],
       ["345m", "4r56m", "34r5p", "567p"],
@@ -394,7 +394,7 @@ describe("handleNumType/handleAll", () => {
   test("red handling3", () => {
     const h = new Hand("44r55567m, t4m");
     const c = new BlockCalculator(h);
-    const got = (c as any).patternAll() as Block[][];
+    const got = (c as any).calcAllBlockCombinations() as Block[][];
     const want = [["456m"], ["444m", "567m"], ["444m", "r555m"]];
     expect(handsToString(got)).toStrictEqual(want);
   });
@@ -640,7 +640,7 @@ describe("Point Calculator", () => {
       const dc = new PointCalculator(h, cfg);
       const hands = c.calc(tt.lastTile);
 
-      const got = dc.calcPatterns(hands).map((v) => {
+      const got = dc.getWinningHands(hands).map((v) => {
         return { yakus: v.yakus, fu: v.fu };
       });
       expect(got).toStrictEqual(tt.want);
@@ -711,7 +711,7 @@ describe("calc", () => {
       doraIndicators: [new Tile(TYPE.M, 9)],
       myWind: WIND.S,
       round: ROUND.E1,
-      enableRoundUp8000: true,
+      enableRoundUpMangan: true,
     };
     const dc = new PointCalculator(h, cfg);
     const hands = c.calc(new Tile(TYPE.M, 3));
@@ -741,7 +741,7 @@ describe("calc", () => {
 
     const got2 = new PointCalculator(h, {
       ...cfg,
-      disableDouble32000: true,
+      disableDoubleYakuman: true,
     }).calc(...hands);
     expect(!!got2).toEqual(true);
     expect((got2 as WinResult).han).toBe(13);

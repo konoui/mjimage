@@ -1,13 +1,13 @@
 import { assert } from "../myassert";
 import { TYPE, Wind } from "../core/constants";
 import { Tile } from "../core/parser";
-import { Candidate } from "../calculator";
+import { TileAnalysis } from "../calculator";
 import { Counter } from "./managers";
 
 /**
  * 河、手牌、鳴きの枚数を考慮した有効牌の情報を表す。
  */
-export interface PlayerCandidate {
+export interface PlayerTileAnalysis {
   /**
    * 想定する打牌を表す。
    */
@@ -19,9 +19,9 @@ export interface PlayerCandidate {
   /**
    * 打牌した場合の有効牌とその枚数をそれぞれ表す。
    */
-  candidates: {
+  effectiveTiles: {
     tile: Tile;
-    n: number;
+    count: number;
   }[];
   /**
    * 打牌し有効牌を引いた場合のシャンテン数を表す。
@@ -41,50 +41,50 @@ export class PlayerEfficiency {
   /**
    * 有効牌情報から河、手牌、鳴きの枚数を考慮した有効牌情報の配列を返す。
    */
-  static calcPlayerCandidates(counter: Counter, candidates: Candidate[]) {
-    let playerCandidates: PlayerCandidate[] = [];
-    for (let s of candidates) {
+  static analyzePlayerEfficiency(counter: Counter, analyses: TileAnalysis[]) {
+    let playerAnalyses: PlayerTileAnalysis[] = [];
+    for (let s of analyses) {
       let sum = 0;
-      let pairs: { tile: Tile; n: number }[] = [];
-      for (let c of s.candidates) {
+      let pairs: { tile: Tile; count: number }[] = [];
+      for (let c of s.effectiveTiles) {
         pairs.push({
           tile: c.clone(),
-          n: counter.get(c),
+          count: counter.get(c),
         });
         sum += counter.get(c);
       }
-      playerCandidates.push({
+      playerAnalyses.push({
         sum: sum,
         tile: s.tile,
-        candidates: pairs,
+        effectiveTiles: pairs,
         shanten: s.shanten,
       });
     }
-    return playerCandidates;
+    return playerAnalyses;
   }
   static selectMinPriority(
     c: Counter,
-    playerCandidates: PlayerCandidate[],
+    playerAnalyses: PlayerTileAnalysis[],
     doras: Tile[]
   ) {
-    assert(playerCandidates.length > 0);
+    assert(playerAnalyses.length > 0);
     let min = 0;
     let idx = 0;
-    for (let i = 0; i < playerCandidates.length; i++) {
-      const p = PlayerEfficiency.calcPriority(c, playerCandidates[i], doras);
+    for (let i = 0; i < playerAnalyses.length; i++) {
+      const p = PlayerEfficiency.calcPriority(c, playerAnalyses[i], doras);
       if (p < min) {
         min = p;
         idx = i;
       }
     }
-    return playerCandidates[idx];
+    return playerAnalyses[idx];
   }
   private static calcPriority(
     c: Counter,
-    playerCandidate: PlayerCandidate,
+    playerAnalysis: PlayerTileAnalysis,
     doras: Tile[]
   ) {
-    const tile = playerCandidate.tile;
+    const tile = playerAnalysis.tile;
     let v = 0;
     if (tile.t == TYPE.Z) {
       v = c.get(tile);

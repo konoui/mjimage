@@ -1,7 +1,7 @@
 import { eventmit } from "eventmit";
 import { Wind, Round } from "../core/constants";
 import { SerializedBlock } from "../core/parser";
-import { SerializedCandidate, SerializedWinResult } from "../calculator";
+import { SerializedTileAnalysis, SerializedWinResult } from "../calculator";
 
 type Event =
   | CallEvent
@@ -183,7 +183,7 @@ interface DiscardedChoice {
 
 interface DrawnChoice {
   TSUMO: false | SerializedWinResult;
-  REACH: false | SerializedCandidate[];
+  REACH: false | SerializedTileAnalysis[];
   AN_KAN: false | SerializedBlock[];
   SHO_KAN: false | SerializedBlock[];
   DISCARD: false | string[];

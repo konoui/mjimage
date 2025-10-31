@@ -20,7 +20,7 @@ import {
   PointCalculator,
   WinResult,
   Efficiency,
-  Candidate,
+  TileAnalysis,
   deserializeWinResult,
   NZ,
   N19,
@@ -35,7 +35,7 @@ import {
   BlockPon,
   BlockShoKan,
   Tile,
-  isNum5,
+  is5Tile,
 } from "../core/parser";
 import { createControllerMachine } from "./state-machine";
 import {
@@ -64,16 +64,16 @@ import {
 } from ".";
 import { nextWind } from "../core/";
 
-export interface History {
+export interface GameHistory {
   round: Round;
-  scores: { [key in string]: number };
-  players: { [key in string]: Wind };
+  scores: { [wind in string]: number };
+  players: { [id in string]: Wind };
   sticks: { reach: number; dead: number };
   wall: WallProps;
   choiceEvents: { [id: string]: PlayerEvent[] };
 }
 
-export interface PlayerConnection {
+export interface PlayerSession {
   id: string;
   handler: EventHandler;
 }
@@ -85,18 +85,15 @@ export class Controller {
   observer: Observer;
   handlers: { [id: string]: EventHandler } = {};
   mailBox: { [id: string]: PlayerEvent[] } = {};
-  histories: History[] = [];
+  histories: GameHistory[] = [];
   debugMode: boolean;
 
   constructor(
-    players: PlayerConnection[],
+    players: PlayerSession[],
     params?: { debug?: boolean; shuffle?: boolean }
   ) {
     this.debugMode = params?.debug ?? false;
-    this.handlers = players.reduce((m, obj) => {
-      m[obj.id] = obj.handler;
-      return m;
-    }, {} as typeof this.handlers);
+    this.handlers = Object.fromEntries(players.map((p) => [p.id, p.handler]));
 
     this.playerIDs = players.map((v) => v.id);
 
@@ -365,7 +362,7 @@ export class Controller {
   export() {
     return this.histories.concat();
   }
-  static load(h: History) {
+  static load(h: GameHistory) {
     const events = h.choiceEvents;
     const playerIDs = Object.keys(h.players);
     const empty: EventHandler = {
@@ -472,7 +469,7 @@ export class Controller {
 
     // case ron フリテン対応
     if (hand.draw == null) {
-      const c = Efficiency.candidateTiles(this.hand(w)).candidates;
+      const c = Efficiency.getEffectiveTiles(this.hand(w)).effectiveTiles;
       if (this.river.discards(w).some((v) => c.some((ct) => ct.equals(v.t))))
         return false;
     }
@@ -496,7 +493,7 @@ export class Controller {
     let block = base;
 
     // if discarded tile is RED
-    if (isNum5(t) && t.has(OP.RED))
+    if (is5Tile(t) && t.has(OP.RED))
       block = base.clone({
         replace: {
           idx: idx,
@@ -507,7 +504,7 @@ export class Controller {
       });
     // if hand has red
     const ridx = (idx % 2) + 1;
-    if (isNum5(t) && hand.get(t.t, 0) > 0) {
+    if (is5Tile(t) && hand.get(t.t, 0) > 0) {
       block = base.clone({
         replace: { idx: ridx, tile: sample.clone({ add: OP.RED }) },
       });
@@ -516,7 +513,7 @@ export class Controller {
     blocks.push(block);
 
     // if hand has red and 3 tiles, two cases including red and non red
-    if (isNum5(sample) && hand.get(sample.t, 5) == 3) {
+    if (is5Tile(sample) && hand.get(sample.t, 5) == 3) {
       const nonRed = base.clone({
         replace: { idx: ridx, tile: sample },
       });
@@ -610,15 +607,15 @@ export class Controller {
   redPattern(blocks: BlockChi[]): BlockChi[] {
     if (blocks.length == 0) return [];
     const filtered = blocks.filter(
-      (b) => isNum5(b.tiles[1]) || isNum5(b.tiles[2])
+      (b) => is5Tile(b.tiles[1]) || is5Tile(b.tiles[2])
     );
     return filtered
       .map((b) => {
-        if (isNum5(b.tiles[1])) {
+        if (is5Tile(b.tiles[1])) {
           const rt = b.tiles[1].clone({ add: OP.RED });
           const n = b.clone({ replace: { idx: 1, tile: rt } });
           return n;
-        } else if (isNum5(b.tiles[2])) {
+        } else if (is5Tile(b.tiles[2])) {
           const rt = b.tiles[2].clone({ add: OP.RED });
           const n = b.clone({ replace: { idx: 2, tile: rt } });
           return n;
@@ -626,13 +623,13 @@ export class Controller {
       })
       .filter((b) => b != null);
   }
-  doReach(w: Wind): Candidate[] | false {
+  doReach(w: Wind): TileAnalysis[] | false {
     const hand = this.hand(w);
     if (hand.reached) return false;
     if (!hand.menzen) return false;
     const s = new ShantenCalculator(hand).calc();
     if (s > 0) return false;
-    const r = Efficiency.calcCandidates(hand, hand.hands);
+    const r = Efficiency.calcEffectiveTiles(hand, hand.hands);
     return r;
   }
   doDiscard(w: Wind, called?: BlockChi | BlockPon): Tile[] {
@@ -674,7 +671,7 @@ export class Controller {
       if (hand.get(t, n) == 4) {
         const tile = new Tile(t, n);
         const tiles = [tile, tile, tile, tile];
-        if (isNum5(tile)) tiles[1] = tile.clone({ add: OP.RED });
+        if (is5Tile(tile)) tiles[1] = tile.clone({ add: OP.RED });
         blocks.push(new BlockAnKan(tiles));
       }
     }
@@ -700,7 +697,7 @@ export class Controller {
       });
       if (hand.get(pick.t, pick.n) == 1) {
         const tile =
-          isNum5(pick) && hand.get(pick.t, 0) > 0
+          is5Tile(pick) && hand.get(pick.t, 0) > 0
             ? pick.clone({ add: OP.RED })
             : pick;
         // FIXME 追加の HORIZONTAL は最後でいいのか
@@ -730,7 +727,7 @@ export class Controller {
     });
 
     // 捨て牌が red ならその idx を red にする
-    if (isNum5(t) && t.has(OP.RED)) {
+    if (is5Tile(t) && t.has(OP.RED)) {
       block = block.clone({
         replace: {
           idx: idx,
@@ -739,7 +736,7 @@ export class Controller {
       });
     }
     // 捨て牌が non red なら鳴いた位置からずらして red にする
-    else if (isNum5(t) && !t.has(OP.RED)) {
+    else if (is5Tile(t) && !t.has(OP.RED)) {
       assert(
         hand.get(t.t, 0) > 0,
         `hand does not have red tile: ${hand.toString()}`

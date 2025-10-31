@@ -4,7 +4,6 @@ import {
   Player,
   EventHandler,
 } from "../controller";
-import { WIND } from "../core";
 
 export const createLocalGame = (params?: {
   debug?: boolean;

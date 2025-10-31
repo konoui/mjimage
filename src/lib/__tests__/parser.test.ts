@@ -1,7 +1,7 @@
 import {
   Tile,
   Block,
-  tileSortFunc,
+  compareTiles,
   Parser,
   BlockAnKan,
   BlockChi,
@@ -96,7 +96,7 @@ describe("red operator", () => {
 describe("sortTiles", () => {
   test("13p5s786m1z", () => {
     const parsed = new Parser("13p5s786m1z").tiles();
-    const got = [...parsed].sort(tileSortFunc);
+    const got = [...parsed].sort(compareTiles);
     const want: Tile[] = [
       new Tile(TYPE.M, 6),
       new Tile(TYPE.M, 7),
@@ -110,7 +110,7 @@ describe("sortTiles", () => {
   });
   test("505p", () => {
     const parsed = new Parser("505p").tiles();
-    const got = [...parsed].sort(tileSortFunc);
+    const got = [...parsed].sort(compareTiles);
     const want: Tile[] = [
       new Tile(TYPE.P, 5, [OP.RED]),
       new Tile(TYPE.P, 5),

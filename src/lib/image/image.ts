@@ -67,7 +67,8 @@ class BaseHelper {
     this.svgSprite = props.svgSprite ?? false;
   }
 
-  protected getDiffTileHeightWidth(t: Tile) {
+  // 横向き牌を縦向き牌と水平に揃えるためのY座標オフセットを計算
+  protected getHorizontalTileYOffset(t: Tile) {
     const size = tileImageSize(t, this.scale);
     return (size.baseHeight - size.baseWidth) / 2;
   }
@@ -127,8 +128,8 @@ class BaseHelper {
     const size = tileImageSize(tile, this.scale);
     const centerX = size.baseWidth / 2;
     const centerY = size.baseHeight / 2;
-    const translatedX = x + this.getDiffTileHeightWidth(tile);
-    const translatedY = adjustY ? y - this.getDiffTileHeightWidth(tile) : y;
+    const translatedX = x + this.getHorizontalTileYOffset(tile);
+    const translatedY = adjustY ? y - this.getHorizontalTileYOffset(tile) : y;
     const g = new G();
     g.add(image)
       .translate(translatedX, translatedY)
@@ -171,7 +172,7 @@ export class ImageHelper extends BaseHelper {
       const f = t.has(OP.HORIZONTAL)
         ? this.createRotate90Image.bind(this)
         : this.createImage.bind(this);
-      const y = t.has(OP.HORIZONTAL) ? this.getDiffTileHeightWidth(t) : 0;
+      const y = t.has(OP.HORIZONTAL) ? this.getHorizontalTileYOffset(t) : 0;
 
       const img = f(t, pos, y);
       g.add(img);
@@ -223,7 +224,7 @@ export class ImageHelper extends BaseHelper {
       const img = this.createRotate90Image(
         idxt,
         pos,
-        this.getDiffTileHeightWidth(idxt)
+        this.getHorizontalTileYOffset(idxt)
       );
       pos += tileImageSize(idxt, this.scale).width;
       g.add(img);
@@ -245,7 +246,7 @@ export class ImageHelper extends BaseHelper {
           ? this.createRotate90Image.bind(this)
           : this.createImage.bind(this);
       const t = block.tiles[i];
-      const y = i == idx ? this.getDiffTileHeightWidth(t) : 0;
+      const y = i == idx ? this.getHorizontalTileYOffset(t) : 0;
       const size = tileImageSize(t, this.scale);
       const img = f(t, pos, y);
       pos += size.width;

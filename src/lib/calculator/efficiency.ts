@@ -2,16 +2,16 @@ import { OP, Tile, Type } from "../core";
 import { assert } from "../myassert";
 import { Hand, ShantenCalculator, forHand } from "./calc";
 
-export interface SerializedCandidate {
+export interface SerializedTileAnalysis {
   tile: string;
-  candidates: readonly string[];
+  effectiveTiles: readonly string[];
   shanten: number;
 }
 
 /**
  * 打牌した場合の有効牌の情報を表す。
  */
-export interface Candidate {
+export interface TileAnalysis {
   /**
    * 想定する打牌を表す。
    */
@@ -19,7 +19,7 @@ export interface Candidate {
   /**
    * 打牌した場合の有効牌を表す。
    */
-  candidates: readonly Tile[];
+  effectiveTiles: readonly Tile[];
   /**
    * 打牌し有効牌を引いた場合のシャンテン数を表す。
    * 多くの場合、現在のシャンテン数 -1 となる。
@@ -32,20 +32,20 @@ export class Efficiency {
    * ツモ後の14枚の手配から、シャンテン数が最小になる打牌候補の配列を返す。
    * choices は、通常なら hand.hands を指定する。ただし、リーチしている場合は打牌が限られているので choices で制限する。
    */
-  static calcCandidates(
+  static calcEffectiveTiles(
     hand: Hand,
     choices: Tile[],
     options?: {
       arrangeRed?: boolean;
-      fourSetsOnePair?: boolean;
+      standardTypeOnly?: boolean;
     }
-  ): Candidate[] {
+  ): TileAnalysis[] {
     assert(choices.length > 0, `choices to discard is zero`);
-    const map = new Map<string, Candidate>();
+    const map = new Map<string, TileAnalysis>();
     let minShanten = Infinity;
     for (const t of choices) {
       const tiles = hand.dec([t]);
-      const c = Efficiency.candidateTiles(hand, options);
+      const c = Efficiency.getEffectiveTiles(hand, options);
       hand.inc(tiles);
       // convert 0 and remove operators
       const da =
@@ -58,7 +58,7 @@ export class Efficiency {
         map.clear();
         map.set(da.toString(), {
           shanten: c.shanten,
-          candidates: c.candidates,
+          effectiveTiles: c.effectiveTiles,
           tile: da,
         });
         // update
@@ -66,7 +66,7 @@ export class Efficiency {
       } else if (c.shanten == minShanten) {
         map.set(da.toString(), {
           shanten: c.shanten,
-          candidates: c.candidates,
+          effectiveTiles: c.effectiveTiles,
           tile: da,
         });
       }
@@ -78,15 +78,15 @@ export class Efficiency {
    * ツモ前の13枚の手配から、有効牌の一覧とシャンテン数を返す
    * シャンテン数は有効牌を引いた場合の値となる。多くの場合、現在のシャンテン数 -1 となる。
    */
-  static candidateTiles(
+  static getEffectiveTiles(
     hand: Hand,
     options?: {
-      fourSetsOnePair?: boolean;
+      standardTypeOnly?: boolean;
       typeFilter?: Type[];
     }
   ) {
     let r = Infinity;
-    let candidates: Tile[] = [];
+    let effectiveTiles: Tile[] = [];
 
     const sc = new ShantenCalculator(hand);
     for (const [t, n] of forHand({
@@ -96,17 +96,17 @@ export class Efficiency {
       if (hand.get(t, n) >= 4) continue;
       const tile = new Tile(t, n);
       const tiles = hand.inc([tile]);
-      const s = !options?.fourSetsOnePair ? sc.calc() : sc.fourSetsOnePair();
+      const s = options?.standardTypeOnly ? sc.standardType() : sc.calc();
       hand.dec(tiles);
 
       if (s < r) {
         r = s;
-        candidates = [tile];
-      } else if (s == r) candidates.push(tile);
+        effectiveTiles = [tile];
+      } else if (s == r) effectiveTiles.push(tile);
     }
     return {
       shanten: r,
-      candidates: candidates,
+      effectiveTiles: effectiveTiles,
     };
   }
 }

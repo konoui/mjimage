@@ -4,7 +4,7 @@ import { Svg, Text, G, Rect, Mark } from "../svgjs/svg";
 import { FontContext } from "../measure-text/";
 import { parse, ScoreBoardInput, DiscardsInput, HandsInput } from "./";
 
-const splitTiles = (input: readonly Tile[]) => {
+const chunkTilesForDisplay = (input: readonly Tile[]) => {
   const chunkSize = 6;
   const result: Tile[][] = [];
   for (let i = 0; i < input.length; i += chunkSize) {
@@ -45,9 +45,9 @@ const simpleRotate = (
   return new G().add(g);
 };
 
-const handleDiscard = (tiles: readonly Tile[], helper: ImageHelper) => {
+const createDiscardArea = (tiles: readonly Tile[], helper: ImageHelper) => {
   const g = new G();
-  const chunks = splitTiles(tiles);
+  const chunks = chunkTilesForDisplay(tiles);
 
   for (let i = 0; i < chunks.length; i++) {
     let tiles = chunks[i];
@@ -280,10 +280,10 @@ const createScoreBoard = (
 };
 
 const createDiscards = (helper: ImageHelper, discards: DiscardsInput) => {
-  const fe = handleDiscard(discards.front, helper);
-  const re = handleDiscard(discards.right, helper);
-  const oe = handleDiscard(discards.opposite, helper);
-  const le = handleDiscard(discards.left, helper);
+  const fe = createDiscardArea(discards.front, helper);
+  const re = createDiscardArea(discards.right, helper);
+  const oe = createDiscardArea(discards.opposite, helper);
+  const le = createDiscardArea(discards.left, helper);
 
   const maxDiscardHeight = [fe.height, re.height, oe.height, le.height].reduce(
     (a, b) => Math.max(a, b)

@@ -3,35 +3,29 @@ import { BLOCK, OP, TYPE, INPUT_SEPARATOR, Type } from "./";
 
 type Separator = typeof INPUT_SEPARATOR;
 
-export const tileSortFunc = (i: Tile, j: Tile) => {
+export const compareTiles = (i: Tile, j: Tile) => {
   if (i.t == j.t) {
-    if (isNum5(i) && isNum5(j)) {
+    if (is5Tile(i) && is5Tile(j)) {
       if (i.has(OP.RED)) return -1;
       if (j.has(OP.RED)) return 1;
     }
     return i.n - j.n;
   }
 
-  const lookup = {
-    [TYPE.M]: 1,
-    [TYPE.P]: 2,
-    [TYPE.S]: 3,
-    [TYPE.Z]: 4,
-    [TYPE.BACK]: 5,
-  };
-  return lookup[i.t] - lookup[j.t];
+  const typeOrder = [TYPE.M, TYPE.P, TYPE.S, TYPE.Z, TYPE.BACK];
+  return typeOrder.indexOf(i.t) - typeOrder.indexOf(j.t);
 };
 
-const operatorSortFunc = (i: Operator, j: Operator) => {
-  const lookup = {
-    [OP.HORIZONTAL]: 1,
-    [OP.TSUMO]: 2,
-    [OP.RON]: 3,
-    [OP.DORA]: 4,
-    [OP.COLOR_GRAYSCALE]: 5,
-    [OP.RED]: 6,
-  };
-  return lookup[i] - lookup[j];
+const compareOperators = (i: Operator, j: Operator) => {
+  const operatorOrder = [
+    OP.HORIZONTAL,
+    OP.TSUMO,
+    OP.RON,
+    OP.DORA,
+    OP.COLOR_GRAYSCALE,
+    OP.RED,
+  ];
+  return operatorOrder.indexOf(i) - operatorOrder.indexOf(j);
 };
 
 export const sortCalledTiles = (arr: readonly Tile[]) => {
@@ -42,7 +36,7 @@ export const sortCalledTiles = (arr: readonly Tile[]) => {
     }
   });
 
-  const sorted = arr.filter((v) => !v.has(OP.HORIZONTAL)).sort(tileSortFunc);
+  const sorted = arr.filter((v) => !v.has(OP.HORIZONTAL)).sort(compareTiles);
 
   indexes.forEach((index) => {
     sorted.splice(index, 0, arr[index]);
@@ -50,7 +44,7 @@ export const sortCalledTiles = (arr: readonly Tile[]) => {
   return sorted;
 };
 
-export function isNum5(t: Tile) {
+export function is5Tile(t: Tile) {
   return t.isNum() && t.n == 5;
 }
 
@@ -86,7 +80,7 @@ export class Tile {
    */
   toString(): string {
     if (this.t === TYPE.BACK) return this.t;
-    return `${[...this.ops].sort(operatorSortFunc).join("")}${this.n}${this.t}`;
+    return `${[...this.ops].sort(compareOperators).join("")}${this.n}${this.t}`;
   }
 
   toJSON() {
@@ -94,7 +88,7 @@ export class Tile {
   }
 
   /**
-   * 牌の情報を上書きしたイミュータブルな牌を返す。
+   * 牌の情報を上書きしたイミュータブルな新しい牌を返す。
    */
   clone(override?: {
     t?: Type;
@@ -138,7 +132,7 @@ export class Tile {
 
   /**
    * 同じ牌の場合 true を返す。
-   * オペレーターの比較判定は行われない。
+   * オペレーターの比較判定は行わない。
    */
   equals(t: Tile): boolean {
     if (t.t == TYPE.BACK && this.t == TYPE.BACK) return true;
@@ -153,6 +147,7 @@ export type SerializedBlock = ReturnType<Block["serialize"]>;
 export abstract class Block {
   private readonly _tiles: readonly Tile[];
   private readonly _type;
+
   constructor(tiles: readonly Tile[], type: BlockType) {
     this._tiles = tiles;
     this._type = type;
@@ -162,7 +157,7 @@ export abstract class Block {
     }
 
     if (this._type != BLOCK.IMAGE_DISCARD) {
-      this._tiles = [...this._tiles].sort(tileSortFunc);
+      this._tiles = [...this._tiles].sort(compareTiles);
       return;
     }
   }
@@ -176,7 +171,9 @@ export abstract class Block {
     return blocks[0];
   }
 
-  // deserialize json object. it validates the input type by comparing to parsed block type.
+  /**
+   * シリアライズされた情報をデシリアライズしブロックを返す。
+   */
   static deserialize(v: SerializedBlock) {
     const b = Block.from(v.tiles);
     const gotType = b.type;
@@ -196,6 +193,9 @@ export abstract class Block {
     return blockWrapper(b.tiles, v.type);
   }
 
+  /**
+   * 現在のブロックをシリアライズしその値を返す。
+   */
   serialize() {
     return {
       tiles: this.toString(),
@@ -221,6 +221,9 @@ export abstract class Block {
     return this._tiles;
   }
 
+  /**
+   * ブロックを文字列として返す。
+   */
   abstract toString(): string;
 
   /**
@@ -231,20 +234,23 @@ export abstract class Block {
   }
 
   /**
-   * 鳴いたブロックの場合 true を返す。
+   * 鳴いた（晒した）ブロックの場合 true を返す。
    */
   isCalled(): boolean {
-    return [
-      BLOCK.PON.toString(),
-      BLOCK.CHI.toString(),
-      BLOCK.DAI_KAN.toString(),
-      BLOCK.SHO_KAN.toString(),
-      BLOCK.AN_KAN.toString(),
-    ].includes(this._type.toString());
+    switch (this._type) {
+      case BLOCK.PON:
+      case BLOCK.CHI:
+      case BLOCK.DAI_KAN:
+      case BLOCK.SHO_KAN:
+      case BLOCK.AN_KAN:
+        return true;
+      default:
+        return false;
+    }
   }
 
   /**
-   * 同じイミュータブルなブロックを生成する。
+   * 同じイミュータブルな新しいブロックを生成する。
    * オペレータも同じになる。
    */
   clone(override?: {
@@ -324,7 +330,7 @@ export class BlockAnKan extends Block {
     const ftiles = tiles.filter((v) => v.t != TYPE.BACK);
     const sample = ftiles[0];
     if (ftiles.length < tiles.length) {
-      if (isNum5(sample)) {
+      if (is5Tile(sample)) {
         const t = new Tile(sample.t, 5);
         super([t.clone({ add: OP.RED }), t, t, t], BLOCK.AN_KAN);
         return;
@@ -347,7 +353,7 @@ export class BlockAnKan extends Block {
    */
   get tilesWithBack() {
     const pick = this.tiles[0].clone({ remove: OP.RED });
-    const sample = isNum5(pick) ? pick.clone({ add: OP.RED }) : pick;
+    const sample = is5Tile(pick) ? pick.clone({ add: OP.RED }) : pick;
     return [new Tile(TYPE.BACK, 0), sample, pick, new Tile(TYPE.BACK, 0)];
   }
 
@@ -556,7 +562,7 @@ export class Parser {
 
   /**
    * パースした牌もしくはセパレータ文字の配列を返す。
-   * セパレータ前後は一塊のブロックを意味する。
+   * セパレータ前後は一つのブロックを意味する。
    */
   tileSeparators(): readonly (Tile | Separator)[] {
     const l = new Lexer(this.input);
@@ -575,7 +581,7 @@ export class Parser {
         continue;
       }
 
-      const [type, isType] = isTypeAlias(char, cluster);
+      const [type, isType] = parseTypeOrAlias(char, cluster);
       if (isType) {
         if (type == TYPE.BACK) {
           res.push(new Tile(type, 0));
@@ -653,7 +659,7 @@ export class Parser {
       throw new Error(`exceeded maximum input length(${input.length})`);
     const lastChar = input.charAt(input.length - 1);
     // Note: dummy tile for validation
-    const [_, isKind] = isTypeAlias(lastChar, [new Tile(TYPE.BACK, 1)]);
+    const [_, isKind] = parseTypeOrAlias(lastChar, [new Tile(TYPE.BACK, 1)]);
     if (!isKind)
       throw new Error(
         `last character: ${lastChar} is not type value: ${input}`
@@ -682,7 +688,7 @@ function detectBlockType(tiles: readonly Tile[]): BlockType {
 
   if (tiles.length === 3 && numBacks === 0) {
     if (isAllSame) return BLOCK.PON;
-    if (numHorizontals == 1 && areConsecutiveTiles(tiles)) return BLOCK.CHI;
+    if (numHorizontals == 1 && isConsecutiveSequence(tiles)) return BLOCK.CHI;
     return BLOCK.IMAGE_DISCARD;
   }
 
@@ -698,8 +704,8 @@ function detectBlockType(tiles: readonly Tile[]): BlockType {
   return BLOCK.UNKNOWN;
 }
 
-function areConsecutiveTiles(rtiles: readonly Tile[]): boolean {
-  const tiles = [...rtiles].sort(tileSortFunc);
+function isConsecutiveSequence(rtiles: readonly Tile[]): boolean {
+  const tiles = [...rtiles].sort(compareTiles);
   if (tiles.some((t) => tiles[0].t != t.t)) return false;
   const numbers = tiles.map((t) => t.n);
   for (let i = 0; i < numbers.length - 1; i++) {
@@ -717,7 +723,7 @@ function makeTiles(cluster: readonly TileBase[], k: Type): readonly Tile[] {
   });
 }
 
-function isTypeAlias(s: string, cluster: TileBase[]): [Type, boolean] {
+function parseTypeOrAlias(s: string, cluster: TileBase[]): [Type, boolean] {
   const [k, ok] = isType(s);
   if (ok) return [k, true];
 
