@@ -102,3 +102,4 @@ export const ROUND_MAP = {
 export type Type = (typeof TYPE)[keyof typeof TYPE];
 export type Wind = (typeof WIND)[keyof typeof WIND];
 export type Round = (typeof ROUND)[keyof typeof ROUND];
+export type Operator = (typeof OP)[keyof typeof OP];

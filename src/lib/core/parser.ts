@@ -1,5 +1,5 @@
 import { Lexer } from "./lexer";
-import { BLOCK, OP, TYPE, INPUT_SEPARATOR, Type } from "./";
+import { BLOCK, OP, TYPE, INPUT_SEPARATOR, Type, Operator } from "./";
 
 type Separator = typeof INPUT_SEPARATOR;
 
@@ -56,8 +56,6 @@ function isType(v: string): [Type, boolean] {
   }
   return [TYPE.BACK, false];
 }
-
-type Operator = (typeof OP)[keyof typeof OP];
 
 export class Tile {
   constructor(

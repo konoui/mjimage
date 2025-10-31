@@ -562,7 +562,7 @@ export class BlockCalculator {
    * 最後のあがり牌によっては、標準形でもカンチャン、リャンメンなど複数の構成になりうるのでその全てを返す。
    */
   calc(lastTile: Tile): readonly Block[][] {
-    return this.markDrawn(
+    return this.markedHands(
       [
         ...this.sevenPairs(),
         ...this.thirteenOrphans(),
@@ -576,39 +576,46 @@ export class BlockCalculator {
   /**
    * あがりの形になりうる手牌の構成の配列に対して、最後のあがり牌を考慮したあがりの形になりうる手牌の構成の配列を返す。
    */
-  markDrawn(hands: readonly Block[][], lastTile: Tile): readonly Block[][] {
+  markedHands(hands: readonly Block[][], lastTile: Tile): readonly Block[][] {
     if (hands.length == 0) return [];
+    const newHands: Block[][] = [];
+    for (let i = 0; i < hands.length; i++) {
+      newHands.push(...this.markedHand(hands[i], lastTile));
+    }
+    return newHands;
+  }
+
+  /**
+   * あがりの形になりうる手牌の構成に対して、最後のあがり牌を考慮したあがりの形になりうる手牌の構成の配列を返す。
+   */
+  markedHand(hand: readonly Block[], lastTile: Tile): readonly Block[][] {
+    if (hand.length == 0) return [];
     const op =
       this.hand.drawn != null || lastTile.has(OP.TSUMO) ? OP.TSUMO : OP.RON;
 
-    const indexes: [number, number, number][] = [];
-    for (let i = 0; i < hands.length; i++) {
-      const hand = hands[i];
-      const m: { [key: string]: boolean } = {}; // map to reduce same blocks such as ["123m", "123m"]
-      for (let j = 0; j < hand.length; j++) {
-        const block = hand[j];
-        if (block.isCalled()) continue;
-        const k = block.tiles.findIndex(
-          (t) => t.equals(lastTile) && lastTile.has(OP.RED) == t.has(OP.RED)
-        );
-        if (k < 0) continue;
-        const key = buildKey(block);
-        if (m[key]) continue;
-        m[key] = true;
-        indexes.push([i, j, k]);
-      }
+    const indexes: [number, number][] = [];
+    const m: { [key: string]: boolean } = {}; // map to reduce same blocks such as ["123m", "123m"]
+    for (let i = 0; i < hand.length; i++) {
+      const block = hand[i];
+      if (block.isCalled()) continue;
+      const k = block.tiles.findIndex(
+        (t) => t.equals(lastTile) && lastTile.has(OP.RED) == t.has(OP.RED)
+      );
+      if (k < 0) continue;
+      const key = buildBlockKey(block);
+      if (m[key]) continue;
+      m[key] = true;
+      indexes.push([i, k]);
     }
 
     if (indexes.length == 0)
       throw new Error(
-        `found no tile ${lastTile.toString()} in hands ${hands[0].toString()}`
+        `found no tile ${lastTile.toString()} in hand: ${hand.toString()}`
       );
 
     const newHands: Block[][] = [];
-    for (const [hidx, bidx, tidx] of indexes) {
-      const hand = hands[hidx];
+    for (const [bidx, tidx] of indexes) {
       const newHand = [...hand];
-
       const block = newHand[bidx];
       const newTile = block.tiles[tidx].clone({ add: op });
       newHand[bidx] = block.clone({
@@ -729,9 +736,9 @@ export class BlockCalculator {
     // [["123s", "123s"]]
     // result: [["123m", "123m", "123s", "123s"], ["111m", "333m", "123s", "123s"]]
     const vvv = [
-      this.addRedPattern(TYPE.M, this.handleNumType(TYPE.M)),
-      this.addRedPattern(TYPE.P, this.handleNumType(TYPE.P)),
-      this.addRedPattern(TYPE.S, this.handleNumType(TYPE.S)),
+      this.addRedPatterns(TYPE.M, this.handleNumType(TYPE.M)),
+      this.addRedPatterns(TYPE.P, this.handleNumType(TYPE.P)),
+      this.addRedPatterns(TYPE.S, this.handleNumType(TYPE.S)),
       this.handleZ(),
       this.handleBack(),
       [this.hand.called.concat()],
@@ -768,60 +775,70 @@ export class BlockCalculator {
     return z.length == 0 ? [] : [z];
   }
 
-  // TODO similar to markDrawn
-  private addRedPattern(t: Type, hands: readonly Block[][]) {
-    if (!(this.hand.get(t, 0) > 0 && this.hand.get(t, 5) >= 2)) return hands;
-
+  /**
+   * 一つの手牌の構成において、赤牌ごとの手牌（晒したブロックを含まない）の構成を生成する。
+   */
+  private addRedPattern(t: Type, hand: Block[]) {
     const nonRed = new Tile(t, 5);
     const red = new Tile(t, 5, [OP.RED]);
-    const nonRedIndexes: [number, number, number][] = [];
-    const redIndexes: [number, number, number][] = [];
-    for (let i = 0; i < hands.length; i++) {
-      const hand = hands[i];
-      const m: { [key: string]: boolean } = {};
-      for (let j = 0; j < hand.length; j++) {
-        const block = hand[j];
-        const k = block.tiles.findIndex(
-          (t) => t.equals(nonRed) && !t.has(OP.RED)
-        );
-        const rk = block.tiles.findIndex((t) => t.equals(red) && t.has(OP.RED));
-        if (rk > -1) redIndexes.push([i, j, rk]);
-        if (rk > -1 && k > -1) continue; // blockThree
-        if (k < 0) continue;
-        const key = buildKey(block);
-        if (m[key]) continue;
-        m[key] = true;
-        nonRedIndexes.push([i, j, k]);
-      }
+    const nonRedIndexes: [number, number][] = [];
+    let redIndex: [number, number] | null = null;
+    const m: { [key: string]: boolean } = {};
+    for (let i = 0; i < hand.length; i++) {
+      const block = hand[i];
+      const k = block.tiles.findIndex((t) => is5Tile(t) && !t.has(OP.RED));
+      const rk = block.tiles.findIndex((t) => is5Tile(t) && t.has(OP.RED));
+      // red の位置情報
+      if (rk > -1) redIndex = [i, rk];
+      // 一つのブロックに red と non red があるので BlockThree
+      if (rk > -1 && k > -1) continue;
+      if (k < 0) continue;
+      const key = buildBlockKey(block);
+      if (m[key]) continue;
+      m[key] = true;
+      // non red の位置情報
+      nonRedIndexes.push([i, k]);
     }
 
-    if (redIndexes.length == 0) return hands;
+    // BlockThree などの場合
+    if (redIndex == null) return [hand];
 
-    const newHands: Block[][] = [];
-    for (const [hidx, bidx, tidx] of nonRedIndexes) {
-      const hand = hands[hidx];
+    // 5 と r5 に入れ替えたパータンを生成する
+    const newHands: Block[][] = [hand];
+    for (const [bidx, tidx] of nonRedIndexes) {
       const newHand = [...hand];
 
-      // 5 を r5 に変換
+      // 5 のブロックを r5 のブロックに変換
       const nonRedblock = newHand[bidx];
       newHand[bidx] = nonRedblock.clone({
         replace: { idx: tidx, tile: red },
       });
 
-      // r5 を 5 に変換
-      const redIndex = redIndexes.find((index) => index[0] == hidx);
-      if (redIndex == null) continue;
-      const redblock = newHand[redIndex[1]];
-      if (redblock == null) console.error(redIndex, nonRedIndexes);
-      newHand[redIndex[1]] = redblock.clone({
-        replace: { idx: redIndex[2], tile: nonRed },
+      // r5 のブロックを 5 のブロックに変換
+      const redblock = newHand[redIndex[0]];
+      newHand[redIndex[0]] = redblock.clone({
+        replace: { idx: redIndex[1], tile: nonRed },
       });
-      // 345 と 34r5 入れ変えても同じ
-      if (buildKey(nonRedblock) == buildKey(redblock)) continue;
+      // 345 と 34r5 は入れ変えても同じ
+      if (buildBlockKey(nonRedblock) == buildBlockKey(redblock)) continue;
       newHands.push(newHand);
     }
+    return newHands;
+  }
 
-    return [...hands, ...newHands];
+  /**
+   * 全ての手牌の構成において、赤牌ごとの手牌（晒したブロックを含まない）の構成を生成する。
+   */
+  // TODO similar to markDrawn
+  private addRedPatterns(t: Type, hands: readonly Block[][]) {
+    if (!(this.hand.get(t, 0) > 0 && this.hand.get(t, 5) >= 2)) return hands;
+
+    const newHands: Block[][] = [];
+    for (let i = 0; i < hands.length; i++) {
+      const hand = hands[i];
+      newHands.push(...this.addRedPattern(t, hand));
+    }
+    return newHands;
   }
   private handleNumType(
     t: typeof TYPE.M | typeof TYPE.S | typeof TYPE.P,
@@ -1804,7 +1821,10 @@ export class PointCalculator {
   }
 }
 
-const buildKey = (b: Block) => {
+/**
+ * オペレータを無視したブロックの文字列を返す
+ */
+const buildBlockKey = (b: Block) => {
   return b.tiles.reduce((a: string, b: Tile) => `${a}${b.n}${b.t}`, "");
 };
 
@@ -1813,7 +1833,7 @@ const countSameBlocks = (h: readonly Block[]) => {
   for (const b of h) {
     if (!(b instanceof BlockRun)) continue;
     // instead of b.toString() to ignore operators
-    const key = buildKey(b);
+    const key = buildBlockKey(b);
     if (m[key] == null) m[key] = 1;
     else m[key]++;
   }
