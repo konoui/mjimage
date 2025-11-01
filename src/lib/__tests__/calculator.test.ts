@@ -312,8 +312,8 @@ describe("Block Calculator", () => {
   }
 });
 
-describe("Block Calculator with drawn", () => {
-  test("case1", () => {
+describe("Block Calculator2", () => {
+  test("combinations with tsumo", () => {
     const h = new Hand("1223m123s111z, -123m");
     h.draw(new Tile(TYPE.M, 2));
     const c = new BlockCalculator(h);
@@ -324,24 +324,24 @@ describe("Block Calculator with drawn", () => {
     const got = handsToString(c.calc(h.drawn!));
     expect(got).toStrictEqual(want);
   });
-  test("with red", () => {
-    const h = new Hand("44r5566m, 123s, 123p, 11z");
-    const want = [["11z", "456m", "4vr56m", "123p", "123s"]];
-    const c = new BlockCalculator(h);
-    const got = handsToString(c.calc(new Tile(TYPE.M, 5, [OP.RED])));
-    expect(got).toStrictEqual(want);
-  });
-  test("with red", () => {
+  test("combinations with red and implicit tsumo", () => {
     const h = new Hand("44r5566m, 123s, 123p, 11z");
     const want = [["11z", "4t56m", "4r56m", "123p", "123s"]];
     const c = new BlockCalculator(h);
     const got = handsToString(c.calc(new Tile(TYPE.M, 5, [OP.TSUMO])));
     expect(got).toStrictEqual(want);
   });
+  test("combinations with red and implicit ron", () => {
+    const h = new Hand("44r5566m, 123s, 123p, 11z");
+    const want = [["11z", "456m", "4vr56m", "123p", "123s"]];
+    const c = new BlockCalculator(h);
+    const got = handsToString(c.calc(new Tile(TYPE.M, 5, [OP.RED])));
+    expect(got).toStrictEqual(want);
+  });
 });
 
-describe("handleNumType/handleAll", () => {
-  test("handleNumType", () => {
+describe("handleNumType/calcAllBlockCombinations", () => {
+  test("handleNumType()", () => {
     const h = new Hand("111222333456m");
     const c = new BlockCalculator(h);
     const got = (c as any).handleNumType(TYPE.M) as Block[][];
@@ -367,7 +367,7 @@ describe("handleNumType/handleAll", () => {
     expect(handsToString(got)).toStrictEqual(want);
   });
 
-  test("red handling", () => {
+  test("calcAllBlockCombinations() with red: 1*2", () => {
     const h = new Hand("4r5667s,t5s");
     const c = new BlockCalculator(h);
     const got = (c as any).calcAllBlockCombinations() as Block[][];
@@ -378,7 +378,7 @@ describe("handleNumType/handleAll", () => {
     expect(handsToString(got)).toStrictEqual(want);
   });
 
-  test("red handling2", () => {
+  test("calcAllBlockCombinations() with multiple red: 2*2", () => {
     const h = new Hand("34r55677m34r5567p, t4m");
     const c = new BlockCalculator(h);
     const got = (c as any).calcAllBlockCombinations() as Block[][];
@@ -391,7 +391,7 @@ describe("handleNumType/handleAll", () => {
     expect(handsToString(got)).toStrictEqual(want);
   });
 
-  test("red handling3", () => {
+  test("calcAllBlockCombinations() with red", () => {
     const h = new Hand("44r55567m, t4m");
     const c = new BlockCalculator(h);
     const got = (c as any).calcAllBlockCombinations() as Block[][];
@@ -400,7 +400,7 @@ describe("handleNumType/handleAll", () => {
   });
 });
 
-describe("Point Calculator", () => {
+describe("PointCalculator/yaku and fu", () => {
   const tests: {
     input: string;
     lastTile: Tile;
@@ -648,24 +648,8 @@ describe("Point Calculator", () => {
   }
 });
 
-describe("calc", () => {
+describe("PointCalculator/calc", () => {
   test("1", () => {
-    const input = "111333m11p,5-5-55s, -3333s";
-    const h = new Hand(input);
-    const c = new BlockCalculator(h);
-    const cfg: BoardContext = {
-      doraIndicators: [new Tile(TYPE.M, 8)],
-      myWind: WIND.S,
-      round: ROUND.E1,
-    };
-    const dc = new PointCalculator(h, cfg);
-    const hands = c.calc(new Tile(TYPE.M, 3, [OP.TSUMO]));
-    const got = dc.calc(...hands);
-
-    // TODO
-    expect(!!got).toEqual(true);
-  });
-  test("2", () => {
     const input = "-123s,-234s,-456m, -567m, 11m";
     const lastTile = new Tile(TYPE.M, 1, [OP.TSUMO]);
     const h = new Hand(input);
@@ -683,9 +667,8 @@ describe("calc", () => {
     // TODO
     expect(hands.length).toBe(1);
     expect(!!got).toEqual(false);
-    // console.log(got);
   });
-  test("3", () => {
+  test("親の7役のハネマン", () => {
     const input = "123m123s123p789p9m,t9m";
     const h = new Hand(input);
     const c = new BlockCalculator(h);
@@ -720,8 +703,9 @@ describe("calc", () => {
     expect(!!got).toEqual(true);
     expect((got as WinResult).han).toBe(4);
     expect((got as WinResult).points).toBe(8000);
+    expect((got as WinResult).basePoints).toBe(8000);
   });
-  test("double 32000", () => {
+  test("親の四暗刻単騎待ちのダブル役満", () => {
     const input = "111m222m333m444m22s";
     const h = new Hand(input);
     const c = new BlockCalculator(h);
@@ -746,5 +730,30 @@ describe("calc", () => {
     expect(!!got2).toEqual(true);
     expect((got2 as WinResult).han).toBe(13);
     expect((got2 as WinResult).points).toBe(48000);
+  });
+  test("1300-2600/リーチ棒と供託", () => {
+    const input = "123s456s4r56m78m22m,t9m";
+    const h = new Hand(input);
+    h.reach();
+    const c = new BlockCalculator(h);
+    const cfg: BoardContext = {
+      doraIndicators: [new Tile(TYPE.P, 9)],
+      myWind: WIND.S,
+      round: ROUND.E1,
+      reached: 1,
+      sticks: {
+        reach: 2,
+        dead: 3,
+      },
+    };
+    const dc = new PointCalculator(h, cfg);
+    const hands = c.calc(new Tile(TYPE.M, 9, [OP.TSUMO]));
+    const got = dc.calc(...hands);
+
+    expect(!!got).toEqual(true);
+    const r = got as WinResult;
+    expect(r.han).toBe(4);
+    expect(r.points).toBe(5200 + 1000 * 2 + 300 * 3);
+    expect(r.basePoints).toBe(5200);
   });
 });

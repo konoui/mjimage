@@ -40,9 +40,9 @@ export class Efficiency {
       standardTypeOnly?: boolean;
     }
   ): TileAnalysis[] {
-    assert(choices.length > 0, `choices to discard is zero`);
+    if (choices.length == 0) throw new Error(`choices to discard is zero`);
     const map = new Map<string, TileAnalysis>();
-    let minShanten = Infinity;
+    let minShanten = Number.POSITIVE_INFINITY;
     for (const t of choices) {
       const tiles = hand.dec([t]);
       const c = Efficiency.getEffectiveTiles(hand, options);
@@ -85,7 +85,7 @@ export class Efficiency {
       typeFilter?: Type[];
     }
   ) {
-    let r = Infinity;
+    let r = Number.POSITIVE_INFINITY;
     let effectiveTiles: Tile[] = [];
 
     const sc = new ShantenCalculator(hand);

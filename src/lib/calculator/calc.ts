@@ -1,3 +1,4 @@
+import { instance } from "valibot";
 import {
   BLOCK,
   TYPE,
@@ -134,7 +135,9 @@ export class Hand {
       );
       assert(
         idx >= 0,
-        `hand has drawn: ${this.drawn} but no tile in hands: ${tiles.join("")}`
+        `drawn tile exists: ${this.drawn} but no tile in hand: ${tiles.join(
+          ""
+        )}`
       );
       tiles[idx] = tiles[idx].clone({ add: OP.TSUMO });
     }
@@ -210,7 +213,7 @@ export class Hand {
         const msg = isInvalidCount
           ? `tile ${t} exists more than 4 times`
           : `red tile ${t} appears more than 1 times`;
-        throw new Error(`invalid hand: ${msg} in ${this.toString()}`);
+        throw new Error(`invalid hand: ${msg} in hand: ${this.toString()}`);
       }
 
       backup.push(t);
@@ -234,9 +237,9 @@ export class Hand {
       if (isInvalidCount || isInvalidRed) {
         this.inc(backup);
         const msg = isInvalidCount
-          ? `tile ${t} is not in`
-          : `red tile ${t} is not in`;
-        throw new Error(`invalid hand: ${msg} in ${this.toString()}`);
+          ? `tile ${t} is not`
+          : `red tile ${t} is not`;
+        throw new Error(`invalid hand: ${msg} in hand: ${this.toString()}`);
       }
 
       backup.push(t);
@@ -288,7 +291,7 @@ export class Hand {
   call(b: BlockPon | BlockChi | BlockDaiKan) {
     const toRemove = b.tiles.filter((v) => !v.has(OP.HORIZONTAL));
     if (toRemove.length != b.tiles.length - 1)
-      throw new Error(`removal: ${toRemove} block: ${b}`);
+      throw new Error(`invalid block: removal tiles: ${toRemove}, block: ${b}`);
 
     this.dec(toRemove);
     this.data.called = [...this.called, b];
@@ -308,9 +311,12 @@ export class Hand {
 
     if (b instanceof BlockShoKan) {
       const idx = this.data.called.findIndex(
-        (v) => v.is(BLOCK.PON) && v.tiles[0].equals(b.tiles[0]) // FIXME handle which tile is called
+        (v) => v.is(BLOCK.PON) && v.tiles[0].equals(b.tiles[0])
       );
-      if (idx == -1) throw new Error(`unable to find ${b.tiles[0]}`);
+      if (idx == -1)
+        throw new Error(
+          `unable to find pon block ${b.tiles[0]} for shokan: ${b}`
+        );
       let t = b.tiles[0];
       // 適当に選んだ牌が red であればエラーが発生しないように red を削除して dec する
       t = is5Tile(t) ? t.clone({ remove: OP.RED }) : t;
@@ -353,7 +359,7 @@ export class ShantenCalculator {
    * 七対子のシャンテン数を返す。
    */
   sevenPairs() {
-    if (this.hand.called.length > 0) return Infinity;
+    if (this.hand.called.length > 0) return Number.POSITIVE_INFINITY;
     let nPairs = 0;
     let nIsolated = 0;
     for (const [t, n] of forHand({ skipBack: true })) {
@@ -370,7 +376,7 @@ export class ShantenCalculator {
    * 国士無双のシャンテン数を返す。
    */
   thirteenOrphans() {
-    if (this.hand.called.length > 0) return Infinity;
+    if (this.hand.called.length > 0) return Number.POSITIVE_INFINITY;
     let nOrphans = 0;
     let nPairs = 0;
     for (const t of Object.values(TYPE)) {
@@ -389,6 +395,7 @@ export class ShantenCalculator {
    */
   standardType() {
     const calc = (hasPair: boolean) => {
+      // [set, pair, isolated]
       const z = [0, 0, 0];
       for (const [t, n] of forHand({ filterBy: [TYPE.Z] })) {
         if (this.hand.get(t, n) >= 3) z[0]++;
@@ -415,14 +422,14 @@ export class ShantenCalculator {
             for (let i = 0; i < 3; i++) {
               v[i] += m[i] + p[i] + s[i] + z[i] + b[i];
             }
-            const r = this.calcStandardType(v[0], v[1], v[2], hasPair);
+            const r = this.getStandardTypeShanten(v[0], v[1], v[2], hasPair);
             if (r < min) min = r;
           }
         }
       }
       return min;
     };
-    // not having pairs case for initial
+    // case not having pairs for the initial
     let min = calc(false);
 
     // case having pairs
@@ -526,7 +533,7 @@ export class ShantenCalculator {
       patternB: [0, nSerialPairs, nIsolated],
     };
   }
-  private calcStandardType(
+  private getStandardTypeShanten(
     nSet: number,
     nSerialPair: number,
     nIsolated: number,
@@ -578,11 +585,7 @@ export class BlockCalculator {
    */
   markedHands(hands: readonly Block[][], lastTile: Tile): readonly Block[][] {
     if (hands.length == 0) return [];
-    const newHands: Block[][] = [];
-    for (let i = 0; i < hands.length; i++) {
-      newHands.push(...this.markedHand(hands[i], lastTile));
-    }
-    return newHands;
+    return hands.map((hand) => this.markedHand(hand, lastTile)).flat();
   }
 
   /**
@@ -593,19 +596,19 @@ export class BlockCalculator {
     const op =
       this.hand.drawn != null || lastTile.has(OP.TSUMO) ? OP.TSUMO : OP.RON;
 
-    const indexes: [number, number][] = [];
-    const m: { [key: string]: boolean } = {}; // map to reduce same blocks such as ["123m", "123m"]
-    for (let i = 0; i < hand.length; i++) {
-      const block = hand[i];
+    const indexes: [number, number][] = []; // [block index, tile index]
+    const m: { [key: string]: boolean } = {}; // reduce same blocks such as ["123m", "123m"]
+    for (let bIdx = 0; bIdx < hand.length; bIdx++) {
+      const block = hand[bIdx];
       if (block.isCalled()) continue;
-      const k = block.tiles.findIndex(
+      const tIdx = block.tiles.findIndex(
         (t) => t.equals(lastTile) && lastTile.has(OP.RED) == t.has(OP.RED)
       );
-      if (k < 0) continue;
+      if (tIdx < 0) continue;
       const key = buildBlockKey(block);
       if (m[key]) continue;
       m[key] = true;
-      indexes.push([i, k]);
+      indexes.push([bIdx, tIdx]);
     }
 
     if (indexes.length == 0)
@@ -614,12 +617,12 @@ export class BlockCalculator {
       );
 
     const newHands: Block[][] = [];
-    for (const [bidx, tidx] of indexes) {
+    for (const [bIdx, tIdx] of indexes) {
       const newHand = [...hand];
-      const block = newHand[bidx];
-      const newTile = block.tiles[tidx].clone({ add: op });
-      newHand[bidx] = block.clone({
-        replace: { idx: tidx, tile: newTile },
+      const block = newHand[bIdx];
+      const newTile = block.tiles[tIdx].clone({ add: op });
+      newHand[bIdx] = block.clone({
+        replace: { idx: tIdx, tile: newTile },
       }); // update with new block tiles with op
       newHands.push(newHand);
     }
@@ -636,13 +639,13 @@ export class BlockCalculator {
     const ret: Block[] = [];
     for (const [t, n] of forHand({ skipBack: true })) {
       const count = this.hand.get(t, n);
-      if (count == 2) {
+      if (count == 0) continue;
+      else if (count == 2) {
         // red に対応するため dec した tile を使用する
         const tiles = this.hand.dec(new Array(2).fill(new Tile(t, n)));
         ret.push(new BlockPair(tiles[0], tiles[1]));
         this.hand.inc(tiles);
-      } else if (count == 0) continue;
-      else return [];
+      } else return [];
     }
 
     return [ret];
@@ -708,7 +711,7 @@ export class BlockCalculator {
       if (this.hand.get(t, n) >= 2) {
         const toDec = new Array(2).fill(new Tile(t, n));
         // OP.RED をつけないと、最後の（面子の） dec で RED が消費される。
-        // e.g. 5s が 3枚あり、頭で 5s を2枚消費すると、patternAll で r5s と 5s のパータンを計算できなくなる。
+        // e.g. 5s が 3枚あり、頭で 5s を2枚消費すると、calcAllBlockCombinations() で r5s と 5s のパータンを計算できなくなる。
         // 明示的に OP.RED を頭で消費するようにする。
         if (n == 5 && this.hand.get(t, 0) > 0 && this.hand.get(t, n) >= 3) {
           toDec[1] = new Tile(t, n, [OP.RED]);
@@ -784,20 +787,20 @@ export class BlockCalculator {
     const nonRedIndexes: [number, number][] = [];
     let redIndex: [number, number] | null = null;
     const m: { [key: string]: boolean } = {};
-    for (let i = 0; i < hand.length; i++) {
-      const block = hand[i];
-      const k = block.tiles.findIndex((t) => is5Tile(t) && !t.has(OP.RED));
-      const rk = block.tiles.findIndex((t) => is5Tile(t) && t.has(OP.RED));
+    for (let bIdx = 0; bIdx < hand.length; bIdx++) {
+      const block = hand[bIdx];
+      const nrtIdx = block.tiles.findIndex((t) => is5Tile(t) && !t.has(OP.RED));
+      const rtIdx = block.tiles.findIndex((t) => is5Tile(t) && t.has(OP.RED));
       // red の位置情報
-      if (rk > -1) redIndex = [i, rk];
+      if (rtIdx > -1) redIndex = [bIdx, rtIdx];
       // 一つのブロックに red と non red があるので BlockThree
-      if (rk > -1 && k > -1) continue;
-      if (k < 0) continue;
+      if (rtIdx > -1 && nrtIdx > -1) continue;
+      if (nrtIdx < 0) continue;
       const key = buildBlockKey(block);
       if (m[key]) continue;
       m[key] = true;
       // non red の位置情報
-      nonRedIndexes.push([i, k]);
+      nonRedIndexes.push([bIdx, nrtIdx]);
     }
 
     // BlockThree などの場合
@@ -805,13 +808,13 @@ export class BlockCalculator {
 
     // 5 と r5 に入れ替えたパータンを生成する
     const newHands: Block[][] = [hand];
-    for (const [bidx, tidx] of nonRedIndexes) {
+    for (const [bIdx, tIdx] of nonRedIndexes) {
       const newHand = [...hand];
 
       // 5 のブロックを r5 のブロックに変換
-      const nonRedblock = newHand[bidx];
-      newHand[bidx] = nonRedblock.clone({
-        replace: { idx: tidx, tile: red },
+      const nonRedblock = newHand[bIdx];
+      newHand[bIdx] = nonRedblock.clone({
+        replace: { idx: tIdx, tile: red },
       });
 
       // r5 のブロックを 5 のブロックに変換
@@ -832,13 +835,7 @@ export class BlockCalculator {
   // TODO similar to markDrawn
   private addRedPatterns(t: Type, hands: readonly Block[][]) {
     if (!(this.hand.get(t, 0) > 0 && this.hand.get(t, 5) >= 2)) return hands;
-
-    const newHands: Block[][] = [];
-    for (let i = 0; i < hands.length; i++) {
-      const hand = hands[i];
-      newHands.push(...this.addRedPattern(t, hand));
-    }
-    return newHands;
+    return hands.map((hand) => this.addRedPattern(t, hand)).flat();
   }
   private handleNumType(
     t: typeof TYPE.M | typeof TYPE.S | typeof TYPE.P,
@@ -1121,8 +1118,10 @@ export class PointCalculator {
       this.cfg.orig.ronWind
     );
 
-    const basePoints =
-      deltas[scoreInfo.myWind] - this.cfg.sticks.dead * SCORING.DEAD_STICK;
+    const basePoints = deltas[scoreInfo.myWind];
+
+    this.addStickPoints(deltas, scoreInfo.myWind, this.cfg.orig.ronWind);
+
     const description = getPointDescription({
       base: scoreInfo.base,
       fu: scoreInfo.fu,
@@ -1225,19 +1224,19 @@ export class PointCalculator {
     return ret;
   }
 
-  private selectBestHand(winningHand: readonly WinningHand[]) {
+  private selectBestHand(winningHands: readonly WinningHand[]) {
     let bestIdx = 0;
     let maxScore = [0, 0]; // [han, fu]
 
-    for (let i = 0; i < winningHand.length; i++) {
-      const { han, fu } = winningHand[i];
+    for (let i = 0; i < winningHands.length; i++) {
+      const { han, fu } = winningHands[i];
       if (han > maxScore[0] || (han === maxScore[0] && fu > maxScore[1])) {
         bestIdx = i;
         maxScore = [han, fu];
       }
     }
 
-    return winningHand[bestIdx];
+    return winningHands[bestIdx];
   }
 
   private calculateScore(bestHand: WinningHand) {
@@ -1302,12 +1301,12 @@ export class PointCalculator {
     const deltas = createWindMap(0);
 
     if (!isTsumo) {
-      this.calculateRonDeltas(deltas, base, isParent, myWind, ronWind!);
+      assert(ronWind != null, "tumo is false but ron wind is null");
+      this.calculateRonDeltas(deltas, base, isParent, myWind, ronWind);
     } else {
       this.calculateTsumoDeltas(deltas, base, isParent, myWind);
     }
 
-    this.addStickPoints(deltas, myWind);
     return deltas;
   }
 
@@ -1318,19 +1317,13 @@ export class PointCalculator {
     myWind: Wind,
     ronWind: Wind
   ) {
-    if (ronWind == null) {
-      throw new Error("ron wind is not specified in the parameters");
-    }
-
     const coefficient = isParent
       ? POINT_COEFFICIENT.PARENT_RON
       : POINT_COEFFICIENT.CHILD_RON;
-    const basePoints = myCeil(base * coefficient);
-    const deadPoints = this.cfg.sticks.dead * SCORING.DEAD_STICK;
-    const totalPoints = basePoints + deadPoints;
+    const points = myCeil(base * coefficient);
 
-    deltas[myWind] += totalPoints;
-    deltas[ronWind] -= totalPoints;
+    deltas[myWind] += points;
+    deltas[ronWind] -= points;
   }
 
   private calculateTsumoDeltas(
@@ -1339,29 +1332,14 @@ export class PointCalculator {
     isParent: boolean,
     myWind: Wind
   ) {
-    const deadPoints = this.cfg.sticks.dead * (SCORING.DEAD_STICK / 3);
-    if (isParent) this.calculateParentTsumoDeltas(deltas, base, deadPoints);
-    else this.calculateChildTsumoDeltas(deltas, base, myWind, deadPoints);
-  }
-
-  private calculateParentTsumoDeltas(
-    deltas: { [key in Wind]: number },
-    base: number,
-    deadPoints: number
-  ) {
-    const basePoints = myCeil(base * POINT_COEFFICIENT.PARENT_TSUMO);
-    deltas[WIND.E] += basePoints * 3 + deadPoints * 3;
-    deltas[WIND.S] -= basePoints + deadPoints;
-    deltas[WIND.W] -= basePoints + deadPoints;
-    deltas[WIND.N] -= basePoints + deadPoints;
-  }
-
-  private calculateChildTsumoDeltas(
-    deltas: { [key in Wind]: number },
-    base: number,
-    myWind: Wind,
-    deadPoint: number
-  ) {
+    if (isParent) {
+      const basePoints = myCeil(base * POINT_COEFFICIENT.PARENT_TSUMO);
+      deltas[WIND.E] += basePoints * 3;
+      deltas[WIND.S] -= basePoints;
+      deltas[WIND.W] -= basePoints;
+      deltas[WIND.N] -= basePoints;
+      return;
+    }
     for (const key of Object.values(WIND)) {
       if (key == myWind) continue;
       const coefficient =
@@ -1369,13 +1347,27 @@ export class PointCalculator {
           ? POINT_COEFFICIENT.CHILD_TUMO_FROM_PARENT
           : POINT_COEFFICIENT.CHILD_TUMO_FROM_CHILD;
       const basePoints = myCeil(base * coefficient);
-      deltas[key] -= basePoints + deadPoint;
-      deltas[myWind] += basePoints + deadPoint;
+      deltas[key] -= basePoints;
+      deltas[myWind] += basePoints;
     }
   }
 
-  private addStickPoints(deltas: { [key in Wind]: number }, myWind: Wind) {
+  private addStickPoints(
+    deltas: { [key in Wind]: number },
+    myWind: Wind,
+    ronWind: Wind | undefined
+  ) {
     deltas[myWind] += SCORING.REACH_STICK * this.cfg.sticks.reach;
+    const deadPoint = SCORING.DEAD_STICK * this.cfg.sticks.dead;
+    if (ronWind != null) {
+      deltas[myWind] += deadPoint;
+      deltas[ronWind] -= deadPoint;
+      return;
+    }
+    for (const key of Object.values(WIND)) {
+      if (key == myWind) deltas[key] += deadPoint;
+      else deltas[key] -= deadPoint / 3;
+    }
   }
 
   private getBasePoints(han: number, fu: number): number {
@@ -1396,8 +1388,8 @@ export class PointCalculator {
     return [];
   }
   dB1(h: readonly Block[]): Yaku[] {
-    if (this.minus() != 0) return [];
     if (this.hand.drawn == null) [];
+    if (this.minus() != 0) return [];
     const cond = h.some((b) => b.tiles.some((t) => t.has(OP.TSUMO)));
     return cond ? [{ name: "門前清自摸和", han: 1 }] : [];
   }
@@ -1482,15 +1474,15 @@ export class PointCalculator {
     };
     for (const block of h) {
       if (!check(block)) continue;
+      if (block.tiles[0].t == TYPE.Z) continue;
       const tile = minTile(block);
-      if (tile.t == TYPE.Z) continue;
-      const filteredTypes = [TYPE.M, TYPE.P, TYPE.S].filter((v) => v != tile.t);
+      const excludedypes = [TYPE.M, TYPE.P, TYPE.S].filter((v) => v != tile.t);
       const cond1 = h.some((b) => {
-        const newTile = new Tile(filteredTypes[0], tile.n);
+        const newTile = new Tile(excludedypes[0], tile.n);
         return check(b) && newTile.equals(minTile(b));
       });
       const cond2 = h.some((b) => {
-        const newTile = new Tile(filteredTypes[1], tile.n);
+        const newTile = new Tile(excludedypes[1], tile.n);
         return check(b) && newTile.equals(minTile(b));
       });
       if (cond1 && cond2) return [{ name: "三色同順", han: 2 - this.minus() }];
@@ -1542,13 +1534,13 @@ export class PointCalculator {
       if (!check(block)) continue;
       const tile = minTile(block);
       if (tile.t == TYPE.Z) continue;
-      const filteredTypes = [TYPE.M, TYPE.P, TYPE.S].filter((v) => v != tile.t);
+      const excludedTypes = [TYPE.M, TYPE.P, TYPE.S].filter((v) => v != tile.t);
       const cond1 = h.some((b) => {
-        const newTile = new Tile(filteredTypes[0], tile.n);
+        const newTile = new Tile(excludedTypes[0], tile.n);
         return check(b) && newTile.equals(minTile(b));
       });
       const cond2 = h.some((b) => {
-        const newTile = new Tile(filteredTypes[1], tile.n);
+        const newTile = new Tile(excludedTypes[1], tile.n);
         return check(b) && newTile.equals(minTile(b));
       });
       if (cond1 && cond2) return [{ name: "三色同刻", han: 2 }];
@@ -1565,8 +1557,17 @@ export class PointCalculator {
   }
   dH2(h: readonly Block[]): Yaku[] {
     const cond = h.every((b) => {
-      const values = b.tiles[0].t == TYPE.Z ? NZ : N19;
-      return b.tiles.every((t) => values.includes(t.n));
+      const s = b.tiles[0];
+      const values = s.t == TYPE.Z ? NZ : N19;
+      return (
+        (b instanceof BlockAnKan ||
+          b instanceof BlockShoKan ||
+          b instanceof BlockDaiKan ||
+          b instanceof BlockThree ||
+          b instanceof BlockPon ||
+          b instanceof BlockPair) &&
+        values.includes(s.n)
+      );
     });
     return cond ? [{ name: "混老頭", han: 2 }] : [];
   }
@@ -1694,19 +1695,27 @@ export class PointCalculator {
     return cond ? [{ name: "字一色", han: 13, isYakuman: true }] : [];
   }
   dF13(h: readonly Block[]): Yaku[] {
-    const cond = h.every((b) =>
-      b.tiles.every((t) => t.t != TYPE.Z && N19.includes(t.n))
+    const cond = h.every(
+      (b) =>
+        (b instanceof BlockAnKan ||
+          b instanceof BlockShoKan ||
+          b instanceof BlockDaiKan ||
+          b instanceof BlockThree ||
+          b instanceof BlockPon ||
+          b instanceof BlockPair) &&
+        N19.includes(b.tiles[0].n)
     );
     return cond ? [{ name: "清老頭", han: 13, isYakuman: true }] : [];
   }
   dG13(h: readonly Block[]): Yaku[] {
-    const cond =
-      h.filter(
-        (b) =>
-          b instanceof BlockAnKan ||
-          b instanceof BlockShoKan ||
-          b instanceof BlockDaiKan
-      ).length == 4;
+    if (h.length == 7) return [];
+    const cond = h.every(
+      (b) =>
+        b instanceof BlockAnKan ||
+        b instanceof BlockShoKan ||
+        b instanceof BlockDaiKan ||
+        b instanceof BlockPair
+    );
     return cond ? [{ name: "四槓子", han: 13, isYakuman: true }] : [];
   }
   dH13(h: readonly Block[]): Yaku[] {
@@ -1714,8 +1723,10 @@ export class PointCalculator {
     if (h.length == 7) return [];
     const zn = [1, 2, 3, 4];
     const cond1 =
-      h.filter((b) => b.tiles.some((t) => t.t == TYPE.Z && zn.includes(t.n)))
-        .length == 4;
+      h.filter((b) => {
+        const s = b.tiles[0];
+        return s.t == TYPE.Z && zn.includes(s.n);
+      }).length == 4;
     if (!cond1) return [];
     const cond2 = h
       .find((b) => b instanceof BlockPair)!
@@ -1746,13 +1757,13 @@ export class PointCalculator {
    * 手牌の構成から符を計算する
    */
   calcFu(h: readonly Block[]) {
+    if (h.length == 7) return 25;
+
     const base = 20;
     let fu = base;
 
     const myWind = this.cfg.myWind.n;
     const round = this.cfg.roundWind.n;
-
-    if (h.length == 7) return 25;
 
     const lastBlock = h.find((b) =>
       b.tiles.some((t) => t.has(OP.TSUMO) || t.has(OP.RON))
@@ -1763,8 +1774,7 @@ export class PointCalculator {
     // 刻子
     const calcTriple = (b: Block, base: number) => {
       const tile = b.tiles[0];
-      if (tile.t == TYPE.Z) return base * 2;
-      else if (N19.includes(tile.n)) return base * 2;
+      if (tile.t == TYPE.Z || N19.includes(tile.n)) return base * 2;
       else return base;
     };
 

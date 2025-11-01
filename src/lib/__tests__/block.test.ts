@@ -15,7 +15,7 @@ describe("efficiency", () => {
     expect(ret.length).toBe(6);
   });
 
-  test("four sets one pair", () => {
+  test("standard type only", () => {
     const h = new Hand("115588s116699p11z");
     const ss = new ShantenCalculator(h).standardType();
     expect(ss).toBe(3);

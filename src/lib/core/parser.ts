@@ -123,6 +123,7 @@ export class Tile {
 
   /**
    * 数牌である場合 true を返す。
+   * false の場合、字牌もしくは裏牌のどちらかとなる。
    */
   isNum() {
     return this.t == TYPE.M || this.t == TYPE.P || this.t == TYPE.S;
