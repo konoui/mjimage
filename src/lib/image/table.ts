@@ -132,7 +132,6 @@ const createStickAndDora = (
 
   const g = new G();
   g.add(roundText);
-  g.add(roundText);
   g.add(stickGroup);
 
   return {
