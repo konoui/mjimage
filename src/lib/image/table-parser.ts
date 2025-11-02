@@ -122,11 +122,18 @@ export interface ScoreBoardInput {
 type BoardRound = (typeof ROUND_MAP)[keyof typeof ROUND_MAP];
 type BoardWind = (typeof WIND_MAP)[keyof typeof WIND_MAP];
 
+/**
+ * 麻雀卓の文字列をパースし、内部表現に変換する
+ */
 export const parse = (s: string) => {
   const d = parseTableInput(s);
   return convertInput(d);
 };
 
+/**
+ * 麻雀卓の文字列をパースする。
+ * パース後さらに内部表現に変換する必要がある。
+ */
 export const parseTableInput = (s: string) => {
   const rawInput = parseStringInput(s);
 
@@ -193,8 +200,10 @@ const parseWindSection = (lines: string[]) => {
   for (; i < lines.length; i++) {
     const line = lines[i];
     if (line.startsWith(hand)) result.hand = extractValue(line, hand);
-    else if (line.startsWith(discard)) result.discard = extractValue(line, discard);
-    else if (line.startsWith(score)) result.score = Number(extractValue(line, score));
+    else if (line.startsWith(discard))
+      result.discard = extractValue(line, discard);
+    else if (line.startsWith(score))
+      result.score = Number(extractValue(line, score));
     else break;
   }
   return [result, i] as const;
@@ -224,8 +233,10 @@ const parseBoardSection = (lines: string[]) => {
       result.sticks = {};
       const next = lines[i + 1] ?? "";
       const nextNext = lines[i + 2] ?? "";
-      if (next.startsWith(reach)) result.sticks.reach = Number(extractValue(next, reach));
-      if (next.startsWith(dead)) result.sticks.dead = Number(extractValue(next, dead));
+      if (next.startsWith(reach))
+        result.sticks.reach = Number(extractValue(next, reach));
+      if (next.startsWith(dead))
+        result.sticks.dead = Number(extractValue(next, dead));
       if (nextNext.startsWith(reach))
         result.sticks.reach = Number(extractValue(nextNext, reach));
       if (nextNext.startsWith(dead))
@@ -239,6 +250,9 @@ const parseBoardSection = (lines: string[]) => {
 
 // ====
 
+/**
+ * パースした入力を内部表現へ変換する。
+ */
 export const convertInput = (i: TableInput) => {
   const frontPlace = i.board.front;
   const m = createPlaceMap(frontPlace);

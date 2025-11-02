@@ -36,7 +36,14 @@ export const prevRound = (r: Round) => {
 };
 
 /**
- * 次の風を返す。 e.g.) 1w => 2w
+ * ラウンドから場風を返す
+ */
+export const roundWind = (r: Round) => {
+  return r.substring(0, 2) as Wind;
+};
+
+/**
+ * 次の風を返す。 e.g.) 1z => 2z
  */
 export const nextWind = (w: Wind): Wind => {
   let n = Number(w.toString()[0]);
@@ -45,7 +52,7 @@ export const nextWind = (w: Wind): Wind => {
 };
 
 /**
- * 前の風を返す。 e.g.) 1w => 4w
+ * 前の風を返す。 e.g.) 1z => 4z
  */
 export const prevWind = (w: Wind): Wind => {
   let n = Number(w.toString()[0]);

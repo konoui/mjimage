@@ -1,11 +1,14 @@
 import { Tile, BLOCK, BlockOther, WIND_MAP, STICK_CONTEXT } from "../core/";
-import { ImageHelper, createHand, ImageHelperConfig } from "../image/image";
+import {
+  ImageHelper,
+  createBlockHand,
+  ImageHelperConfig,
+} from "../image/image";
 import { Svg, Text, G, Rect, Mark } from "../svgjs/svg";
 import { FontContext } from "../measure-text/";
 import { parse, ScoreBoardInput, DiscardsInput, HandsInput } from "./";
 
-const chunkTilesForDisplay = (input: readonly Tile[]) => {
-  const chunkSize = 6;
+const chunkTilesForDisplay = (input: readonly Tile[], chunkSize = 6) => {
   const result: Tile[][] = [];
   for (let i = 0; i < input.length; i += chunkSize) {
     const chunk = input.slice(i, i + chunkSize);
@@ -42,6 +45,7 @@ const simpleRotate = (
     return new G().add(g);
   }
 
+  // 0
   return new G().add(g);
 };
 
@@ -50,10 +54,10 @@ const createDiscardArea = (tiles: readonly Tile[], helper: ImageHelper) => {
   const chunks = chunkTilesForDisplay(tiles);
 
   for (let i = 0; i < chunks.length; i++) {
-    let tiles = chunks[i];
-    let posY = i * helper.tileHeight;
+    const tiles = chunks[i];
+    const posY = i * helper.tileHeight;
     const e = helper
-      .createBlockHandDiscard(new BlockOther(tiles, BLOCK.IMAGE_DISCARD))
+      .createBlockDiscard(new BlockOther(tiles, BLOCK.IMAGE_DISCARD))
       .translate(0, posY);
     g.add(e);
   }
@@ -79,8 +83,8 @@ const createStickAndDora = (
   const stickWidth = STICK_CONTEXT.WIDTH * helper.scale;
   const stickHeight = STICK_CONTEXT.HEIGHT * helper.scale;
 
-  let roundWidth = textWidth * 3;
-  let roundHeight = textHeight;
+  const roundWidth = textWidth * 3;
+  const roundHeight = textHeight + 25 * helper.scale; // margin;
   const roundX = (stickWidth + helper.tileWidth + textWidth - roundWidth) / 2;
 
   const roundText = new Text()
@@ -88,8 +92,6 @@ const createStickAndDora = (
     .font(font)
     .x(roundX)
     .y(0);
-
-  roundHeight += 25 * helper.scale; // margin
 
   const stickGroupHeight = helper.tileHeight;
   const stickGroup = new G()
@@ -146,10 +148,10 @@ const createHands = (
   hands: HandsInput,
   minWidth: number = 0
 ) => {
-  const fe = createHand(helper, hands.front);
-  const re = createHand(helper, hands.right);
-  const oe = createHand(helper, hands.opposite);
-  const le = createHand(helper, hands.left);
+  const fe = createBlockHand(helper, hands.front);
+  const re = createBlockHand(helper, hands.right);
+  const oe = createBlockHand(helper, hands.opposite);
+  const le = createBlockHand(helper, hands.left);
   const maxWidth = [fe.width, re.width, oe.width, le.width].reduce((a, b) =>
     Math.max(a, b)
   );
@@ -234,7 +236,7 @@ const createScoreBoard = (
   const frontText = ft.e;
 
   // Note TODO why it works
-  let rt = createScore(rightPlace, scores.right, {
+  const rt = createScore(rightPlace, scores.right, {
     "dominant-baseline": "text-after-edge",
     "text-anchor": "middle",
   });
@@ -252,7 +254,7 @@ const createScoreBoard = (
     -ot.height
   );
 
-  let lt = createScore(leftPlace, scores.left, {
+  const lt = createScore(leftPlace, scores.left, {
     "dominant-baseline": "ideographic",
     "text-anchor": "middle",
   });
@@ -328,6 +330,9 @@ const createDiscards = (helper: ImageHelper, discards: DiscardsInput) => {
   return { e: new G().add(g), width: sizeWidth, height: sizeHeight };
 };
 
+/**
+ * 麻雀卓の SVG 要素を作成する。
+ */
 export const createTable = (
   helper: ImageHelper,
   fontCtx: FontContext,
@@ -355,6 +360,11 @@ export const createTable = (
   return { e: g, width: hands.width, height: hands.height };
 };
 
+/**
+ * 麻雀卓から SVG 要素を作成し、SVG に描画する。
+ * レスポンシブが false の場合、SVG の width/height として絶対値で指定される。
+ * viewBox はレスポンシブに関わらず設定される。
+ */
 export const drawTable = (
   svg: Svg,
   tableInput: string,

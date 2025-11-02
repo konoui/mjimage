@@ -3,6 +3,10 @@ import { BLOCK, OP, TYPE, INPUT_SEPARATOR, Type, Operator } from "./";
 
 type Separator = typeof INPUT_SEPARATOR;
 
+/**
+ * 牌を比較する。
+ * ソート時に使用する。
+ */
 export const compareTiles = (i: Tile, j: Tile) => {
   if (i.t == j.t) {
     if (is5Tile(i) && is5Tile(j)) {
@@ -16,6 +20,10 @@ export const compareTiles = (i: Tile, j: Tile) => {
   return typeOrder.indexOf(i.t) - typeOrder.indexOf(j.t);
 };
 
+/**
+ * オペレータを比較する。
+ * ソート時に使用する。
+ */
 const compareOperators = (i: Operator, j: Operator) => {
   const operatorOrder = [
     OP.HORIZONTAL,
@@ -28,6 +36,10 @@ const compareOperators = (i: Operator, j: Operator) => {
   return operatorOrder.indexOf(i) - operatorOrder.indexOf(j);
 };
 
+/**
+ * 鳴いた牌をソートする。
+ * 具体的に鳴いた牌の場所を維持しつつ、その他の牌をソートする。
+ */
 export const sortCalledTiles = (arr: readonly Tile[]) => {
   const indexes: number[] = [];
   arr.forEach((t, index) => {
@@ -44,6 +56,9 @@ export const sortCalledTiles = (arr: readonly Tile[]) => {
   return sorted;
 };
 
+/**
+ * 赤牌を含む 5m/5p/5s の場合 true を返す。
+ */
 export function is5Tile(t: Tile) {
   return t.isNum() && t.n == 5;
 }
@@ -323,18 +338,19 @@ export class BlockPon extends Block {
 }
 
 // BlockAnkan store tiles as number tiles
-// if getting tiles with back tile, to use tilesWithBack
+// if getting tiles including back tile, to use tilesWithBack
 export class BlockAnKan extends Block {
   constructor(tiles: readonly Tile[]) {
-    const ftiles = tiles.filter((v) => v.t != TYPE.BACK);
-    const sample = ftiles[0];
-    if (ftiles.length < tiles.length) {
-      if (is5Tile(sample)) {
-        const t = new Tile(sample.t, 5);
+    const nonBacks = tiles.filter((v) => v.t != TYPE.BACK);
+    const s = nonBacks[0];
+    // 内部では裏牌ではなく同じ牌として保持する。
+    if (nonBacks.length < tiles.length) {
+      if (is5Tile(s)) {
+        const t = new Tile(s.t, 5);
         super([t.clone({ add: OP.RED }), t, t, t], BLOCK.AN_KAN);
         return;
       }
-      super([sample, sample, sample, sample], BLOCK.AN_KAN);
+      super([s, s, s, s], BLOCK.AN_KAN);
       return;
     }
     super(tiles, BLOCK.AN_KAN);
@@ -462,7 +478,9 @@ export class BlockIsolated extends Block {
   }
 }
 
-// block hand means menzen hand
+/**
+ * TODO 計算時に使用する面前の手牌を想定しているが、SVG はそうではない。
+ */
 export class BlockHand extends Block {
   constructor(tiles: readonly Tile[]) {
     super(tiles, BLOCK.HAND);
@@ -509,7 +527,10 @@ const blockWrapper = (
   | BlockOther => {
   switch (type) {
     case BLOCK.CHI:
-      return new BlockChi([tiles[0], tiles[1], tiles[2]]);
+      const h = tiles.find((t) => t.has(OP.HORIZONTAL));
+      assert(h != null, `chi block does not have horizontal ops: ${tiles}`);
+      const others = tiles.filter((t) => !t.has(OP.HORIZONTAL));
+      return new BlockChi([h, others[0], others[1]]);
     case BLOCK.PON:
       return new BlockPon([tiles[0], tiles[1], tiles[2]]);
     case BLOCK.AN_KAN:

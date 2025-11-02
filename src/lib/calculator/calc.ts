@@ -1,4 +1,3 @@
-import { instance } from "valibot";
 import {
   BLOCK,
   TYPE,
@@ -28,6 +27,7 @@ import {
   SerializedBlock,
   is5Tile,
 } from "../core/parser";
+import { roundWind } from "../core";
 import { assert } from "../myassert";
 
 export type TupleOfSize<
@@ -1085,7 +1085,7 @@ export class PointCalculator {
         params.hiddenDoraIndicators == null
           ? []
           : params.hiddenDoraIndicators.map((v) => toDora(v)),
-      roundWind: Tile.from(params.round.substring(0, 2)),
+      roundWind: Tile.from(roundWind(params.round)),
       myWind: Tile.from(params.myWind),
       reached: params.reached ?? 0,
       sticks: params.sticks ?? { dead: 0, reach: 0 },

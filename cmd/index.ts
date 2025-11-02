@@ -1,6 +1,6 @@
 import {
   Parser,
-  createHand,
+  createBlockHand,
   ImageHelper,
   optimizeSVG,
   SVG,
@@ -66,9 +66,9 @@ if (tableRegex.test(input)) {
   });
 } else {
   const blocks = new Parser(input).parse();
-  const hand = createHand(imgHelper, blocks, {
-    doraText: true,
-    tsumoText: true,
+  const hand = createBlockHand(imgHelper, blocks, {
+    enableDoraText: true,
+    enableTsumoText: true,
   });
   draw.add(hand.e);
   draw.viewbox(0, 0, hand.width, hand.height);

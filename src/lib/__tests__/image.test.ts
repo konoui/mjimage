@@ -1,5 +1,5 @@
 import { Parser } from "../core/parser";
-import { createHand, drawBlocks, ImageHelper } from "../image/image";
+import { createBlockHand, drawBlocks, ImageHelper } from "../image/image";
 
 import { loadTestData, SVG } from "./utils/helper";
 
@@ -112,8 +112,8 @@ describe("generate svg", () => {
     const blocks = new Parser("123s,-123s, t1s").parse();
     const draw = SVG();
     drawBlocks(draw, blocks, helperConfig, {
-      doraText: false,
-      tsumoText: false,
+      enableDoraText: false,
+      enableTsumoText: false,
       responsive: true,
     });
     const got = draw.svg();
