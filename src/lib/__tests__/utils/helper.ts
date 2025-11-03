@@ -26,7 +26,7 @@ export const loadTestData = (
   return want;
 };
 
-export const handsToString = (hands: readonly Block[][]) => {
+export const handsToString = (hands: readonly (readonly Block[])[]) => {
   return hands.map((hand) => hand.map((block) => block.toString()));
 };
 

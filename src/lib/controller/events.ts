@@ -31,11 +31,11 @@ type ChoiceEvent =
 export interface DistributeEvent {
   id: string;
   type: Extract<Event, "DISTRIBUTE">;
-  hands: { [key in Wind]: string };
+  hands: { [w in Wind]: string };
   wind: Wind;
   doraIndicator: string;
   players: string[];
-  places: { [key: string]: Wind };
+  places: { [id: string]: Wind };
   sticks: { reach: number; dead: number };
   round: Round;
   scores: { [key: string]: number };
@@ -48,8 +48,8 @@ export interface EndEvent {
   wind: Wind;
   scores: { [key: string]: number };
   sticks: { reach: number; dead: number };
-  deltas: { [key in Wind]: number };
-  hands: { [key in Wind]: string };
+  deltas: { [w in Wind]: number };
+  hands: { [w in Wind]: string };
   shouldContinue: boolean;
 }
 

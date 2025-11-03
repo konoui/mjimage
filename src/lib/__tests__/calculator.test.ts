@@ -301,7 +301,7 @@ describe("Block Calculator", () => {
     test(tt.name, () => {
       const h = new Hand(tt.input);
       const c = new BlockCalculator(h);
-      let got: readonly Block[][] = [];
+      let got: readonly (readonly Block[])[] = [];
       if (tt.handler == "Seven") got = c.sevenPairs();
       else if (tt.handler == "Orphans") got = c.thirteenOrphans();
       else if (tt.handler == "Common") got = c.standardType();

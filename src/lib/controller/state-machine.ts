@@ -30,15 +30,15 @@ import { assert } from "../myassert";
 
 type ControllerContext = {
   currentWind: Wind;
-  oneShotMap: { [key in Wind]: boolean };
-  missingMap: { [key in Wind]: boolean };
+  oneShotMap: { [w in Wind]: boolean };
+  missingMap: { [w in Wind]: boolean };
   controller: Controller;
   genEventID: ReturnType<typeof incrementalIDGenerator>;
 };
 
 import { createMachine } from "xstate";
 
-const serializeBlocksOrFalse = (b: Block[] | false) => {
+const serializeBlocksOrFalse = (b: readonly Block[] | false) => {
   if (b === false) return false;
   return b.map((v) => v.serialize());
 };
@@ -49,7 +49,7 @@ const serializeBlockOrFalse = (b: Block | false) => {
 };
 
 const serializeTileAnalyses = (
-  cs: TileAnalysis[] | false
+  cs: readonly TileAnalysis[] | false
 ): SerializedTileAnalysis[] | false => {
   if (cs === false) return false;
   return cs.map((c) => {

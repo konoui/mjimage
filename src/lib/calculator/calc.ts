@@ -568,7 +568,7 @@ export class BlockCalculator {
    * あがりの形になりうる手牌の構成の配列を返す。
    * 最後のあがり牌によっては、標準形でもカンチャン、リャンメンなど複数の構成になりうるのでその全てを返す。
    */
-  calc(lastTile: Tile): readonly Block[][] {
+  calc(lastTile: Tile): readonly (readonly Block[])[] {
     return this.markedHands(
       [
         ...this.sevenPairs(),
@@ -583,7 +583,10 @@ export class BlockCalculator {
   /**
    * あがりの形になりうる手牌の構成の配列に対して、最後のあがり牌を考慮したあがりの形になりうる手牌の構成の配列を返す。
    */
-  markedHands(hands: readonly Block[][], lastTile: Tile): readonly Block[][] {
+  markedHands(
+    hands: readonly (readonly Block[])[],
+    lastTile: Tile
+  ): readonly (readonly Block[])[] {
     if (hands.length == 0) return [];
     return hands.map((hand) => this.markedHand(hand, lastTile)).flat();
   }
@@ -591,7 +594,10 @@ export class BlockCalculator {
   /**
    * あがりの形になりうる手牌の構成に対して、最後のあがり牌を考慮したあがりの形になりうる手牌の構成の配列を返す。
    */
-  markedHand(hand: readonly Block[], lastTile: Tile): readonly Block[][] {
+  markedHand(
+    hand: readonly Block[],
+    lastTile: Tile
+  ): readonly (readonly Block[])[] {
     if (hand.length == 0) return [];
     const op =
       this.hand.drawn != null || lastTile.has(OP.TSUMO) ? OP.TSUMO : OP.RON;
@@ -634,7 +640,7 @@ export class BlockCalculator {
    * 現在の手牌において、七対子のあがり形となりうる手牌の構成の配列を返す。
    * あがり牌は考慮されない。最大で要素は 1 となる。
    */
-  sevenPairs(): readonly Block[][] {
+  sevenPairs(): readonly (readonly Block[])[] {
     if (this.hand.called.length > 0) return [];
     const ret: Block[] = [];
     for (const [t, n] of forHand({ skipBack: true })) {
@@ -655,7 +661,7 @@ export class BlockCalculator {
    * 現在の手牌において、国士無双のあがり形となりうる手牌の構成の配列を返す。
    * あがり牌は考慮されない。
    */
-  thirteenOrphans(): readonly Block[][] {
+  thirteenOrphans(): readonly (readonly Block[])[] {
     const ret: Block[] = [];
     let foundPairs = false;
     for (const t of Object.values(TYPE)) {
@@ -677,7 +683,7 @@ export class BlockCalculator {
    * 現在の手牌において、九蓮宝燈のあがり形となりうる手牌の構成の配列を返す。
    * あがり牌は考慮されない。
    */
-  nineGates(): readonly Block[][] {
+  nineGates(): readonly (readonly Block[])[] {
     const cond = (t: Type, n: number, wantCount: number[]) =>
       wantCount.includes(this.hand.get(t, n));
     for (const t of Object.values(TYPE)) {
@@ -705,8 +711,8 @@ export class BlockCalculator {
    * 現在の手牌において、標準形のあがり形となりうる手牌の構成の配列を返す。
    * あがり牌は考慮されない。
    */
-  standardType(): readonly Block[][] {
-    let ret: Block[][] = [];
+  standardType(): readonly (readonly Block[])[] {
+    let ret: readonly (readonly Block[])[] = [];
     for (const [t, n] of forHand()) {
       if (this.hand.get(t, n) >= 2) {
         const toDec = new Array(2).fill(new Tile(t, n));
@@ -722,10 +728,7 @@ export class BlockCalculator {
         // 3. add two pairs to the head
         const v = this.calcAllBlockCombinations()
           .filter((arr) => arr.length == 4)
-          .map((arr) => {
-            arr.unshift(new BlockPair(tiles[0], tiles[1]));
-            return arr;
-          });
+          .map((arr) => [new BlockPair(tiles[0], tiles[1]), ...arr]);
         ret = [...ret, ...v];
         this.hand.inc(tiles);
       }
@@ -734,7 +737,7 @@ export class BlockCalculator {
     return ret;
   }
 
-  private calcAllBlockCombinations(): readonly Block[][] {
+  private calcAllBlockCombinations(): readonly (readonly Block[])[] {
     // [["123m", "123m"], ["222m", "333m"]]
     // [["123s", "123s"]]
     // result: [["123m", "123m", "123s", "123s"], ["111m", "333m", "123s", "123s"]]
@@ -758,7 +761,7 @@ export class BlockCalculator {
   }
 
   // handle back tiles as same unknown tiles, Not joker tile.
-  private handleBack(): readonly Block[][] {
+  private handleBack(): readonly (readonly Block[])[] {
     const bt = TYPE.BACK;
     const sum = this.hand.get(bt, 0);
     if (sum < 3) return [];
@@ -767,7 +770,7 @@ export class BlockCalculator {
     return b.length == 0 ? [] : [b];
   }
 
-  private handleZ(): readonly Block[][] {
+  private handleZ(): readonly (readonly Block[])[] {
     const z: Block[] = [];
     for (const [zt, n] of forHand({ filterBy: [TYPE.Z] })) {
       if (this.hand.get(zt, n) == 0) continue;
@@ -781,7 +784,7 @@ export class BlockCalculator {
   /**
    * 一つの手牌の構成において、赤牌ごとの手牌（晒したブロックを含まない）の構成を生成する。
    */
-  private addRedPattern(t: Type, hand: Block[]) {
+  private addRedPattern(t: Type, hand: readonly Block[]) {
     const nonRed = new Tile(t, 5);
     const red = new Tile(t, 5, [OP.RED]);
     const nonRedIndexes: [number, number][] = [];
@@ -807,7 +810,7 @@ export class BlockCalculator {
     if (redIndex == null) return [hand];
 
     // 5 と r5 に入れ替えたパータンを生成する
-    const newHands: Block[][] = [hand];
+    const newHands = [hand];
     for (const [bIdx, tIdx] of nonRedIndexes) {
       const newHand = [...hand];
 
@@ -833,14 +836,14 @@ export class BlockCalculator {
    * 全ての手牌の構成において、赤牌ごとの手牌（晒したブロックを含まない）の構成を生成する。
    */
   // TODO similar to markDrawn
-  private addRedPatterns(t: Type, hands: readonly Block[][]) {
+  private addRedPatterns(t: Type, hands: readonly (readonly Block[])[]) {
     if (!(this.hand.get(t, 0) > 0 && this.hand.get(t, 5) >= 2)) return hands;
     return hands.map((hand) => this.addRedPattern(t, hand)).flat();
   }
   private handleNumType(
     t: typeof TYPE.M | typeof TYPE.S | typeof TYPE.P,
     n: number = 1
-  ): readonly Block[][] {
+  ): readonly (readonly Block[])[] {
     if (n > 9) return [];
 
     if (this.hand.get(t, n) == 0) {
@@ -863,8 +866,7 @@ export class BlockCalculator {
       this.hand.inc(tiles);
       if (nested.length == 0) nested = [[]];
       for (const arr of nested) {
-        arr.unshift(new BlockRun([tiles[0], tiles[1], tiles[2]]));
-        ret.push(arr);
+        ret.push([new BlockRun([tiles[0], tiles[1], tiles[2]]), ...arr]);
       }
     }
 
@@ -876,8 +878,7 @@ export class BlockCalculator {
       for (const arr of nested) {
         // Note insert it to the head due to handling recursively, 111333m
         // first arr will have [333m]
-        arr.unshift(new BlockThree([tiles[0], tiles[1], tiles[2]]));
-        ret.push(arr);
+        ret.push([new BlockThree([tiles[0], tiles[1], tiles[2]]), ...arr]);
       }
     }
     return ret;
@@ -1104,7 +1105,7 @@ export class PointCalculator {
   /**
    * 現在の手牌の構成の配列の中から、点数が最大になるあがりを返す。
    */
-  calc(...hands: readonly Block[][]): WinResult | false {
+  calc(...hands: readonly (readonly Block[])[]): WinResult | false {
     const patterns = this.getWinningHands(hands);
     if (patterns.length === 0) return false;
 
@@ -1146,7 +1147,7 @@ export class PointCalculator {
   /**
    * 現在の手牌の構成の配列の中から、あがりになる構成の配列を返す。
    */
-  getWinningHands(hands: readonly Block[][]) {
+  getWinningHands(hands: readonly (readonly Block[])[]) {
     const ret: WinningHand[] = [];
     if (hands.length == 0) return ret;
     for (const hand of hands) {
