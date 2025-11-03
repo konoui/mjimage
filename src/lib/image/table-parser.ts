@@ -100,10 +100,10 @@ export interface DiscardsInput {
 }
 
 export interface HandsInput {
-  front: Block[];
-  right: Block[];
-  opposite: Block[];
-  left: Block[];
+  front: readonly Block[];
+  right: readonly Block[];
+  opposite: readonly Block[];
+  left: readonly Block[];
 }
 
 export interface ScoreBoardInput {
@@ -143,8 +143,6 @@ export const parseTableInput = (s: string) => {
   }
   return ret.output;
 };
-
-// ====
 
 // YAMLライクな形式をパースして構造化データに変換
 const parseStringInput = (input: string): RawTableInput => {
@@ -191,7 +189,7 @@ const extractValue = (s: string, label: string) => {
 };
 
 // 風牌セクションをパース
-const parseWindSection = (lines: string[]) => {
+const parseWindSection = (lines: readonly string[]) => {
   const hand = "hand";
   const discard = "discard";
   const score = "score";
@@ -210,7 +208,7 @@ const parseWindSection = (lines: string[]) => {
 };
 
 // ボードセクションをパース
-const parseBoardSection = (lines: string[]) => {
+const parseBoardSection = (lines: readonly string[]) => {
   const doras = "doras";
   const round = "round";
   const front = "front";

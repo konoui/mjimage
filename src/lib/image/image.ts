@@ -400,7 +400,7 @@ export interface MySVGElement {
  */
 export const createBlockHand = (
   helper: ImageHelper,
-  blocks: Block[],
+  blocks: readonly Block[],
   options: DrawOptions = defaultDrawOptions
 ): MySVGElement => {
   const elms = blocks.map((block) => createBlock(block, helper, options));
@@ -434,7 +434,7 @@ const defaultDrawOptions: DrawOptions = {
  */
 export const drawBlocks = (
   svg: Svg,
-  blocks: Block[],
+  blocks: readonly Block[],
   config: ImageHelperConfig = {},
   options: { responsive?: boolean } & DrawOptions = defaultDrawOptions
 ) => {

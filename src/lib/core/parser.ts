@@ -570,7 +570,7 @@ export class Parser {
   /**
    * パースしたブロックの配列を返す。
    */
-  parse() {
+  parse(): readonly Block[] {
     const parsed = this.tileSeparators();
     return this.makeBlocks(parsed);
   }
@@ -658,7 +658,7 @@ export class Parser {
     ];
   }
 
-  private makeBlocks(tiles: readonly (Tile | Separator)[]) {
+  private makeBlocks(tiles: readonly (Tile | Separator)[]): readonly Block[] {
     let cluster: Tile[] = [];
     const res: (
       | BlockHand

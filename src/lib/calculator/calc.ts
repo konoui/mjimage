@@ -73,7 +73,7 @@ export function* forHand(options?: { skipBack?: boolean; filterBy?: Type[] }) {
 
 export class Hand {
   protected data: HandData;
-  constructor(input: string | Block[], allowBackBlock = false) {
+  constructor(input: string | readonly Block[], allowBackBlock = false) {
     this.data = {
       [TYPE.M]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       [TYPE.P]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -86,8 +86,9 @@ export class Hand {
     };
     this.init(input, allowBackBlock);
   }
-  private init(input: string | Block[], allowBackBlock: boolean) {
-    const blocks = Array.isArray(input) ? input : new Parser(input).parse();
+  private init(input: string | readonly Block[], allowBackBlock: boolean) {
+    const blocks =
+      typeof input === "string" ? new Parser(input).parse() : input;
     for (const b of blocks) {
       if (b.isCalled()) {
         this.data.called = [...this.called, b];
@@ -101,7 +102,7 @@ export class Hand {
         this.inc(b.tiles);
         continue;
       } else if (
-        !Array.isArray(input) &&
+        typeof input === "string" &&
         input.split("").every((v) => v === TYPE.BACK)
       ) {
         this.inc(b.tiles);
@@ -962,7 +963,7 @@ export interface Yaku {
  * あがりの構成になる手牌の情報
  */
 interface WinningHand {
-  hand: Block[];
+  hand: readonly Block[];
   fu: number;
   yakus: readonly Yaku[];
   han: number;
@@ -1276,7 +1277,7 @@ export class PointCalculator {
     return (fu === 30 && han === 4) || (fu === 60 && han === 3);
   }
 
-  private isTsumoWin(hand: Block[]): boolean {
+  private isTsumoWin(hand: readonly Block[]): boolean {
     return hand.some((block) => block.tiles.some((tile) => tile.has(OP.TSUMO)));
   }
 
@@ -1319,7 +1320,7 @@ export class PointCalculator {
   }
 
   private calculateTsumoDeltas(
-    deltas: { [key in Wind]: number },
+    deltas: { [w in Wind]: number },
     base: number,
     isParent: boolean,
     myWind: Wind
@@ -1345,7 +1346,7 @@ export class PointCalculator {
   }
 
   private addStickPoints(
-    deltas: { [key in Wind]: number },
+    deltas: { [w in Wind]: number },
     myWind: Wind,
     ronWind: Wind | undefined
   ) {

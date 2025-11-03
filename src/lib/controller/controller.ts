@@ -427,7 +427,7 @@ export class Controller {
       ...ret.boardContext,
       sticks: this.placeManager.sticks,
       hiddenDoraIndicators,
-    }).calc(ret.hand);
+    }).calc([...ret.hand]);
     assert(final);
     return final;
   }
