@@ -8,7 +8,6 @@ import {
   BlockOther,
   BlockHand,
   sortCalledTiles,
-  BlockPair,
   BlockPon,
   BlockShoKan,
 } from "../core/parser";
@@ -72,6 +71,27 @@ describe("parseInput", () => {
       INPUT_SEPARATOR,
       new Tile(TYPE.BACK, 0),
       new Tile(TYPE.S, 1, [OP.HORIZONTAL]),
+    ];
+    expect(got).toStrictEqual(want);
+  });
+
+  test("implicit tsumo block", () => {
+    const p = new Parser("123s12t3p66m, 2-22m");
+    const got = p.tileSeparators();
+    const want = [
+      new Tile(TYPE.S, 1),
+      new Tile(TYPE.S, 2),
+      new Tile(TYPE.S, 3),
+      new Tile(TYPE.P, 1),
+      new Tile(TYPE.P, 2),
+      new Tile(TYPE.M, 6),
+      new Tile(TYPE.M, 6),
+      INPUT_SEPARATOR,
+      new Tile(TYPE.P, 3, [OP.TSUMO]),
+      INPUT_SEPARATOR,
+      new Tile(TYPE.M, 2),
+      new Tile(TYPE.M, 2, [OP.HORIZONTAL]),
+      new Tile(TYPE.M, 2),
     ];
     expect(got).toStrictEqual(want);
   });
