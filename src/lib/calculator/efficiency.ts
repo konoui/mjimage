@@ -1,5 +1,4 @@
 import { OP, Tile, Type } from "../core";
-import { assert } from "../myassert";
 import { Hand, ShantenCalculator, forHand } from "./calc";
 
 export interface SerializedTileAnalysis {
@@ -40,7 +39,7 @@ export class Efficiency {
       standardTypeOnly?: boolean;
     }
   ): TileAnalysis[] {
-    if (choices.length == 0) throw new Error(`choices to discard is zero`);
+    if (choices.length == 0) throw new Error(`no tiles available to discard`);
     const map = new Map<string, TileAnalysis>();
     let minShanten = Number.POSITIVE_INFINITY;
     for (const t of choices) {

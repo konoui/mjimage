@@ -29,7 +29,7 @@ const compareOperators = (i: Operator, j: Operator) => {
     OP.HORIZONTAL,
     OP.TSUMO,
     OP.RON,
-    OP.DORA,
+    OP.IMAGE_DORA,
     OP.COLOR_GRAYSCALE,
     OP.RED,
   ];
@@ -64,12 +64,8 @@ export function is5Tile(t: Tile) {
 }
 
 function isType(v: string): [Type, boolean] {
-  for (const t of Object.values(TYPE)) {
-    if (t == v) {
-      return [t, true];
-    }
-  }
-  return [TYPE.BACK, false];
+  const type = Object.values(TYPE).find((t) => t === v);
+  return type ? [type, true] : [TYPE.BACK, false];
 }
 
 export class Tile {
@@ -84,7 +80,7 @@ export class Tile {
    */
   static from(s: string) {
     const tiles = new Parser(s).tiles();
-    if (tiles.length != 1) throw new Error(`input is not a single tile ${s}`);
+    if (tiles.length != 1) throw new Error(`input must be a single tile: ${s}`);
     return tiles[0];
   }
 
@@ -181,7 +177,10 @@ export abstract class Block {
    */
   static from(tiles: string) {
     const blocks = new Parser(tiles).parse();
-    if (blocks.length != 1) throw new Error(`block must be 1: ${tiles}`);
+    if (blocks.length != 1)
+      throw new Error(
+        `expected exactly 1 block but got ${blocks.length}: ${tiles}`
+      );
     return blocks[0];
   }
 
@@ -202,7 +201,7 @@ export abstract class Block {
     )
       if (gotType != v.type)
         throw new Error(
-          `input type is ${v.type} but got is ${gotType}: ${v.tiles}`
+          `"expected type ${v.type} but got ${gotType}: ${v.tiles}`
         );
     return blockWrapper(b.tiles, v.type);
   }
@@ -281,12 +280,9 @@ export abstract class Block {
 }
 
 const toStringForSame = (tiles: readonly Tile[]) => {
-  let ret = "";
-  for (const v of tiles) {
-    if (v.t == TYPE.BACK) return tiles.join("");
-    ret += v.toString().slice(0, -1);
-  }
-  return `${ret}${tiles[0].t}`;
+  if (tiles[0].t === TYPE.BACK) return tiles.join("");
+  const numbers = tiles.map((v) => v.toString().slice(0, -1)).join("");
+  return `${numbers}${tiles[0].t}`;
 };
 
 const toStringForHand = (tiles: readonly Tile[]) => {
@@ -621,10 +617,7 @@ export class Parser {
           continue;
         }
         const [n, isNum] = isNumber(char);
-        if (!isNum)
-          throw new Error(
-            `encounter unexpected number. n: ${n}, current: ${char}, input: ${l.input}`
-          );
+        if (!isNum) throw new Error(`expected a number but got: ${char}`);
         // dummy type
         cluster.push({ n });
       }
@@ -632,7 +625,7 @@ export class Parser {
     }
 
     if (cluster.length > 0)
-      throw new Error(`remaining values ${cluster.toString()}`);
+      throw new Error(`unexpected remaining values: ${cluster.toString()}`);
     return res;
   }
 
@@ -676,13 +669,13 @@ export class Parser {
   private validate(input: string) {
     if (input.length == 0) return;
     if (input.length > this.maxInputLength)
-      throw new Error(`exceeded maximum input length(${input.length})`);
+      throw new Error(`exceeded maximum input length (${input.length})`);
     const lastChar = input.charAt(input.length - 1);
     // Note: dummy tile for validation
     const [_, isKind] = parseTypeOrAlias(lastChar, [new Tile(TYPE.BACK, 1)]);
     if (!isKind)
       throw new Error(
-        `last character: ${lastChar} is not type value: ${input}`
+        `last character must be a tile type: ${lastChar} in ${input}`
       );
   }
 }
@@ -690,7 +683,7 @@ export class Parser {
 function detectBlockType(tiles: readonly Tile[]): BlockType {
   if (tiles.length === 0) return BLOCK.UNKNOWN;
   if (tiles.length === 1) {
-    if (tiles[0].has(OP.DORA)) return BLOCK.IMAGE_DORA;
+    if (tiles[0].has(OP.IMAGE_DORA)) return BLOCK.IMAGE_DORA;
     if (tiles[0].has(OP.TSUMO)) return BLOCK.TSUMO;
     return BLOCK.HAND; // 単騎
   }
@@ -698,7 +691,7 @@ function detectBlockType(tiles: readonly Tile[]): BlockType {
   const isAllSame = tiles.every((v) => v.equals(tiles[0]));
   const numHorizontals = tiles.filter((v) => v.has(OP.HORIZONTAL)).length;
   const numTsumoDora = tiles.filter(
-    (v) => v.has(OP.TSUMO) || v.has(OP.DORA)
+    (v) => v.has(OP.TSUMO) || v.has(OP.IMAGE_DORA)
   ).length;
   const numBacks = tiles.filter((v) => v.t == TYPE.BACK).length;
 
@@ -782,9 +775,9 @@ function isOperator(l: Lexer): [TileBase, boolean] {
       for (const _ of found) l.readChar();
       const tile = new Tile(TYPE.BACK, n, found);
       if (tile.has(OP.RED) && tile.n != 5)
-        throw new Error(`found ${OP.RED} but number is not 5: ${n}`);
-      if (tile.has(OP.DORA) && tile.has(OP.TSUMO))
-        throw new Error(`unable to specify both ${OP.DORA} and ${OP.TSUMO}`);
+        throw new Error(`red dora operator can only be used with 5, got: ${n}`);
+      if (tile.has(OP.IMAGE_DORA) && tile.has(OP.TSUMO))
+        throw new Error(`cannot specify both dora and tsumo operators`);
       return [tile, true];
     }
   }

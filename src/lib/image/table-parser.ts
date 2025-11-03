@@ -175,11 +175,11 @@ const parseStringInput = (input: string): RawTableInput => {
     if (label == board) {
       const [boardInput, count] = parseBoardSection([...lines]);
       result.board = boardInput;
-      for (let i = 0; i < count; i++) lines.shift();
+      lines.splice(0, count);
     } else {
       const [windInput, count] = parseWindSection([...lines]);
       result[label as Wind] = windInput;
-      for (let i = 0; i < count; i++) lines.shift();
+      lines.splice(0, count);
     }
   }
   return result;

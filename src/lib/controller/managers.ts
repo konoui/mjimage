@@ -23,7 +23,7 @@ export class ScoreManager {
   reach(id: string) {
     this.m[id] -= this.reachValue;
   }
-  update(result: { [w in Wind]: number }, windMap: { [key: string]: Wind }) {
+  update(result: { [w in Wind]: number }, windMap: { [id: string]: Wind }) {
     for (let id in windMap) {
       const w = windMap[id];
       const point = result[w];
@@ -107,7 +107,7 @@ export class Counter {
     [TYPE.Z]: TupleOfSize<number, 8>;
   };
   safeTileMap = createWindMap({} as { [name: string]: boolean }, true);
-  constructor(public disable = false) {
+  constructor(public disabled = false) {
     this.c = this.initial();
   }
   get(t: Tile) {
@@ -115,7 +115,7 @@ export class Counter {
     return this.c[t.t][t.n];
   }
   dec(...tiles: Tile[]) {
-    if (this.disable) return;
+    if (this.disabled) return;
     for (let t of tiles) {
       if (t.t == TYPE.BACK) continue;
       if (this.get(t) <= 0)
@@ -128,7 +128,7 @@ export class Counter {
     }
   }
   addTileToSafeMap(t: Tile, targetUser: Wind) {
-    if (this.disable) return;
+    if (this.disabled) return;
     this.safeTileMap[targetUser][this.key(t.t, t.n)] = true;
   }
   isSafeTile(k: Type, n: number, targetUser: Wind) {

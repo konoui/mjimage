@@ -951,7 +951,7 @@ export class Observer extends BaseActor {
   applied: { [id: string]: boolean } = {};
   constructor(eventHandler: EventHandler) {
     super("observer", eventHandler);
-    this.counter.disable = true;
+    this.counter.disabled = true;
     this.hands = createWindMap(new ActorHand("_____________"));
   }
   setHands(e: DistributeEvent): void {

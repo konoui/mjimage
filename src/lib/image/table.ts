@@ -3,18 +3,16 @@ import {
   ImageHelper,
   createBlockHand,
   ImageHelperConfig,
+  MySVGElement,
 } from "../image/image";
 import { Svg, Text, G, Rect, Mark } from "../svgjs/svg";
 import { FontContext } from "../measure-text/";
 import { parse, ScoreBoardInput, DiscardsInput, HandsInput } from "./";
 
 const chunkTilesForDisplay = (input: readonly Tile[], chunkSize = 6) => {
-  const result: Tile[][] = [];
-  for (let i = 0; i < input.length; i += chunkSize) {
-    const chunk = input.slice(i, i + chunkSize);
-    result.push(chunk);
-  }
-  return result;
+  return Array.from({ length: Math.ceil(input.length / chunkSize) }, (_, i) =>
+    input.slice(i * chunkSize, (i + 1) * chunkSize)
+  );
 };
 
 const simpleRotate = (
@@ -49,7 +47,10 @@ const simpleRotate = (
   return new G().add(g);
 };
 
-const createDiscardArea = (tiles: readonly Tile[], helper: ImageHelper) => {
+const createDiscardArea = (
+  tiles: readonly Tile[],
+  helper: ImageHelper
+): MySVGElement => {
   const g = new G();
   const chunks = chunkTilesForDisplay(tiles);
 
@@ -73,7 +74,7 @@ const createStickAndDora = (
   helper: ImageHelper,
   fontCtx: FontContext,
   scoreBoard: ScoreBoardInput
-) => {
+): MySVGElement => {
   const font = fontCtx.font;
   const textWidth = fontCtx.textWidth;
   const textHeight = fontCtx.textHeight;
@@ -147,7 +148,7 @@ const createHands = (
   helper: ImageHelper,
   hands: HandsInput,
   minWidth: number = 0
-) => {
+): MySVGElement => {
   const fe = createBlockHand(helper, hands.front);
   const re = createBlockHand(helper, hands.right);
   const oe = createBlockHand(helper, hands.opposite);
@@ -197,7 +198,7 @@ const createScoreBoard = (
   helper: ImageHelper,
   fontCtx: FontContext,
   scoreBoard: ScoreBoardInput
-) => {
+): MySVGElement => {
   const sizeWidth = helper.tileWidth * 5 + helper.tileHeight * 1; // 11111-1
 
   const font = fontCtx.font;
@@ -210,7 +211,11 @@ const createScoreBoard = (
     sizeWidth / 2 - boardRect.height / 2
   );
 
-  const createScore = (place: string, score: number, attr: any) => {
+  const createScore = (
+    place: string,
+    score: number,
+    attr: any
+  ): MySVGElement => {
     // http://defghi1977.html.xdomain.jp/tech/svgMemo/svgMemo_08.htm
     const s = `${place} ${score}`;
     const t = new Text().plain(s).font(font).attr(attr);
@@ -280,7 +285,10 @@ const createScoreBoard = (
   return { e: g, width: sizeWidth, height: sizeWidth };
 };
 
-const createDiscards = (helper: ImageHelper, discards: DiscardsInput) => {
+const createDiscards = (
+  helper: ImageHelper,
+  discards: DiscardsInput
+): MySVGElement => {
   const fe = createDiscardArea(discards.front, helper);
   const re = createDiscardArea(discards.right, helper);
   const oe = createDiscardArea(discards.opposite, helper);
@@ -339,7 +347,7 @@ export const createTable = (
   handsProps: HandsInput,
   discardsProps: DiscardsInput,
   scoreBoardProps: ScoreBoardInput
-) => {
+): MySVGElement => {
   const g = new G();
   const discards = createDiscards(helper, discardsProps);
   const hands = createHands(helper, handsProps, discards.height);

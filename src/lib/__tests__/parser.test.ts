@@ -47,7 +47,7 @@ describe("parse", () => {
     const p = new Parser("1");
     expect(() => {
       p.parse();
-    }).toThrow(/last character.*? is not type value/);
+    }).toThrow(/last character must be a tile type:/);
   });
 });
 

@@ -12,38 +12,127 @@ export const STICK_CONTEXT = {
   HEIGHT: 27.5,
 } as const;
 export const TABLE_CONTEXT = { BASE: 40 } as const;
+/**
+ * ブロックの塊を表す区切り文字を表す。
+ */
 export const INPUT_SEPARATOR = ",";
 export const TYPE = {
+  /**
+   * 萬子
+   */
   M: "m",
+  /**
+   * 筒子
+   */
   P: "p",
+  /**
+   * 索子
+   */
   S: "s",
+  /**
+   * 字牌
+   */
   Z: "z",
+  /**
+   * 裏牌
+   */
   BACK: "_",
 } as const;
 export const OP = {
+  /**
+   * ツモ牌を表す
+   */
   TSUMO: "t",
+  /**
+   * ロン牌を表す
+   */
   RON: "v",
-  DORA: "d",
+  /**
+   * ドラ牌を表す。
+   * SVG の生成でのみ使される。
+   */
+  IMAGE_DORA: "d",
+  /**
+   * 横にする牌を表す。
+   */
   HORIZONTAL: "-",
+  /**
+   * 赤牌を表す。
+   */
   RED: "r",
+  /**
+   * ツモ切りを表す。
+   */
   COLOR_GRAYSCALE: "^",
 } as const;
 
 export const BLOCK = {
+  /**
+   * ポンを表す。
+   */
   PON: "pon",
+  /**
+   * チーを表す。
+   */
   CHI: "chi",
+  /**
+   * 小明槓を表す。
+   */
   SHO_KAN: "shokan",
+  /**
+   * 大明槓を表す。
+   */
   DAI_KAN: "daikan",
+  /**
+   * 暗槓を表す。
+   */
   AN_KAN: "ankan",
+  /**
+   * ツモブロックを表す
+   */
   TSUMO: "tsumo",
   //  RON: "ron",
+  /**
+   * 手牌のヘッドを表す。
+   * 計算時に使用され、SVG 生成では使用されない。
+   */
   PAIR: "pair",
+  /**
+   * 手牌の孤立牌を表す。
+   * 計算時に使用され、SVG 生成では使用されない。
+   * 計算時では国士無双で使用される。
+   */
   ISOLATED: "isolated",
+  /**
+   * 手牌の暗刻を表す。
+   * 計算時に使用され、SVG 生成では使用されない。
+   */
   THREE: "three",
+  /**
+   * 手牌の順子を表す。
+   * 計算時に使用され、SVG 生成では使用されない。
+   */
   RUN: "run",
+  /**
+   * 手牌の手牌全体を表す。
+   * 計算時では、面前の手牌だけを表し、九蓮宝燈で使用される。
+   * SVG 生成では面前関係なく使用される。
+   */
   HAND: "hand",
+  /**
+   * SVG 生成時のドラ牌を表す。
+   * SVG の生成でのみ使される。
+   */
   IMAGE_DORA: "dora",
+  /**
+   * SVG 生成時の捨て牌を表す。
+   * SVG の生成でのみ使される。
+   */
   IMAGE_DISCARD: "simple-discard",
+  /**
+   * 不明を表す。
+   * 現状使用されない。
+   */
   UNKNOWN: "unknown",
 } as const;
 
@@ -54,6 +143,10 @@ export const WIND = {
   N: "4z",
 } as const;
 
+/**
+ * ラウンドの内部表現
+ * e.g.) ROUND.E > 東1局1本場
+ */
 export const ROUND = {
   E1: "1z1",
   E2: "1z2",

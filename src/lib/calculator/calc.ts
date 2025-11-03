@@ -135,9 +135,7 @@ export class Hand {
       );
       assert(
         idx >= 0,
-        `drawn tile exists: ${this.drawn} but no tile in hand: ${tiles.join(
-          ""
-        )}`
+        `drawn tile ${this.drawn} not found in hand: ${tiles.join("")}`
       );
       tiles[idx] = tiles[idx].clone({ add: OP.TSUMO });
     }
@@ -188,9 +186,10 @@ export class Hand {
    * 手牌において、指定した牌の種類の合計枚数を返す
    */
   sum(type: Type) {
-    let sum = 0;
-    for (const [t, n] of forHand({ filterBy: [type] })) sum += this.get(t, n);
-    return sum;
+    return Array.from(forHand({ filterBy: [type] })).reduce(
+      (sum, [t, n]) => sum + this.get(t, n),
+      0
+    );
   }
   /**
    * 手牌において、牌の合計枚数を返す。
@@ -212,7 +211,7 @@ export class Hand {
         this.dec(backup);
         const msg = isInvalidCount
           ? `tile ${t} exists more than 4 times`
-          : `red tile ${t} appears more than 1 times`;
+          : `red tile ${t} appears more than once`;
         throw new Error(`invalid hand: ${msg} in hand: ${this.toString()}`);
       }
 
@@ -237,8 +236,8 @@ export class Hand {
       if (isInvalidCount || isInvalidRed) {
         this.inc(backup);
         const msg = isInvalidCount
-          ? `tile ${t} is not`
-          : `red tile ${t} is not`;
+          ? `tile ${t} does not exist`
+          : `red tile ${t} does not exist`;
         throw new Error(`invalid hand: ${msg} in hand: ${this.toString()}`);
       }
 
@@ -281,8 +280,8 @@ export class Hand {
    * リーチ宣言をする
    */
   reach() {
-    if (!this.menzen) throw new Error("cannot reach");
-    if (this.data.reached) throw new Error("already reached");
+    if (!this.menzen) throw new Error("cannot declare reach due to called");
+    if (this.data.reached) throw new Error("already declared reach");
     this.data.reached = true;
   }
   /**
@@ -315,7 +314,7 @@ export class Hand {
       );
       if (idx == -1)
         throw new Error(
-          `unable to find pon block ${b.tiles[0]} for shokan: ${b}`
+          `cannot find pon block ${b.tiles[0]} to call shokan: ${b}`
         );
       let t = b.tiles[0];
       // 適当に選んだ牌が red であればエラーが発生しないように red を削除して dec する
@@ -331,7 +330,7 @@ export class Hand {
       return;
     }
 
-    throw new Error(`unexpected input ${b}`);
+    throw new Error(`unexpected block type ${b}`);
   }
   clone(): Hand {
     const c = new Hand(this.toString());
@@ -613,7 +612,7 @@ export class BlockCalculator {
 
     if (indexes.length == 0)
       throw new Error(
-        `found no tile ${lastTile.toString()} in hand: ${hand.toString()}`
+        `tile ${lastTile.toString()} not found in hand: ${hand.toString()}`
       );
 
     const newHands: Block[][] = [];
@@ -1225,18 +1224,11 @@ export class PointCalculator {
   }
 
   private selectBestHand(winningHands: readonly WinningHand[]) {
-    let bestIdx = 0;
-    let maxScore = [0, 0]; // [han, fu]
-
-    for (let i = 0; i < winningHands.length; i++) {
-      const { han, fu } = winningHands[i];
-      if (han > maxScore[0] || (han === maxScore[0] && fu > maxScore[1])) {
-        bestIdx = i;
-        maxScore = [han, fu];
-      }
-    }
-
-    return winningHands[bestIdx];
+    return winningHands.reduce((best, current) => {
+      const { han, fu } = current;
+      const { han: bestHan, fu: bestFu } = best;
+      return han > bestHan || (han === bestHan && fu > bestFu) ? current : best;
+    });
   }
 
   private calculateScore(bestHand: WinningHand) {
@@ -1378,7 +1370,7 @@ export class PointCalculator {
     return Math.min(fu * 2 ** (han + 2), SCORING.MANGAN);
   }
 
-  private minus() {
+  private getCalledPenalty() {
     return this.hand.menzen ? 0 : 1;
   }
 
@@ -1389,12 +1381,12 @@ export class PointCalculator {
   }
   dB1(h: readonly Block[]): Yaku[] {
     if (this.hand.drawn == null) [];
-    if (this.minus() != 0) return [];
+    if (this.getCalledPenalty() != 0) return [];
     const cond = h.some((b) => b.tiles.some((t) => t.has(OP.TSUMO)));
     return cond ? [{ name: "門前清自摸和", han: 1 }] : [];
   }
   dC1(h: readonly Block[]): Yaku[] {
-    if (this.minus() != 0) return [];
+    if (this.getCalledPenalty() != 0) return [];
     const name = "平和";
     const fu = this.calcFu(h);
     if (fu == 20) return [{ name: name, han: 1 }];
@@ -1410,7 +1402,7 @@ export class PointCalculator {
     return cond ? [] : [{ name: "断么九", han: 1 }];
   }
   dE1(h: readonly Block[]): Yaku[] {
-    if (this.minus() != 0) return [];
+    if (this.getCalledPenalty() != 0) return [];
 
     const count = countSameBlocks(h);
     return count == 1 ? [{ name: "一盃口", han: 1 }] : [];
@@ -1446,16 +1438,17 @@ export class PointCalculator {
     return this.cfg.finalDiscardWin ? [{ name: "河底撈魚", han: 1 }] : [];
   }
   dX1(h: readonly Block[]): Yaku[] {
-    let dcount = 0;
-    let bcount = 0;
-    let rcount = 0;
-    for (const b of h) {
-      for (const t of b.tiles) {
-        for (const d of this.cfg.doras) if (t.equals(d)) dcount++;
-        for (const d of this.cfg.hiddenDoras) if (t.equals(d)) bcount++;
-        if (t.has(OP.RED)) rcount++;
-      }
-    }
+    const allTiles = h.flatMap((b) => b.tiles);
+    const dcount = allTiles.reduce(
+      (count, t) => count + this.cfg.doras.filter((d) => t.equals(d)).length,
+      0
+    );
+    const bcount = allTiles.reduce(
+      (count, t) =>
+        count + this.cfg.hiddenDoras.filter((d) => t.equals(d)).length,
+      0
+    );
+    const rcount = allTiles.filter((t) => t.has(OP.RED)).length;
 
     const ret: Yaku[] = [];
     if (dcount > 0) ret.push({ name: "ドラ", han: dcount });
@@ -1485,7 +1478,8 @@ export class PointCalculator {
         const newTile = new Tile(excludedypes[1], tile.n);
         return check(b) && newTile.equals(minTile(b));
       });
-      if (cond1 && cond2) return [{ name: "三色同順", han: 2 - this.minus() }];
+      if (cond1 && cond2)
+        return [{ name: "三色同順", han: 2 - this.getCalledPenalty() }];
     }
     return [];
   }
@@ -1582,7 +1576,9 @@ export class PointCalculator {
       const values = block.tiles[0].t == TYPE.Z ? NZ : N19;
       return block.tiles.some((t) => values.includes(t.n));
     });
-    return cond ? [{ name: "混全帯么九", han: 2 - this.minus() }] : [];
+    return cond
+      ? [{ name: "混全帯么九", han: 2 - this.getCalledPenalty() }]
+      : [];
   }
   dJ2(h: readonly Block[]): Yaku[] {
     const m = {
@@ -1604,7 +1600,7 @@ export class PointCalculator {
 
     for (const arr of Object.values(m)) {
       if (arr[0] > 0 && arr[1] > 0 && arr[2] > 0)
-        return [{ name: "一気通貫", han: 2 - this.minus() }];
+        return [{ name: "一気通貫", han: 2 - this.getCalledPenalty() }];
     }
     return [];
   }
@@ -1614,7 +1610,7 @@ export class PointCalculator {
     if (cond) return [];
     for (const t of Object.values(TYPE)) {
       const ok = h.every((b) => b.tiles[0].t == TYPE.Z || b.tiles[0].t == t);
-      if (ok) return [{ name: "混一色", han: 3 - this.minus() }];
+      if (ok) return [{ name: "混一色", han: 3 - this.getCalledPenalty() }];
     }
     return [];
   }
@@ -1627,10 +1623,12 @@ export class PointCalculator {
     const cond = h.every((b) => {
       return b.tiles.some((t) => N19.includes(t.n));
     });
-    return cond ? [{ name: "純全帯么九色", han: 3 - this.minus() }] : [];
+    return cond
+      ? [{ name: "純全帯么九色", han: 3 - this.getCalledPenalty() }]
+      : [];
   }
   dC3(h: readonly Block[]): Yaku[] {
-    if (this.minus() != 0) return [];
+    if (this.getCalledPenalty() != 0) return [];
 
     const count = countSameBlocks(h);
     return count == 2 ? [{ name: "ニ盃口", han: 3 }] : [];
@@ -1640,7 +1638,7 @@ export class PointCalculator {
     for (const t of Object.values(TYPE)) {
       if (t == TYPE.Z) continue;
       const ok = h.every((v) => v.tiles[0].t == t);
-      if (ok) return [{ name: "清一色", han: 6 - this.minus() }];
+      if (ok) return [{ name: "清一色", han: 6 - this.getCalledPenalty() }];
     }
     return [];
   }
@@ -1768,7 +1766,7 @@ export class PointCalculator {
     const lastBlock = h.find((b) =>
       b.tiles.some((t) => t.has(OP.TSUMO) || t.has(OP.RON))
     )!;
-    const isCalled = this.minus() == 1;
+    const isCalled = this.getCalledPenalty() == 1;
     const isTsumo = lastBlock.tiles.some((t) => t.has(OP.TSUMO));
 
     // 刻子
@@ -1840,21 +1838,15 @@ const buildBlockKey = (b: Block) => {
 };
 
 const countSameBlocks = (h: readonly Block[]) => {
-  const m: { [key: string]: number } = {};
-  for (const b of h) {
-    if (!(b instanceof BlockRun)) continue;
-    // instead of b.toString() to ignore operators
-    const key = buildBlockKey(b);
-    if (m[key] == null) m[key] = 1;
-    else m[key]++;
-  }
+  const m = h
+    .filter((b) => b instanceof BlockRun)
+    .reduce((acc, b) => {
+      const key = buildBlockKey(b);
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {} as { [key: string]: number });
 
-  let count = 0;
-  for (const key in m) {
-    const v = m[key];
-    if (v >= 2) count++;
-  }
-  return count;
+  return Object.values(m).filter((v) => v >= 2).length;
 };
 
 const minTile = (b: Block) => {

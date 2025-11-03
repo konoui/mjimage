@@ -11,7 +11,6 @@ import {
 } from "../core/parser";
 import { Svg, G, Image, Text, Use, Symbol } from "../svgjs/svg";
 import { FONT_FAMILY, TILE_CONTEXT, TYPE, OP, BLOCK } from "../core";
-import { assert } from "../myassert";
 
 export interface ImageHelperConfig {
   scale?: number;
@@ -75,7 +74,7 @@ const tileImageSize = (
   const size = tile.has(OP.HORIZONTAL)
     ? { width: h, height: w, baseWidth: w, baseHeight: h }
     : { width: w, height: h, w, baseWidth: w, baseHeight: h };
-  if (tile.has(OP.TSUMO) || tile.has(OP.DORA))
+  if (tile.has(OP.TSUMO) || tile.has(OP.IMAGE_DORA))
     size.width += w * TILE_CONTEXT.TEXT_SCALE; // note not contains text height
   return size;
 };
@@ -227,10 +226,11 @@ export class ImageHelper extends BaseHelper {
     let pos = 0;
     const g = new G();
 
-    let lastIdx = firstIdx;
     // horizontal が 2 つあることは BlockShokan が保証する
-    for (let i = 0; i < block.tiles.length; i++)
-      if (block.tiles[i].has(OP.HORIZONTAL)) lastIdx = i;
+    const lastIdx = block.tiles.reduce(
+      (last, tile, i) => (tile.has(OP.HORIZONTAL) ? i : last),
+      firstIdx
+    );
 
     for (let i = 0; i < block.tiles.length; i++) {
       const size = tileImageSize(block.tiles[i], this.scale);
@@ -333,7 +333,11 @@ export class ImageHelper extends BaseHelper {
 /**
  * ブロックのタイプに応じて SVG の要素を作成する。
  */
-function createBlock(b: Block, h: ImageHelper, options: DrawOptions) {
+function createBlock(
+  b: Block,
+  h: ImageHelper,
+  options: DrawOptions
+): MySVGElement {
   const { enableDoraText, enableTsumoText } = options;
   let size = blockImageSize(b, h.scale);
   let g: G;
@@ -352,7 +356,7 @@ function createBlock(b: Block, h: ImageHelper, options: DrawOptions) {
         // Operator を削除したサイズを計算する
         const mBlock =
           enableDoraText == false
-            ? new BlockHand([b.tiles[0].clone({ remove: OP.DORA })])
+            ? new BlockHand([b.tiles[0].clone({ remove: OP.IMAGE_DORA })])
             : b;
         size = blockImageSize(mBlock, h.scale);
         g = h.createBlockDora(mBlock, enableDoraText);
@@ -370,7 +374,7 @@ function createBlock(b: Block, h: ImageHelper, options: DrawOptions) {
       default:
         // unknown case
         // unable to draw tsumo/dora
-        if (b.tiles.some((t) => t.has(OP.TSUMO) || t.has(OP.DORA)))
+        if (b.tiles.some((t) => t.has(OP.TSUMO) || t.has(OP.IMAGE_DORA)))
           throw new Error(
             `found an unknown block with operator tiles. block: ${b}, type: ${b.type}`
           );
@@ -384,7 +388,7 @@ function createBlock(b: Block, h: ImageHelper, options: DrawOptions) {
   return { ...size, e: g };
 }
 
-interface MySVGElement {
+export interface MySVGElement {
   e: G;
   width: number;
   height: number;
@@ -398,16 +402,10 @@ export const createBlockHand = (
   helper: ImageHelper,
   blocks: Block[],
   options: DrawOptions = defaultDrawOptions
-) => {
-  let maxHeight = 0;
-  let sumWidth = 0;
-  const elms: MySVGElement[] = [];
-  for (const block of blocks) {
-    const elm = createBlock(block, helper, options);
-    sumWidth += elm.width;
-    maxHeight = elm.height > maxHeight ? elm.height : maxHeight;
-    elms.push(elm);
-  }
+): MySVGElement => {
+  const elms = blocks.map((block) => createBlock(block, helper, options));
+  const sumWidth = elms.reduce((sum, elm) => sum + elm.width, 0);
+  const maxHeight = elms.reduce((max, elm) => Math.max(max, elm.height), 0);
 
   const viewBoxHeight = maxHeight;
   const viewBoxWidth = sumWidth + (blocks.length - 1) * helper.blockMargin;
@@ -449,16 +447,12 @@ export const drawBlocks = (
 
 const getValidIDs = () => {
   const values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-  const ids: string[] = [];
-  for (const t of Object.values(TYPE)) {
-    if (t == TYPE.BACK) {
-      ids.push(BaseHelper.buildID(new Tile(t, 0)));
-      continue;
+  return Object.values(TYPE).flatMap((t) => {
+    if (t === TYPE.BACK) {
+      return [BaseHelper.buildID(new Tile(t, 0))];
     }
-
-    ids.push(...values.map((v) => BaseHelper.buildID(new Tile(t, v))).flat());
-  }
-  return ids;
+    return values.map((v) => BaseHelper.buildID(new Tile(t, v)));
+  });
 };
 
 const findUsedIDs = (draw: Svg) => {
