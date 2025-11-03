@@ -395,7 +395,7 @@ export interface MySVGElement {
 }
 
 /**
- * 晒した牌やツモ・ドラを含む手牌など様々なブロックを SVG 要素を作成する。
+ * 晒した牌やツモ・ドラを含む手牌など様々なブロックから SVG 要素を作成する。
  * 一般的には、晒した牌を含む手牌に使用する。
  */
 export const createBlockHand = (
