@@ -13,17 +13,20 @@ import { Tile } from "../core/parser";
 import { nextWind, nextRound, Type } from "../core";
 export class ScoreManager {
   private reachValue = 1000;
-  private m: { [key: string]: number };
-  constructor(initial: { [key: string]: number }) {
+  private m: { [id: string]: number };
+  constructor(initial: { readonly [id: string]: number }) {
     this.m = structuredClone(initial);
   }
-  get summary() {
-    return structuredClone(this.m);
+  get summary(): { readonly [id: string]: number } {
+    return this.m;
   }
   reach(id: string) {
     this.m[id] -= this.reachValue;
   }
-  update(result: { [w in Wind]: number }, windMap: { [id: string]: Wind }) {
+  update(
+    result: { readonly [w in Wind]: number },
+    windMap: { readonly [id: string]: Wind }
+  ) {
     for (let id in windMap) {
       const w = windMap[id];
       const point = result[w];
@@ -38,7 +41,7 @@ export class PlaceManager {
   round: Round;
   sticks: { reach: number; dead: number };
   constructor(
-    initial: { [key: string]: Wind },
+    initial: { readonly [key: string]: Wind },
     params?: { round: Round; sticks: { reach: number; dead: number } }
   ) {
     this.round = params?.round ?? ROUND.E1;
@@ -81,8 +84,8 @@ export class PlaceManager {
   playerID(w: Wind) {
     return this.windToPlayer[w];
   }
-  get playerMap() {
-    return structuredClone(this.playerToWind);
+  get playerMap(): { readonly [id: string]: Wind } {
+    return this.playerToWind;
   }
 }
 
@@ -114,7 +117,7 @@ export class Counter {
     if (t.t == TYPE.BACK) return 0;
     return this.c[t.t][t.n];
   }
-  dec(...tiles: Tile[]) {
+  dec(...tiles: readonly Tile[]) {
     if (this.disabled) return;
     for (let t of tiles) {
       if (t.t == TYPE.BACK) continue;

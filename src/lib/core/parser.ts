@@ -1,6 +1,6 @@
 import { Lexer } from "./lexer";
 import { BLOCK, OP, TYPE, INPUT_SEPARATOR, Type, Operator } from "./";
-
+import { assert } from "./../myassert";
 type Separator = typeof INPUT_SEPARATOR;
 
 /**
@@ -176,7 +176,11 @@ export abstract class Block {
    * 文字列からブロックを生成する。
    */
   static from(tiles: string) {
-    const blocks = new Parser(tiles).parse();
+    // Note controller pass tiles with tsumo op to deserialize
+    // consider controller implementation to remove tsumo op before calling this
+    const blocks = new Parser(tiles, {
+      enableImplicitTsumoBlock: false,
+    }).parse();
     if (blocks.length != 1)
       throw new Error(
         `expected exactly 1 block but got ${blocks.length}: ${tiles}`
@@ -554,7 +558,7 @@ type TileBase = { n: number; ops?: readonly Operator[] };
 
 /**
  * 文字列をパースし、牌やブロックを返すクラス
- * @param {boolean} enableImplicitTsumoBlock 手牌の中にツモオペレータがある場合、その牌をツモブロックとして扱う。
+ * @param {boolean} options.enableImplicitTsumoBlock 手牌の中にツモオペレータがある場合、その牌をツモブロックとして扱う。
  * 手牌とは最初の区切り文字が現れるまでの牌の文字列を指す（区切り文字を使用したツモブロックが存在しないことが条件）。
  * ツモブロックは、手牌の次のブロックとなる（晒した牌の前となる）。
  */
@@ -562,7 +566,9 @@ export class Parser {
   readonly maxInputLength = 600;
   constructor(
     readonly input: string,
-    readonly enableImplicitTsumoBlock = true
+    readonly options: { enableImplicitTsumoBlock?: boolean } = {
+      enableImplicitTsumoBlock: true,
+    }
   ) {
     this.input = input.replace(/\s/g, "");
   }
@@ -632,7 +638,7 @@ export class Parser {
 
     if (cluster.length > 0)
       throw new Error(`unexpected remaining values: ${cluster.toString()}`);
-    return this.enableImplicitTsumoBlock ? this.reconstruct(res) : res;
+    return this.options.enableImplicitTsumoBlock ? this.reconstruct(res) : res;
   }
 
   private reconstruct(res: readonly (Tile | Separator)[]) {

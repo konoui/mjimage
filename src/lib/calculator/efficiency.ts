@@ -33,12 +33,12 @@ export class Efficiency {
    */
   static calcEffectiveTiles(
     hand: Hand,
-    choices: Tile[],
+    choices: readonly Tile[],
     options?: {
       arrangeRed?: boolean;
       standardTypeOnly?: boolean;
     }
-  ): TileAnalysis[] {
+  ): readonly TileAnalysis[] {
     if (choices.length == 0) throw new Error(`no tiles available to discard`);
     const map = new Map<string, TileAnalysis>();
     let minShanten = Number.POSITIVE_INFINITY;
@@ -81,7 +81,7 @@ export class Efficiency {
     hand: Hand,
     options?: {
       standardTypeOnly?: boolean;
-      typeFilter?: Type[];
+      typeFilter?: readonly Type[];
     }
   ) {
     let r = Number.POSITIVE_INFINITY;

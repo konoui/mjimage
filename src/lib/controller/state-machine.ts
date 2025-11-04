@@ -50,7 +50,7 @@ const serializeBlockOrFalse = (b: Block | false) => {
 
 const serializeTileAnalyses = (
   cs: readonly TileAnalysis[] | false
-): SerializedTileAnalysis[] | false => {
+): readonly SerializedTileAnalysis[] | false => {
   if (cs === false) return false;
   return cs.map((c) => {
     return {

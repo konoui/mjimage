@@ -56,7 +56,10 @@ export interface HandData {
 /**
  * 全ての牌を順番に返すジェネレーター
  */
-export function* forHand(options?: { skipBack?: boolean; filterBy?: Type[] }) {
+export function* forHand(options?: {
+  skipBack?: boolean;
+  filterBy?: readonly Type[];
+}) {
   const types =
     options?.filterBy && options.filterBy.length > 0
       ? options?.filterBy

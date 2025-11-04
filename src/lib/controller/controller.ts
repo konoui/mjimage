@@ -89,7 +89,7 @@ export class Controller {
   debugMode: boolean;
 
   constructor(
-    players: PlayerSession[],
+    players: readonly PlayerSession[],
     params?: { debug?: boolean; shuffle?: boolean }
   ) {
     this.debugMode = params?.debug ?? false;
@@ -170,7 +170,7 @@ export class Controller {
     this.mailBox[event.id].push(event);
   }
   // TODO event instead of eventID to validate choice here
-  pollReplies(eventID: string, wind: Wind[]) {
+  pollReplies(eventID: string, wind: readonly Wind[]) {
     const events = this.mailBox[eventID];
     if (events == null) {
       throw new Error(
@@ -475,7 +475,7 @@ export class Controller {
     }
     return ret;
   }
-  doPon(w: Wind, discardedBy: Wind, t?: Tile): BlockPon[] | false {
+  doPon(w: Wind, discardedBy: Wind, t?: Tile): readonly BlockPon[] | false {
     if (t == null) return false;
     if (w == discardedBy) return false;
     const hand = this.hand(w);
@@ -522,7 +522,7 @@ export class Controller {
 
     return blocks;
   }
-  doChi(w: Wind, discardedBy: Wind, t?: Tile): BlockChi[] | false {
+  doChi(w: Wind, discardedBy: Wind, t?: Tile): readonly BlockChi[] | false {
     if (t == null) return false;
     if (!t.isNum()) return false;
     if (nextWind(discardedBy) != w) return false;
@@ -604,7 +604,7 @@ export class Controller {
     if (reds.length > 0 && hand.get(t.t, 5) == 1) return reds;
     return [...blocks, ...reds];
   }
-  redPattern(blocks: BlockChi[]): BlockChi[] {
+  redPattern(blocks: readonly BlockChi[]): readonly BlockChi[] {
     if (blocks.length == 0) return [];
     const filtered = blocks.filter(
       (b) => is5Tile(b.tiles[1]) || is5Tile(b.tiles[2])
@@ -623,7 +623,7 @@ export class Controller {
       })
       .filter((b) => b != null);
   }
-  doReach(w: Wind): TileAnalysis[] | false {
+  doReach(w: Wind): readonly TileAnalysis[] | false {
     const hand = this.hand(w);
     if (hand.reached) return false;
     if (!hand.menzen) return false;
@@ -632,7 +632,7 @@ export class Controller {
     const r = Efficiency.calcEffectiveTiles(hand, hand.hands);
     return r;
   }
-  doDiscard(w: Wind, called?: BlockChi | BlockPon): Tile[] {
+  doDiscard(w: Wind, called?: BlockChi | BlockPon): readonly Tile[] {
     if (this.hand(w).reached) return [this.hand(w).drawn!];
     const hand = this.hand(w).hands;
     if (called == null) return hand;
@@ -662,7 +662,7 @@ export class Controller {
     // -324 -789 -312
     return [called];
   }
-  doAnKan(w: Wind): BlockAnKan[] | false {
+  doAnKan(w: Wind): readonly BlockAnKan[] | false {
     const hand = this.hand(w);
     const blocks: BlockAnKan[] = [];
     // TODO ハイテイ ではカンできない
@@ -683,7 +683,7 @@ export class Controller {
       );
     return blocks;
   }
-  doShoKan(w: Wind): BlockShoKan[] | false {
+  doShoKan(w: Wind): readonly BlockShoKan[] | false {
     const hand = this.hand(w);
     if (hand.reached) return false;
     // TODO ハイテイ ではカンできない

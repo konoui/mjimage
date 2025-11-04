@@ -4,7 +4,7 @@ import { Tile } from "../core/parser";
 
 export interface IRiver {
   discard(t: Tile, w: Wind): void;
-  discards(w?: Wind): { w: Wind; t: Tile; callMarker?: boolean }[];
+  discards(w?: Wind): readonly { w: Wind; t: Tile; callMarker?: boolean }[];
   lastTile: { w: Wind; t: Tile; callMarker?: boolean };
   markCalled(): void;
   cannotContinue(): boolean;

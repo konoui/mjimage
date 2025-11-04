@@ -31,14 +31,14 @@ type ChoiceEvent =
 export interface DistributeEvent {
   id: string;
   type: Extract<Event, "DISTRIBUTE">;
-  hands: { [w in Wind]: string };
+  hands: { readonly [w in Wind]: string };
   wind: Wind;
   doraIndicator: string;
   players: string[];
-  places: { [id: string]: Wind };
+  places: { readonly [id: string]: Wind };
   sticks: { reach: number; dead: number };
   round: Round;
-  scores: { [key: string]: number };
+  scores: { readonly [key: string]: number };
 }
 
 export interface EndEvent {
@@ -46,10 +46,10 @@ export interface EndEvent {
   type: Extract<Event, "END_GAME">;
   subType: "WIN_GAME" | "DRAWN_GAME" | "FOUR_KAN" | "FOUR_WIND" | "NINE_TILES";
   wind: Wind;
-  scores: { [key: string]: number };
+  scores: { readonly [key: string]: number };
   sticks: { reach: number; dead: number };
-  deltas: { [w in Wind]: number };
-  hands: { [w in Wind]: string };
+  deltas: { readonly [w in Wind]: number };
+  hands: { readonly [w in Wind]: string };
   shouldContinue: boolean;
 }
 
@@ -176,16 +176,16 @@ export type PlayerEvent =
 
 interface DiscardedChoice {
   RON: false | SerializedWinResult;
-  PON: false | SerializedBlock[];
-  CHI: false | SerializedBlock[];
+  PON: false | readonly SerializedBlock[];
+  CHI: false | readonly SerializedBlock[];
   DAI_KAN: false | SerializedBlock;
 }
 
 interface DrawnChoice {
   TSUMO: false | SerializedWinResult;
-  REACH: false | SerializedTileAnalysis[];
-  AN_KAN: false | SerializedBlock[];
-  SHO_KAN: false | SerializedBlock[];
+  REACH: false | readonly SerializedTileAnalysis[];
+  AN_KAN: false | readonly SerializedBlock[];
+  SHO_KAN: false | readonly SerializedBlock[];
   DISCARD: false | string[];
   DRAWN_GAME_BY_NINE_ORPHANS: boolean;
 }

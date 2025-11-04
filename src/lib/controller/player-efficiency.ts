@@ -19,7 +19,7 @@ export interface PlayerTileAnalysis {
   /**
    * 打牌した場合の有効牌とその枚数をそれぞれ表す。
    */
-  effectiveTiles: {
+  effectiveTiles: readonly {
     tile: Tile;
     count: number;
   }[];
@@ -30,7 +30,7 @@ export interface PlayerTileAnalysis {
   shanten: number;
 }
 
-const weight = (t: Tile, doras: Tile[]) => {
+const weight = (t: Tile, doras: readonly Tile[]) => {
   const base = 1;
   let v = base;
   for (let d of doras) if (d.equals(t)) v *= 2;
@@ -41,7 +41,10 @@ export class PlayerEfficiency {
   /**
    * 有効牌情報から河、手牌、鳴きの枚数を考慮した有効牌情報の配列を返す。
    */
-  static analyzePlayerEfficiency(counter: Counter, analyses: TileAnalysis[]) {
+  static analyzePlayerEfficiency(
+    counter: Counter,
+    analyses: readonly TileAnalysis[]
+  ) {
     let playerAnalyses: PlayerTileAnalysis[] = [];
     for (let s of analyses) {
       let sum = 0;
@@ -64,7 +67,7 @@ export class PlayerEfficiency {
   }
   static selectMinPriority(
     c: Counter,
-    playerAnalyses: PlayerTileAnalysis[],
+    playerAnalyses: readonly PlayerTileAnalysis[],
     doras: Tile[]
   ) {
     assert(playerAnalyses.length > 0);
@@ -82,7 +85,7 @@ export class PlayerEfficiency {
   private static calcPriority(
     c: Counter,
     playerAnalysis: PlayerTileAnalysis,
-    doras: Tile[]
+    doras: readonly Tile[]
   ) {
     const tile = playerAnalysis.tile;
     let v = 0;
@@ -120,7 +123,11 @@ export class PlayerEfficiency {
 }
 
 export class RiskRank {
-  static selectTile(c: Counter, targetUsers: Wind[], tiles: Tile[]) {
+  static selectTile(
+    c: Counter,
+    targetUsers: readonly Wind[],
+    tiles: readonly Tile[]
+  ) {
     assert(targetUsers.length > 0 && tiles.length > 0);
     let ret = tiles[0];
     let min = Number.POSITIVE_INFINITY;
@@ -133,7 +140,7 @@ export class RiskRank {
     }
     return ret;
   }
-  static rank(c: Counter, targetUsers: Wind[], t: Tile) {
+  static rank(c: Counter, targetUsers: readonly Wind[], t: Tile) {
     let max = 0;
     const f = t.isNum() ? RiskRank.rankN : RiskRank.rankZ;
     for (let targetUser of targetUsers) {
