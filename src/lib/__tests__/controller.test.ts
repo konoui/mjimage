@@ -219,7 +219,7 @@ describe("callable", () => {
   });
   test("can-chi/食い替え", () => {
     const { c } = createLocalGame();
-    c.observer.hands["1z"] = new ActorHand("56m");
+    c.observer.hands["1z"] = new ActorHand("456m");
     const got = c.doChi("1z", "4z", new Tile(TYPE.M, 7));
     expect(got).toBe(false);
   });
@@ -229,43 +229,73 @@ describe("callable", () => {
     const got = c.doChi("1z", "4z", new Tile(TYPE.M, 6));
     expect(got).toBe(false);
   });
+  test("can-chi/ペンチャン", () => {
+    const { c } = createLocalGame();
+    c.observer.hands["1z"] = new ActorHand("12m9p");
+    const got = c.doChi("1z", "4z", new Tile(TYPE.M, 3));
+    expect(got.toString()).toBe("-312m");
+  });
+  test("can-chi/赤牌を含む2パターン", () => {
+    const { c } = createLocalGame();
+    c.observer.hands["1z"] = new ActorHand("4r55m9p");
+    const got = c.doChi("1z", "4z", new Tile(TYPE.M, 3));
+    expect(got.toString()).toBe("-345m,-34r5m");
+  });
+  test("can-chi/赤牌を含む3パターン", () => {
+    const { c } = createLocalGame();
+    c.observer.hands["1z"] = new ActorHand("124r5m9p");
+    const got = c.doChi("1z", "4z", new Tile(TYPE.M, 3));
+    expect(got.toString()).toBe("-312m,-324m,-34r5m");
+  });
+  test("can-chi/赤牌を含む4パターン", () => {
+    const { c } = createLocalGame();
+    c.observer.hands["1z"] = new ActorHand("124r55m9p");
+    const got = c.doChi("1z", "4z", new Tile(TYPE.M, 3));
+    expect(got.toString()).toBe("-312m,-345m,-324m,-34r5m");
+  });
   test("can-ron", () => {
     const { c } = createLocalGame();
     c.observer.hands["1z"] = new ActorHand("406m123456p1123s");
     const got = c.doWin("1z", new Tile(TYPE.S, 4), { discardedBy: "2z" });
     expect(!!got).toBe(true);
   });
-  test("can-pon", () => {
+  test("can-pon/下家から5mを鳴く。赤5含みの1パターンを返す", () => {
     const { c } = createLocalGame();
     c.observer.hands["1z"] = new ActorHand("50m333444z");
     const got = c.doPon("1z", "2z", new Tile(TYPE.M, 5));
     expect(got.toString()).toBe("r55-5m");
   });
-  test("can-pon", () => {
+  test("can-pon/下家から赤5を鳴く。1パターンを返す", () => {
+    const { c } = createLocalGame();
+    c.observer.hands["1z"] = new ActorHand("555m333444z");
+    const got = c.doPon("1z", "2z", new Tile(TYPE.M, 5, [OP.RED]));
+    expect(got.toString()).toBe("55-r5m");
+  });
+  test("can-pon/下家から赤5を鳴く。赤5を含む2パターンを返す", () => {
     const { c } = createLocalGame();
     c.observer.hands["1z"] = new ActorHand("505m333444z");
     const got = c.doPon("1z", "2z", new Tile(TYPE.M, 5));
     expect(got.toString()).toBe("r55-5m,55-5m");
   });
-  test("can-pon", () => {
+  test("can-pon/上家から鳴く", () => {
     const { c } = createLocalGame();
     c.observer.hands["1z"] = new ActorHand("433m");
     const got = c.doPon("1z", "4z", new Tile(TYPE.M, 3));
     expect(got.toString()).toBe("-333m");
   });
-  test("can-pon", () => {
+  test("can-pon/対面から鳴く", () => {
     const { c } = createLocalGame();
     c.observer.hands["1z"] = new ActorHand("433m");
     const got = c.doPon("1z", "3z", new Tile(TYPE.M, 3));
     expect(got.toString()).toBe("3-33m");
   });
-  test("can-dai-kan", () => {
+  test("can-dai-kan/5m", () => {
     const { c } = createLocalGame();
     c.observer.hands["1z"] = new ActorHand("505m");
     const got = c.doDaiKan("1z", "4z", new Tile(TYPE.M, 5));
     expect(got.toString()).toBe("-5r555m");
   });
-  test("can-dai-kan", () => {
+  test("can-dai-kan/r5m", () => {
     const { c } = createLocalGame();
     c.observer.hands["1z"] = new ActorHand("555m");
     const got = c.doDaiKan("1z", "2z", new Tile(TYPE.M, 5, [OP.RED]));

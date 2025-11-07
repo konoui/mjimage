@@ -174,10 +174,11 @@ export abstract class Block {
 
   /**
    * 文字列からブロックを生成する。
+   * 暗黙的なツモブロックには対応しない。
    */
   static from(tiles: string) {
-    // Note controller pass tiles with tsumo op to deserialize
-    // consider controller implementation to remove tsumo op before calling this
+    // Note controller pass tiles with tsumo op to deserialize run/three block of win result hand.
+    // e.g.) win result hand: 1t23p123s132m77s, 1t23p is passed to run block.
     const blocks = new Parser(tiles, {
       enableImplicitTsumoBlock: false,
     }).parse();
@@ -395,6 +396,11 @@ export class BlockDaiKan extends Block {
   }
 }
 
+/**
+ * 小明槓のブロックを表す
+ * new で生成する場合、ポンした牌の前にカカンした牌を追加する必要がある。
+ * ポンブロックがある場合 fromPon を使用できる。
+ */
 export class BlockShoKan extends Block {
   constructor(tiles: readonly Tile[]) {
     super(tiles, BLOCK.SHO_KAN);
@@ -406,6 +412,7 @@ export class BlockShoKan extends Block {
 
   /**
    * ポンしたブロックから小明槓を生成する。
+   * カカンした牌はポンした牌の前に追加される。
    */
   static fromPon(b: BlockPon, t: Tile) {
     const idx = b.tiles.findIndex((t) => t.has(OP.HORIZONTAL));

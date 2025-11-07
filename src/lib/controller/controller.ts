@@ -445,7 +445,8 @@ export class Controller {
     if (t == null) return false;
     let hand = this.hand(w);
     const env = this.boardParams(w);
-    if (hand.drawn == null) {
+    const isRon = hand.drawn == null;
+    if (isRon) {
       if (params == null) throw new Error("should ron but params == null");
       if (params.discardedBy == w) return false;
       if (params.missingRon) return false;
@@ -468,7 +469,7 @@ export class Controller {
     if (ret.yakus.length == 0) return false;
 
     // case ron フリテン対応
-    if (hand.draw == null) {
+    if (isRon) {
       const c = Efficiency.getEffectiveTiles(this.hand(w)).effectiveTiles;
       if (this.river.discards(w).some((v) => c.some((ct) => ct.equals(v.t))))
         return false;
@@ -486,15 +487,13 @@ export class Controller {
     const sample = t.clone({ removeAll: true });
     const idx = getCallBlockIndex(w, discardedBy, BLOCK.PON);
 
-    const blocks: BlockPon[] = [];
     const base = new BlockPon([sample, sample, sample]).clone({
       replace: { idx, tile: t.clone({ add: OP.HORIZONTAL }) },
     });
-    let block = base;
 
     // if discarded tile is RED
-    if (is5Tile(t) && t.has(OP.RED))
-      block = base.clone({
+    if (is5Tile(t) && t.has(OP.RED)) {
+      const newBlock = base.clone({
         replace: {
           idx: idx,
           tile: sample.clone({
@@ -502,25 +501,24 @@ export class Controller {
           }),
         },
       });
-    // if hand has red
+      return [newBlock];
+    }
+    // if the hand has red
     const ridx = (idx % 2) + 1;
     if (is5Tile(t) && hand.get(t.t, 0) > 0) {
-      block = base.clone({
+      const red = base.clone({
         replace: { idx: ridx, tile: sample.clone({ add: OP.RED }) },
       });
+      // red and non red case if the hand has 3 tiles including red
+      if (hand.get(sample.t, 5) == 3) {
+        const nonRed = base.clone({
+          replace: { idx: ridx, tile: sample },
+        });
+        return [red, nonRed];
+      } else return [red];
     }
 
-    blocks.push(block);
-
-    // if hand has red and 3 tiles, two cases including red and non red
-    if (is5Tile(sample) && hand.get(sample.t, 5) == 3) {
-      const nonRed = base.clone({
-        replace: { idx: ridx, tile: sample },
-      });
-      blocks.push(nonRed);
-    }
-
-    return blocks;
+    return [base];
   }
   doChi(w: Wind, discardedBy: Wind, t?: Tile): readonly BlockChi[] | false {
     if (t == null) return false;
@@ -580,7 +578,7 @@ export class Controller {
     // 鳴く牌とスジの牌を削除し、手配が0になればそのブロックでは鳴けない。
     for (let i = 0; i < blocks.length; i++) {
       const b = blocks[i];
-      const tiles = this.cannotDiscardTile(b);
+      const tiles = cannotDiscardTiles(b);
       const toDec: Tile[] = [];
       for (const t of tiles) {
         const n = hand.get(t.t, t.n);
@@ -596,20 +594,30 @@ export class Controller {
 
     if (blocks.length == 0) return false;
 
-    // 1. check whether can-chi or not with ignoredRed pattern
-    // 2. get red patterns if having red
-    // 3. if not having normal 5, return only red pattern, else if concat red and normal patterns
-    const hasRed = hand.get(t.t, 0) > 0;
-    const reds = hasRed ? this.redPattern(blocks) : [];
-    if (reds.length > 0 && hand.get(t.t, 5) == 1) return reds;
-    return [...blocks, ...reds];
-  }
-  redPattern(blocks: readonly BlockChi[]): readonly BlockChi[] {
-    if (blocks.length == 0) return [];
-    const filtered = blocks.filter(
+    const blocksWith5 = blocks.filter(
       (b) => is5Tile(b.tiles[1]) || is5Tile(b.tiles[2])
     );
-    return filtered
+    if (blocksWith5.length == 0) return blocks;
+
+    const blocksWithout5 = blocks.filter(
+      (b) => !is5Tile(b.tiles[1]) && !is5Tile(b.tiles[2])
+    );
+
+    // 0. if hand has red tile then get red blocks
+    // 1. if hand has non red tiles return original blocks
+    // 2. if hand has only tile red return red blocks and original block excluding blocks with 5
+    // 3. else if hand has non red tiles return original blocks
+    // 4. else if hand as red and non red tiles return original blocks and red blocks
+    const hasRed = hand.get(t.t, 0) > 0;
+    if (!hasRed) return blocks;
+    const redBlocks = hasRed ? this.getRedPattern(blocksWith5) : [];
+    if (redBlocks.length > 0 && hasRed && hand.get(t.t, 5) == 1)
+      return [...blocksWithout5, ...redBlocks];
+    return [...blocks, ...redBlocks];
+  }
+  private getRedPattern(blocksWith5: readonly BlockChi[]): readonly BlockChi[] {
+    if (blocksWith5.length == 0) return [];
+    return blocksWith5
       .map((b) => {
         if (is5Tile(b.tiles[1])) {
           const rt = b.tiles[1].clone({ add: OP.RED });
@@ -640,33 +648,22 @@ export class Controller {
     if (called instanceof BlockPon) {
       return hand.filter((v) => !v.equals(called.tiles[0]));
     }
-    const tiles = this.cannotDiscardTile(called);
+    const tiles = cannotDiscardTiles(called);
     const ret = hand.filter((v) => !tiles.some((t) => v.equals(t)));
     assert(
       ret.length > 0,
-      `no tiles to discard. hand: ${this.hand(
+      `[bug] no tiles to discard. hand: ${this.hand(
         w
       )}, suji: ${tiles}, block-chi: ${called}`
     );
     return ret;
   }
-  cannotDiscardTile(b: BlockChi) {
-    const called = b.tiles[0];
-    const h1 = b.tiles[1].n;
-    // -423, -978
-    if (h1 != 1 && called.n - 2 == h1)
-      return [new Tile(called.t, called.n - 3), called];
-    // -123,
-    if (h1 != 8 && called.n + 1 == h1)
-      return [new Tile(called.t, called.n + 3), called];
-    // -324 -789 -312
-    return [called];
-  }
+
   doAnKan(w: Wind): readonly BlockAnKan[] | false {
     const hand = this.hand(w);
-    const blocks: BlockAnKan[] = [];
     // TODO ハイテイ ではカンできない
     if (hand.reached) return false; // FIXME 待ち変更がなければできる
+    const blocks: BlockAnKan[] = [];
     for (const [t, n] of forHand()) {
       if (hand.get(t, n) == 4) {
         const tile = new Tile(t, n);
@@ -679,7 +676,7 @@ export class Controller {
     for (const b of blocks)
       assert(
         b.tiles.filter((t) => t.has(OP.HORIZONTAL)).length == 0,
-        `h op ${b.toString()}`
+        `bug ankan has horizontal op: ${b.toString()}`
       );
     return blocks;
   }
@@ -700,17 +697,15 @@ export class Controller {
           is5Tile(pick) && hand.get(pick.t, 0) > 0
             ? pick.clone({ add: OP.RED })
             : pick;
-        // FIXME 追加の HORIZONTAL は最後でいいのか
-        blocks.push(new BlockShoKan([...cb.tiles, tile]));
+        blocks.push(BlockShoKan.fromPon(cb, tile));
       }
     }
     if (blocks.length == 0) return false;
     for (const b of blocks)
       assert(
         b.tiles.filter((t) => t.has(OP.HORIZONTAL)).length == 2,
-        `h op ${b.toString()}`
+        `bug shokan has unexpected horizontal operators: ${b.toString()}`
       );
-
     return blocks;
   }
   doDaiKan(w: Wind, discardedBy: Wind, t: Tile): BlockDaiKan | false {
@@ -722,13 +717,14 @@ export class Controller {
     if (hand.get(sample.t, sample.n) != 3) return false;
 
     const idx = getCallBlockIndex(w, discardedBy, BLOCK.DAI_KAN);
-    let block = new BlockDaiKan([sample, sample, sample, sample]).clone({
+    const base = new BlockDaiKan([sample, sample, sample, sample]).clone({
       replace: { idx, tile: sample.clone({ add: OP.HORIZONTAL }) },
     });
 
+    let block = base;
     // 捨て牌が red ならその idx を red にする
     if (is5Tile(t) && t.has(OP.RED)) {
-      block = block.clone({
+      block = base.clone({
         replace: {
           idx: idx,
           tile: sample.clone({ add: [OP.HORIZONTAL, OP.RED] }),
@@ -739,17 +735,17 @@ export class Controller {
     else if (is5Tile(t) && !t.has(OP.RED)) {
       assert(
         hand.get(t.t, 0) > 0,
-        `hand does not have red tile: ${hand.toString()}`
+        `bug hand does not have red tile: ${hand.toString()}`
       );
       const ridx = (idx % 3) + 1;
-      block = block.clone({
+      block = base.clone({
         replace: { idx: ridx, tile: sample.clone({ add: OP.RED }) },
       });
     }
 
     assert(
       block.tiles.filter((t) => t.has(OP.HORIZONTAL)).length == 1,
-      `h op ${block.toString()}`
+      `bug daikan has unexpected horizontal operators: ${block.toString()}`
     );
     return block;
   }
@@ -769,6 +765,22 @@ export class Controller {
   initialHands() {
     return this.wall.initialHands();
   }
+}
+
+/**
+ * 食いかえ対象の牌を返す
+ */
+function cannotDiscardTiles(b: BlockChi) {
+  const called = b.tiles[0];
+  const h1 = b.tiles[1].n;
+  // -423 の 1 , -978　の 6
+  if (h1 != 1 && called.n - 2 == h1)
+    return [new Tile(called.t, called.n - 3), called];
+  // -123 の 4,
+  if (h1 != 8 && called.n + 1 == h1)
+    return [new Tile(called.t, called.n + 3), called];
+  // -324 -789 -312 のカンチャンは対応牌なし
+  return [called];
 }
 
 export class ActorHand extends Hand {
