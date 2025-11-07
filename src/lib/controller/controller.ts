@@ -377,7 +377,7 @@ export class Controller {
     c.mailBox = events;
     c.observer.placeManager = new PlaceManager(h.players, {
       round: h.round,
-      sticks: structuredClone(h.sticks),
+      sticks: h.sticks,
     });
     c.observer.scoreManager = new ScoreManager(h.scores);
     c.wall = new Wall(h.wall);
@@ -826,11 +826,11 @@ export abstract class BaseActor {
         const doraIndicator = Tile.from(e.doraIndicator);
 
         this.setHands(e);
-        this.placeManager = new PlaceManager(structuredClone(e.places), {
+        this.placeManager = new PlaceManager(e.places, {
           round: e.round,
-          sticks: structuredClone(e.sticks),
+          sticks: e.sticks,
         });
-        this.scoreManager = new ScoreManager(structuredClone(e.scores));
+        this.scoreManager = new ScoreManager(e.scores);
         this.doraIndicators = [doraIndicator];
 
         this.counter.dec(doraIndicator);

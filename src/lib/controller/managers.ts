@@ -42,7 +42,10 @@ export class PlaceManager {
   sticks: { reach: number; dead: number };
   constructor(
     initial: { readonly [key: string]: Wind },
-    params?: { round: Round; sticks: { reach: number; dead: number } }
+    params?: {
+      readonly round: Round;
+      readonly sticks: { readonly reach: number; readonly dead: number };
+    }
   ) {
     this.round = params?.round ?? ROUND.E1;
     this.sticks = structuredClone(params?.sticks) ?? { reach: 0, dead: 0 };
