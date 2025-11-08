@@ -13,10 +13,10 @@ export interface IWall {
   canDraw: boolean;
   export(): WallProps;
   initialHands(): {
-    [WIND.E]: string;
-    [WIND.S]: string;
-    [WIND.W]: string;
-    [WIND.N]: string;
+    readonly [WIND.E]: string;
+    readonly [WIND.S]: string;
+    readonly [WIND.W]: string;
+    readonly [WIND.N]: string;
   };
 }
 

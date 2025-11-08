@@ -298,6 +298,7 @@ export class Hand {
       throw new Error(`invalid block: removal tiles: ${toRemove}, block: ${b}`);
 
     this.dec(toRemove);
+    // 末尾に追加する
     this.data.called = [...this.called, b];
     this.data.tsumo = null;
     return;
@@ -367,7 +368,7 @@ export class ShantenCalculator {
     let nPairs = 0;
     let nIsolated = 0;
     for (const [t, n] of forHand({ skipBack: true })) {
-      if (this.hand.get(t, n) == 2) nPairs++;
+      if (this.hand.get(t, n) >= 2) nPairs++;
       if (this.hand.get(t, n) == 1) nIsolated++;
     }
 
@@ -1380,18 +1381,18 @@ export class PointCalculator {
     return this.hand.menzen ? 0 : 1;
   }
 
-  dA1(h: readonly Block[]): Yaku[] {
+  dA1(h: readonly Block[]): readonly Yaku[] {
     if (this.cfg.reached == 1) return [{ name: "立直", han: 1 }];
     if (this.cfg.reached == 2) return [{ name: "ダブル立直", han: 2 }];
     return [];
   }
-  dB1(h: readonly Block[]): Yaku[] {
+  dB1(h: readonly Block[]): readonly Yaku[] {
     if (this.hand.drawn == null) [];
     if (this.getCalledPenalty() != 0) return [];
     const cond = h.some((b) => b.tiles.some((t) => t.has(OP.TSUMO)));
     return cond ? [{ name: "門前清自摸和", han: 1 }] : [];
   }
-  dC1(h: readonly Block[]): Yaku[] {
+  dC1(h: readonly Block[]): readonly Yaku[] {
     if (this.getCalledPenalty() != 0) return [];
     const name = "平和";
     const fu = this.calcFu(h);
@@ -1401,19 +1402,19 @@ export class PointCalculator {
     }
     return [];
   }
-  dD1(h: readonly Block[]): Yaku[] {
+  dD1(h: readonly Block[]): readonly Yaku[] {
     const cond = h.some((block) =>
       block.tiles.some((t) => t.t == TYPE.Z || N19.includes(t.n))
     );
     return cond ? [] : [{ name: "断么九", han: 1 }];
   }
-  dE1(h: readonly Block[]): Yaku[] {
+  dE1(h: readonly Block[]): readonly Yaku[] {
     if (this.getCalledPenalty() != 0) return [];
 
     const count = countSameBlocks(h);
     return count == 1 ? [{ name: "一盃口", han: 1 }] : [];
   }
-  dF1(h: readonly Block[]): Yaku[] {
+  dF1(h: readonly Block[]): readonly Yaku[] {
     const ret: Yaku[] = [];
     h.forEach((block) => {
       if (block instanceof BlockPair) return;
@@ -1428,22 +1429,22 @@ export class PointCalculator {
     });
     return ret;
   }
-  dG1(h: readonly Block[]): Yaku[] {
+  dG1(h: readonly Block[]): readonly Yaku[] {
     return this.cfg.oneShotWin ? [{ name: "一発", han: 1 }] : [];
   }
-  dH1(h: readonly Block[]): Yaku[] {
+  dH1(h: readonly Block[]): readonly Yaku[] {
     return this.cfg.replacementWin ? [{ name: "嶺上開花", han: 1 }] : [];
   }
-  dI1(h: readonly Block[]): Yaku[] {
+  dI1(h: readonly Block[]): readonly Yaku[] {
     return this.cfg.quadWin ? [{ name: "搶槓", han: 1 }] : [];
   }
-  dJ1(h: readonly Block[]): Yaku[] {
+  dJ1(h: readonly Block[]): readonly Yaku[] {
     return this.cfg.finalWallWin ? [{ name: "海底摸月", han: 1 }] : [];
   }
-  dK1(h: readonly Block[]): Yaku[] {
+  dK1(h: readonly Block[]): readonly Yaku[] {
     return this.cfg.finalDiscardWin ? [{ name: "河底撈魚", han: 1 }] : [];
   }
-  dX1(h: readonly Block[]): Yaku[] {
+  dX1(h: readonly Block[]): readonly Yaku[] {
     const allTiles = h.flatMap((b) => b.tiles);
     const dcount = allTiles.reduce(
       (count, t) => count + this.cfg.doras.filter((d) => t.equals(d)).length,
@@ -1464,10 +1465,10 @@ export class PointCalculator {
     return ret;
   }
 
-  dA2(h: readonly Block[]): Yaku[] {
+  dA2(h: readonly Block[]): readonly Yaku[] {
     return h.length == 7 ? [{ name: "七対子", han: 2 }] : [];
   }
-  dB2(h: readonly Block[]): Yaku[] {
+  dB2(h: readonly Block[]): readonly Yaku[] {
     const check = (bb: Block) => {
       return bb instanceof BlockRun || bb instanceof BlockChi;
     };
@@ -1489,7 +1490,7 @@ export class PointCalculator {
     }
     return [];
   }
-  dC2(h: readonly Block[]): Yaku[] {
+  dC2(h: readonly Block[]): readonly Yaku[] {
     if (h.length == 7) return [];
     const cond = h.every(
       (b) =>
@@ -1502,7 +1503,7 @@ export class PointCalculator {
     );
     return cond ? [{ name: "対々和", han: 2 }] : [];
   }
-  dD2(h: readonly Block[]): Yaku[] {
+  dD2(h: readonly Block[]): readonly Yaku[] {
     const l = h.filter((b) => {
       return (
         (b instanceof BlockAnKan || b instanceof BlockThree) &&
@@ -1511,7 +1512,7 @@ export class PointCalculator {
     }).length;
     return l >= 3 ? [{ name: "三暗刻", han: 2 }] : [];
   }
-  dE2(h: readonly Block[]): Yaku[] {
+  dE2(h: readonly Block[]): readonly Yaku[] {
     const l = h.filter(
       (b) =>
         b instanceof BlockAnKan ||
@@ -1520,7 +1521,7 @@ export class PointCalculator {
     ).length;
     return l >= 3 ? [{ name: "三槓子", han: 2 }] : [];
   }
-  dF2(h: readonly Block[]): Yaku[] {
+  dF2(h: readonly Block[]): readonly Yaku[] {
     const check = (b: Block) => {
       return (
         b instanceof BlockAnKan ||
@@ -1547,7 +1548,7 @@ export class PointCalculator {
     }
     return [];
   }
-  dG2(h: readonly Block[]): Yaku[] {
+  dG2(h: readonly Block[]): readonly Yaku[] {
     if (h.length == 7) return [];
     const l = h.filter((b) => {
       const t = b.tiles[0];
@@ -1555,7 +1556,7 @@ export class PointCalculator {
     }).length;
     return l == 3 ? [{ name: "小三元", han: 2 }] : [];
   }
-  dH2(h: readonly Block[]): Yaku[] {
+  dH2(h: readonly Block[]): readonly Yaku[] {
     const cond = h.every((b) => {
       const s = b.tiles[0];
       const values = s.t == TYPE.Z ? NZ : N19;
@@ -1571,7 +1572,7 @@ export class PointCalculator {
     });
     return cond ? [{ name: "混老頭", han: 2 }] : [];
   }
-  dI2(h: readonly Block[]): Yaku[] {
+  dI2(h: readonly Block[]): readonly Yaku[] {
     if (h.length == 7) return [];
     // 一つは BlockRun もしくは BlockChi がある。なければ、老頭に該当するため
     if (!h.some((b) => b instanceof BlockRun || b instanceof BlockChi))
@@ -1586,7 +1587,7 @@ export class PointCalculator {
       ? [{ name: "混全帯么九", han: 2 - this.getCalledPenalty() }]
       : [];
   }
-  dJ2(h: readonly Block[]): Yaku[] {
+  dJ2(h: readonly Block[]): readonly Yaku[] {
     const m = {
       // 123m, 456m, 789m
       [TYPE.M]: [0, 0, 0],
@@ -1611,7 +1612,7 @@ export class PointCalculator {
     return [];
   }
 
-  dA3(h: readonly Block[]): Yaku[] {
+  dA3(h: readonly Block[]): readonly Yaku[] {
     const cond = !h.some((block) => block.tiles[0].t == TYPE.Z);
     if (cond) return [];
     for (const t of Object.values(TYPE)) {
@@ -1620,7 +1621,7 @@ export class PointCalculator {
     }
     return [];
   }
-  dB3(h: readonly Block[]): Yaku[] {
+  dB3(h: readonly Block[]): readonly Yaku[] {
     if (h.length == 7) return [];
     if (!h.some((b) => b instanceof BlockRun || b instanceof BlockChi))
       return [];
@@ -1633,13 +1634,13 @@ export class PointCalculator {
       ? [{ name: "純全帯么九色", han: 3 - this.getCalledPenalty() }]
       : [];
   }
-  dC3(h: readonly Block[]): Yaku[] {
+  dC3(h: readonly Block[]): readonly Yaku[] {
     if (this.getCalledPenalty() != 0) return [];
 
     const count = countSameBlocks(h);
     return count == 2 ? [{ name: "ニ盃口", han: 3 }] : [];
   }
-  dA6(h: readonly Block[]): Yaku[] {
+  dA6(h: readonly Block[]): readonly Yaku[] {
     if (h.some((block) => block.tiles[0].t == TYPE.Z)) return [];
     for (const t of Object.values(TYPE)) {
       if (t == TYPE.Z) continue;
@@ -1649,7 +1650,7 @@ export class PointCalculator {
     return [];
   }
 
-  dA13(h: readonly Block[]): Yaku[] {
+  dA13(h: readonly Block[]): readonly Yaku[] {
     if (h.length != 13) return [];
     const double = h.some(
       (b) =>
@@ -1660,12 +1661,12 @@ export class PointCalculator {
       ? [{ name: "国士無双13面待ち", han: 26, isYakuman: true }]
       : [{ name: "国士無双", han: 13, isYakuman: true }];
   }
-  dB13(h: readonly Block[]): Yaku[] {
+  dB13(h: readonly Block[]): readonly Yaku[] {
     return h.length == 1
       ? [{ name: "九蓮宝燈", han: 13, isYakuman: true }]
       : [];
   }
-  dC13(h: readonly Block[]): Yaku[] {
+  dC13(h: readonly Block[]): readonly Yaku[] {
     if (h.length == 7) return [];
     const cond1 = h.every(
       (b) =>
@@ -1683,7 +1684,7 @@ export class PointCalculator {
       ? [{ name: "四暗刻単騎待ち", han: 26, isYakuman: true }]
       : [{ name: "四暗刻", han: 13, isYakuman: true }];
   }
-  dD13(h: readonly Block[]): Yaku[] {
+  dD13(h: readonly Block[]): readonly Yaku[] {
     if (h.length == 13) return [];
     const z = [5, 6, 7];
     const cond =
@@ -1694,11 +1695,11 @@ export class PointCalculator {
       ).length == 3;
     return cond ? [{ name: "大三元", han: 13, isYakuman: true }] : [];
   }
-  dE13(h: readonly Block[]): Yaku[] {
+  dE13(h: readonly Block[]): readonly Yaku[] {
     const cond = h.every((b) => b.tiles[0].t == TYPE.Z);
     return cond ? [{ name: "字一色", han: 13, isYakuman: true }] : [];
   }
-  dF13(h: readonly Block[]): Yaku[] {
+  dF13(h: readonly Block[]): readonly Yaku[] {
     const cond = h.every(
       (b) =>
         (b instanceof BlockAnKan ||
@@ -1711,7 +1712,7 @@ export class PointCalculator {
     );
     return cond ? [{ name: "清老頭", han: 13, isYakuman: true }] : [];
   }
-  dG13(h: readonly Block[]): Yaku[] {
+  dG13(h: readonly Block[]): readonly Yaku[] {
     if (h.length == 7) return [];
     const cond = h.every(
       (b) =>
@@ -1722,7 +1723,7 @@ export class PointCalculator {
     );
     return cond ? [{ name: "四槓子", han: 13, isYakuman: true }] : [];
   }
-  dH13(h: readonly Block[]): Yaku[] {
+  dH13(h: readonly Block[]): readonly Yaku[] {
     if (h.length == 13) return [];
     if (h.length == 7) return [];
     const zn = [1, 2, 3, 4];
@@ -1739,7 +1740,7 @@ export class PointCalculator {
       ? [{ name: "小四喜", han: 13, isYakuman: true }]
       : [{ name: "大四喜", han: 13, isYakuman: true }];
   }
-  dI13(h: readonly Block[]): Yaku[] {
+  dI13(h: readonly Block[]): readonly Yaku[] {
     const check = (t: Tile) => {
       if (t.equals(new Tile(TYPE.Z, 6))) return true;
       if (t.t == TYPE.S && [2, 3, 4, 6, 8].includes(t.n)) return true;
@@ -1750,10 +1751,10 @@ export class PointCalculator {
       : [];
   }
   // TODO 天和・地和
-  dJ13(h: readonly Block[]): Yaku[] {
+  dJ13(h: readonly Block[]): readonly Yaku[] {
     return [];
   }
-  dK13(h: readonly Block[]): Yaku[] {
+  dK13(h: readonly Block[]): readonly Yaku[] {
     return [];
   }
 

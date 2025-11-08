@@ -11,7 +11,7 @@ import {
 import { TYPE, OP, Wind, WIND, ROUND } from "../core/constants";
 import { Block, Parser, Tile } from "../core/parser";
 import { handsToString } from "./utils/helper";
-describe("Hand", () => {
+describe("Hand/基本操作", () => {
   const getData = (h: Hand) => {
     return (h as any).data as HandData;
   };
@@ -69,35 +69,30 @@ describe("Hand", () => {
     }).toThrow(/invalid hand:/);
   });
 
-  test("inc/dec", () => {
+  test("inc/dec/5mでr5mを削除するがincは削除したr5mを元に戻す", () => {
     const h = new Hand("406m");
     const dtiles = h.dec([new Tile(TYPE.M, 5)]);
     h.inc(dtiles);
     expect(h.toString()).toStrictEqual("4r56m");
   });
-  test("inc/dec", () => {
+  test("inc/dec/r5mを削除しincして元に戻す", () => {
     const h = new Hand("405556m");
     const dtiles = h.dec([new Tile(TYPE.M, 5, [OP.RED])]);
     h.inc(dtiles);
     expect(h.toString()).toStrictEqual("4r55556m");
   });
-  test("inc/dec", () => {
+  test("inc/dec/r5mを追加し削除すると元の手牌になる", () => {
     const h = new Hand("4556m");
     const itiles = h.inc([new Tile(TYPE.M, 5, [OP.RED])]);
     h.dec(itiles);
     expect(h.toString()).toStrictEqual("4556m");
   });
-});
-
-describe("Hand2", () => {
   test("idempotency hand", () => {
     const input = "123m123s123p1z,t1z";
     const h = new Hand(input);
     expect(h.drawn?.toString()).toEqual("t1z");
-
     const ch = new Hand(h.toString());
     expect(ch.drawn?.toString()).toEqual("t1z");
-
     expect(h.toString()).toEqual("123m123p123s1z,t1z");
   });
   test("idempotency hand with red", () => {
@@ -125,6 +120,12 @@ describe("Shanten Calculator", () => {
     {
       name: "seven pairs 1 shanten",
       input: "1122334455678m",
+      want: 1,
+      handler: "Seven",
+    },
+    {
+      name: "seven pairs 1 shanten",
+      input: "1111s2233p445579m",
       want: 1,
       handler: "Seven",
     },
@@ -165,28 +166,28 @@ describe("Shanten Calculator", () => {
       handler: "Orphans",
     },
     {
-      name: "common",
+      name: "standardType",
       input: "123m456m789m123s1p",
       want: 0,
-      handler: "Common",
+      handler: "Standard",
     },
     {
-      name: "common",
+      name: "standardType",
       input: "123m456m789m12s11p",
       want: 0,
-      handler: "Common",
+      handler: "Standard",
     },
     {
-      name: "common",
+      name: "standardType",
       input: "123m456m789m12s1p1z",
       want: 1,
-      handler: "Common",
+      handler: "Standard",
     },
     {
-      name: "common",
+      name: "standardType",
       input: "111m456m789m12s1p1z",
       want: 1,
-      handler: "Common",
+      handler: "Standard",
     },
   ];
 
@@ -194,10 +195,10 @@ describe("Shanten Calculator", () => {
     test(tt.name, () => {
       const h = new Hand(tt.input);
       const c = new ShantenCalculator(h);
-      let got: number = -1;
+      let got;
       if (tt.handler == "Seven") got = c.sevenPairs();
       else if (tt.handler == "Orphans") got = c.thirteenOrphans();
-      else if (tt.handler == "Common") got = c.standardType();
+      else if (tt.handler == "Standard") got = c.standardType();
       else throw new Error(`unexpected handler ${tt.handler}`);
       expect(got).toBe(tt.want);
     });
@@ -244,50 +245,50 @@ describe("Block Calculator", () => {
       name: "simple",
       input: "111m456m789m123s11p",
       want: [["11p", "111m", "456m", "789m", "123s"]],
-      handler: "Common",
+      handler: "Standard",
     },
     {
       name: "with called",
       input: "111m456m789m11p,-213s",
       want: [["11p", "111m", "456m", "789m", "-213s"]],
-      handler: "Common",
+      handler: "Standard",
     },
     {
-      name: "multiple",
+      name: "multiple/three and run",
       input: "111222333m123s11p",
       want: [
         ["11p", "123m", "123m", "123m", "123s"],
         ["11p", "111m", "222m", "333m", "123s"],
       ],
-      handler: "Common",
+      handler: "Standard",
     },
     {
-      name: "two sets",
+      name: "complex 清一色",
       input: "11223344556677m",
       want: [
         ["11m", "234m", "234m", "567m", "567m"],
         ["44m", "123m", "123m", "567m", "567m"],
         ["77m", "123m", "123m", "456m", "456m"],
       ],
-      handler: "Common",
+      handler: "Standard",
     },
     {
-      name: "common",
+      name: "standardType",
       input: "111123m123s123p11z",
       want: [["11z", "123m", "111m", "123p", "123s"]],
-      handler: "Common",
+      handler: "Standard",
     },
     {
-      name: "common",
+      name: "standardType",
       input: "123m123s123p111z22m",
       want: [["22m", "123m", "123p", "123s", "111z"]],
-      handler: "Common",
+      handler: "Standard",
     },
     {
-      name: "common with red",
+      name: "standardType with red",
       input: "123m123pr555s111z22m",
       want: [["22m", "123m", "123p", "r555s", "111z"]],
-      handler: "Common",
+      handler: "Standard",
     },
     {
       name: "seven with red",
@@ -301,10 +302,10 @@ describe("Block Calculator", () => {
     test(tt.name, () => {
       const h = new Hand(tt.input);
       const c = new BlockCalculator(h);
-      let got: readonly (readonly Block[])[] = [];
+      let got;
       if (tt.handler == "Seven") got = c.sevenPairs();
       else if (tt.handler == "Orphans") got = c.thirteenOrphans();
-      else if (tt.handler == "Common") got = c.standardType();
+      else if (tt.handler == "Standard") got = c.standardType();
       else if (tt.handler == "Nine") got = c.nineGates();
       else throw new Error(`unexpected handler ${tt.handler}`);
       expect(handsToString(got)).toStrictEqual(tt.want);
@@ -313,7 +314,7 @@ describe("Block Calculator", () => {
 });
 
 describe("Block Calculator2", () => {
-  test("combinations with tsumo", () => {
+  test("tusmo op のブロックパターン", () => {
     const h = new Hand("1223m123s111z, -123m");
     h.draw(new Tile(TYPE.M, 2));
     const c = new BlockCalculator(h);
@@ -324,14 +325,14 @@ describe("Block Calculator2", () => {
     const got = handsToString(c.calc(h.drawn!));
     expect(got).toStrictEqual(want);
   });
-  test("combinations with red and implicit tsumo", () => {
+  test("red op と tsumo op だがパターンは増えない", () => {
     const h = new Hand("44r5566m, 123s, 123p, 11z");
     const want = [["11z", "4t56m", "4r56m", "123p", "123s"]];
     const c = new BlockCalculator(h);
     const got = handsToString(c.calc(new Tile(TYPE.M, 5, [OP.TSUMO])));
     expect(got).toStrictEqual(want);
   });
-  test("combinations with red and implicit ron", () => {
+  test("暗黙的なロンの対応", () => {
     const h = new Hand("44r5566m, 123s, 123p, 11z");
     const want = [["11z", "456m", "4vr56m", "123p", "123s"]];
     const c = new BlockCalculator(h);
@@ -367,7 +368,7 @@ describe("handleNumType/calcAllBlockCombinations", () => {
     expect(handsToString(got)).toStrictEqual(want);
   });
 
-  test("calcAllBlockCombinations() with red: 1*2", () => {
+  test("calcAllBlockCombinations() with red/Block[] 内で 5s を使用したパターンが 2 つあるため r5s と入れ替えパターンが発生する", () => {
     const h = new Hand("4r5667s,t5s");
     const c = new BlockCalculator(h);
     const got = (c as any).calcAllBlockCombinations() as Block[][];
@@ -391,7 +392,7 @@ describe("handleNumType/calcAllBlockCombinations", () => {
     expect(handsToString(got)).toStrictEqual(want);
   });
 
-  test("calcAllBlockCombinations() with red", () => {
+  test("Block[] 内で 5m を使用した2つのブロックパータンがないためが、r5 の入れ替えパターン（[444m, r567m])が発生しない", () => {
     const h = new Hand("44r55567m, t4m");
     const c = new BlockCalculator(h);
     const got = (c as any).calcAllBlockCombinations() as Block[][];

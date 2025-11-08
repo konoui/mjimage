@@ -402,7 +402,7 @@ class MockWall extends Wall {
     return this.doraIndicators;
   }
 
-  addExclude(...tiles: string[]) {
+  addExclude(...tiles: readonly string[]) {
     this.exclude.push(...tiles);
   }
 
@@ -416,7 +416,7 @@ class MockWall extends Wall {
     }
     return Tile.from(t);
   }
-  override initialHands(): { [key in Wind]: string } {
+  override initialHands(): { readonly [key in Wind]: string } {
     const i = this.oWall.initialHands();
     for (let w of Object.values(WIND)) {
       if (this.initial[w] != "") i[w] = this.initial[w];

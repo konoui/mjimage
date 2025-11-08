@@ -42,7 +42,7 @@ describe("parse", () => {
     expect(got).toStrictEqual(want);
   });
 
-  test("require type prefix", () => {
+  test("ErrorTest/require type prefix", () => {
     const p = new Parser("1");
     expect(() => {
       p.parse();
@@ -50,8 +50,8 @@ describe("parse", () => {
   });
 });
 
-describe("parseInput", () => {
-  test("1s", () => {
+describe("TileSeparators", () => {
+  test("single tile/1s", () => {
     const got = new Parser("1s").tiles();
     const want = [new Tile(TYPE.S, 1)];
     expect(got).toStrictEqual(want);
@@ -97,13 +97,13 @@ describe("parseInput", () => {
   });
 });
 
-describe("red operator", () => {
-  test("r5s", () => {
+describe("tiles parse/red operator", () => {
+  test("single tile/r5s", () => {
     const got = new Parser("r5s").tiles();
     expect(got).toStrictEqual([new Tile(TYPE.S, 5, [OP.RED])]);
   });
 
-  test("123s, tr5s", () => {
+  test("handle t0s alias as tr5s", () => {
     const got = new Parser("12s, t0s").tiles();
     expect(got).toStrictEqual([
       new Tile(TYPE.S, 1),
@@ -128,7 +128,7 @@ describe("sortTiles", () => {
     ];
     expect(got).toStrictEqual(want);
   });
-  test("505p", () => {
+  test("red tiles/505p", () => {
     const parsed = new Parser("505p").tiles();
     const got = [...parsed].sort(compareTiles);
     const want: Tile[] = [
@@ -141,7 +141,7 @@ describe("sortTiles", () => {
 });
 
 describe("sort called tiles", () => {
-  test("keep horizontal", () => {
+  test("keep a horizontal location", () => {
     const t = new Tile(TYPE.M, 3);
     const want = [t, t.clone({ add: OP.HORIZONTAL }), t];
     const got = sortCalledTiles([...want]);
@@ -150,7 +150,7 @@ describe("sort called tiles", () => {
   });
 });
 
-describe("fromPon", () => {
+describe("shokan/fromPon", () => {
   test("from pon", () => {
     const t = new Tile(TYPE.M, 3);
     const pon = new BlockPon([t, t.clone({ add: OP.HORIZONTAL }), t]);
@@ -162,5 +162,20 @@ describe("fromPon", () => {
     ];
     const got = BlockShoKan.fromPon(pon, t).tiles;
     expect(got).toStrictEqual(want);
+  });
+});
+
+describe("toString", () => {
+  test("anakn", () => {
+    const t = new Tile(TYPE.M, 1);
+    const b = new BlockAnKan([t, t, t, t]);
+    expect(b.toString()).toEqual("_11m_");
+  });
+  test("hand", () => {
+    const t1 = new Tile(TYPE.M, 1);
+    const t2 = new Tile(TYPE.S, 1);
+    const t3 = new Tile(TYPE.BACK, 0);
+    const b = new BlockHand([t1, t2, t2, t3, t1, t2, t3]);
+    expect(b.toString()).toEqual("11m111s__");
   });
 });
