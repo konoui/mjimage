@@ -301,6 +301,24 @@ describe("callable", () => {
     const got = c.doDaiKan("1z", "2z", new Tile(TYPE.M, 5, [OP.RED]));
     expect(got.toString()).toBe("555-r5m");
   });
+  test("ankan/r5m", () => {
+    const { c } = createLocalGame();
+    c.observer.hands["1z"] = new ActorHand("r5555m");
+    const got = c.doAnKan("1z");
+    expect(got.toString()).toBe("_r55m_");
+  });
+  test("shokan/r5m/牌は先頭に追加される", () => {
+    const { c } = createLocalGame();
+    c.observer.hands["1z"] = new ActorHand("r5m, 5-55m");
+    const got = c.doShoKan("1z");
+    expect(got.toString()).toBe("5-r5-55m");
+  });
+  test("shokan/5m/牌は先頭に追加される", () => {
+    const { c } = createLocalGame();
+    c.observer.hands["1z"] = new ActorHand("5m, 5-r55m");
+    const got = c.doShoKan("1z");
+    expect(got.toString()).toBe("5-5-r55m");
+  });
 });
 
 class MockPlayer extends Player {

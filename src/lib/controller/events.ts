@@ -34,9 +34,9 @@ export interface DistributeEvent {
   hands: { readonly [w in Wind]: string };
   wind: Wind;
   doraIndicator: string;
-  players: string[];
+  players: readonly string[];
   places: { readonly [id: string]: Wind };
-  sticks: { reach: number; dead: number };
+  sticks: { readonly reach: number; readonly dead: number };
   round: Round;
   scores: { readonly [key: string]: number };
 }
@@ -47,7 +47,7 @@ export interface EndEvent {
   subType: "WIN_GAME" | "DRAWN_GAME" | "FOUR_KAN" | "FOUR_WIND" | "NINE_TILES";
   wind: Wind;
   scores: { readonly [key: string]: number };
-  sticks: { reach: number; dead: number };
+  sticks: { readonly reach: number; readonly dead: number };
   deltas: { readonly [w in Wind]: number };
   hands: { readonly [w in Wind]: string };
   shouldContinue: boolean;
@@ -67,7 +67,7 @@ export interface RonEvent {
   iam: Wind;
   wind: Wind;
   ret: SerializedWinResult;
-  victimInfo: { wind: Wind; tile: string };
+  victimInfo: { readonly wind: Wind; readonly tile: string };
 }
 
 export interface TsumoEvent {
@@ -108,7 +108,7 @@ export interface ReachAcceptedEvent {
   id: string;
   type: Extract<Event, "REACH_ACCEPTED">;
   wind: Wind;
-  reacherInfo: { wind: Wind; tile: string };
+  reacherInfo: { readonly wind: Wind; readonly tile: string };
 }
 
 export interface NewDoraEvent {
@@ -122,7 +122,7 @@ export interface ChoiceAfterDrawnEvent {
   id: string;
   type: Extract<Event, "CHOICE_AFTER_DRAWN">;
   wind: Wind;
-  drawerInfo: { wind: Wind; tile: string };
+  drawerInfo: { readonly wind: Wind; readonly tile: string };
   choices: DrawnChoice;
 }
 
@@ -130,7 +130,7 @@ export interface ChoiceAfterDiscardedEvent {
   id: string;
   type: Extract<Event, "CHOICE_AFTER_DISCARDED">;
   wind: Wind;
-  discarterInfo: { wind: Wind; tile: string };
+  discarterInfo: { readonly wind: Wind; readonly tile: string };
   choices: DiscardedChoice;
 }
 
@@ -138,7 +138,7 @@ export interface ChoiceForReachAcceptance {
   id: string;
   type: Extract<Event, "CHOICE_FOR_REACH_ACCEPTANCE">;
   wind: Wind;
-  reacherInfo: { wind: Wind; tile: string };
+  reacherInfo: { readonly wind: Wind; readonly tile: string };
   choices: Pick<DiscardedChoice, "RON">;
 }
 
@@ -153,7 +153,7 @@ export interface ChoiceForChanKan {
   id: string;
   type: Extract<Event, "CHOICE_FOR_CHAN_KAN">;
   wind: Wind;
-  callerInfo: { wind: Wind; tile: string };
+  callerInfo: { readonly wind: Wind; readonly tile: string };
   choices: Pick<DiscardedChoice, "RON">;
 }
 
@@ -186,7 +186,7 @@ interface DrawnChoice {
   REACH: false | readonly SerializedTileAnalysis[];
   AN_KAN: false | readonly SerializedBlock[];
   SHO_KAN: false | readonly SerializedBlock[];
-  DISCARD: false | string[];
+  DISCARD: false | readonly string[];
   DRAWN_GAME_BY_NINE_ORPHANS: boolean;
 }
 

@@ -1,13 +1,19 @@
 import { Wind, TYPE, WIND, OP } from "../core/constants";
 import {
+  ChoiceAfterCalled,
   ChoiceAfterDiscardedEvent,
   ChoiceAfterDrawnEvent,
   ChoiceForChanKan,
   ChoiceForReachAcceptance,
   Controller,
+  DiscardEvent,
+  DistributeEvent,
+  EndEvent,
+  NewDoraEvent,
   ReachAcceptedEvent,
   ReachEvent,
   RonEvent,
+  TsumoEvent,
 } from "./index";
 import {
   BlockAnKan,
@@ -414,9 +420,9 @@ export const createControllerMachine = (c: Controller) => {
           for (const w of Object.values(WIND)) {
             const hands = createWindMap("_____________");
             hands[w] = initHands[w].toString();
-            const e = {
+            const e: DistributeEvent = {
               id: id,
-              type: "DISTRIBUTE" as const,
+              type: "DISTRIBUTE",
               hands: hands,
               wind: w,
               doraIndicator:
@@ -437,7 +443,7 @@ export const createControllerMachine = (c: Controller) => {
           const id = context.genEventID();
           const e: ChoiceAfterDrawnEvent = {
             id: id,
-            type: "CHOICE_AFTER_DRAWN" as const,
+            type: "CHOICE_AFTER_DRAWN",
             wind: w,
             drawerInfo: { wind: w, tile: drawn!.toString() },
             choices: {
@@ -466,7 +472,7 @@ export const createControllerMachine = (c: Controller) => {
           for (const w of Object.values(WIND)) {
             const e: ChoiceAfterDiscardedEvent = {
               id: id,
-              type: "CHOICE_AFTER_DISCARDED" as const,
+              type: "CHOICE_AFTER_DISCARDED",
               wind: w,
               discarterInfo: {
                 wind: discarded.w,
@@ -508,9 +514,9 @@ export const createControllerMachine = (c: Controller) => {
             .called.at(-1);
           if (called instanceof BlockChi || called instanceof BlockPon)
             discard = context.controller.doDiscard(w, called);
-          const e = {
+          const e: ChoiceAfterCalled = {
             id: id,
-            type: "CHOICE_AFTER_CALLED" as const,
+            type: "CHOICE_AFTER_CALLED",
             wind: w,
             choices: {
               DISCARD: discard.map((v) => v.toString()),
@@ -608,9 +614,9 @@ export const createControllerMachine = (c: Controller) => {
           const iam = context.currentWind;
           const t = event.tile;
           for (const w of Object.values(WIND)) {
-            const e = {
+            const e: DiscardEvent = {
               id: id,
-              type: "DISCARD" as const,
+              type: "DISCARD",
               iam: iam,
               wind: w,
               tile: t.toString(),
@@ -623,9 +629,10 @@ export const createControllerMachine = (c: Controller) => {
           const id = context.genEventID();
 
           const action = (params as { action: string } | undefined)?.action; // TODO avoid as
-          let drawn: Tile | undefined = undefined;
-          if (action == "kan") drawn = context.controller.wall.kan();
-          else drawn = context.controller.wall.draw();
+          const drawn =
+            action == "kan"
+              ? context.controller.wall.kan()
+              : context.controller.wall.draw();
 
           const iam = context.currentWind;
 
@@ -634,8 +641,7 @@ export const createControllerMachine = (c: Controller) => {
             context.missingMap[iam] = false;
 
           for (const w of Object.values(WIND)) {
-            let t = new Tile(TYPE.BACK, 0, [OP.TSUMO]); // mask tile for other players
-            if (w == iam) t = drawn;
+            const t = w == iam ? drawn : new Tile(TYPE.BACK, 0, [OP.TSUMO]); // mask tile for other players
             const e = {
               id: id,
               type: "DRAW" as const,
@@ -672,7 +678,7 @@ export const createControllerMachine = (c: Controller) => {
           const id = context.genEventID();
           const iam = context.currentWind;
           for (const w of Object.values(WIND)) {
-            const e = {
+            const e: TsumoEvent = {
               id: id,
               type: event.type,
               iam: iam,
@@ -722,9 +728,9 @@ export const createControllerMachine = (c: Controller) => {
           if (event.type == "AN_KAN") {
             const tile = context.controller.wall.openDoraIndicator();
             for (const w of Object.values(WIND)) {
-              const e = {
+              const e: NewDoraEvent = {
                 id: id,
-                type: "NEW_DORA" as const,
+                type: "NEW_DORA",
                 wind: w,
                 doraIndicator: tile.toString(),
               };
@@ -747,10 +753,10 @@ export const createControllerMachine = (c: Controller) => {
           if (event.type == "DRAWN_GAME_BY_NINE_ORPHANS") {
             hands[event.iam] = context.controller.hand(event.iam).toString();
             for (const w of Object.values(WIND)) {
-              const e = {
+              const e: EndEvent = {
                 id: id,
-                type: "END_GAME" as const,
-                subType: "NINE_TILES" as const,
+                type: "END_GAME",
+                subType: "NINE_TILES",
                 wind: w,
                 shouldContinue: true,
                 sticks: context.controller.placeManager.sticks,
@@ -768,10 +774,10 @@ export const createControllerMachine = (c: Controller) => {
             );
             for (const w of Object.values(WIND)) {
               hands[event.iam] = context.controller.hand(event.iam).toString();
-              const e = {
+              const e: EndEvent = {
                 id: id,
-                type: "END_GAME" as const,
-                subType: "WIN_GAME" as const,
+                type: "END_GAME",
+                subType: "WIN_GAME",
                 wind: w,
                 shouldContinue: shouldContinue,
                 sticks: { reach: 0, dead: 0 },
@@ -789,9 +795,9 @@ export const createControllerMachine = (c: Controller) => {
               ? ("FOUR_KAN" as const)
               : ("FOUR_WIND" as const);
             for (const w of Object.values(WIND)) {
-              const e = {
+              const e: EndEvent = {
                 id: id,
-                type: "END_GAME" as const,
+                type: "END_GAME",
                 subType: subType,
                 wind: w,
                 shouldContinue: true,
@@ -824,10 +830,10 @@ export const createControllerMachine = (c: Controller) => {
 
             const shouldContinue = wind.length == 4 || deltas[WIND.E] > 0;
             for (const w of Object.values(WIND)) {
-              const e = {
+              const e: EndEvent = {
                 id: id,
-                type: "END_GAME" as const,
-                subType: "DRAWN_GAME" as const,
+                type: "END_GAME",
+                subType: "DRAWN_GAME",
                 wind: w,
                 shouldContinue: shouldContinue,
                 sticks: context.controller.placeManager.sticks,

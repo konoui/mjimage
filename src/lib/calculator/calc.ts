@@ -163,13 +163,14 @@ export class Hand {
     return `${b}${tsumo}${called}`;
   }
   /**
-   * 晒したブロックの配列を返す
+   * 晒したブロックの配列を返す。
+   * 晒したブロック順となる。
    */
   get called() {
     return this.data.called;
   }
   /**
-   * リーチ中かどうかを返す
+   * リーチ中かどうかを返す。
    */
   get reached() {
     return this.data.reached;
