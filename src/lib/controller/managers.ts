@@ -38,8 +38,8 @@ export class ScoreManager {
 export class PlaceManager {
   private playerToWind: { [id: string]: Wind } = {};
   private windToPlayer = createWindMap("");
-  round: Round;
-  sticks: { reach: number; dead: number };
+  private _round: Round;
+  private _sticks: { reach: number; dead: number };
   constructor(
     initial: { readonly [key: string]: Wind },
     params?: {
@@ -47,11 +47,19 @@ export class PlaceManager {
       readonly sticks: { readonly reach: number; readonly dead: number };
     }
   ) {
-    this.round = params?.round ?? ROUND.E1;
-    this.sticks = structuredClone(params?.sticks) ?? { reach: 0, dead: 0 };
+    this._round = params?.round ?? ROUND.E1;
+    this._sticks = structuredClone(params?.sticks) ?? { reach: 0, dead: 0 };
     this.playerToWind = structuredClone(initial);
     for (let playerID in this.playerToWind)
       this.windToPlayer[this.playerToWind[playerID]] = playerID;
+  }
+
+  get sticks(): { readonly reach: number; readonly dead: number } {
+    return this._sticks;
+  }
+
+  get round() {
+    return this._round;
   }
 
   private update() {
@@ -62,21 +70,21 @@ export class PlaceManager {
     }
   }
   incrementDeadStick() {
-    this.sticks.dead++;
+    this._sticks.dead++;
   }
   incrementReachStick() {
-    this.sticks.reach++;
+    this._sticks.reach++;
   }
   nextRound() {
     const next = nextRound(this.round);
-    this.round = next;
+    this._round = next;
     this.update();
   }
   resetDeadStick() {
-    this.sticks.dead = 0;
+    this._sticks.dead = 0;
   }
   resetReachStick() {
-    this.sticks.reach = 0;
+    this._sticks.reach = 0;
   }
   is(r: Round) {
     return this.round == r;
@@ -112,7 +120,7 @@ export class Counter {
     [TYPE.P]: TupleOfSize<number, 10>;
     [TYPE.Z]: TupleOfSize<number, 8>;
   };
-  safeTileMap = createWindMap({} as { [name: string]: boolean }, true);
+  private safeTileMap = createWindMap({} as { [name: string]: boolean }, true);
   constructor(public disabled = false) {
     this.c = this.initial();
   }

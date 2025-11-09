@@ -356,7 +356,7 @@ class MockPlayer extends Player {
 
         // デフォルトはツモ切り
         e.choices.AN_KAN = false;
-        e.choices.DRAWN_GAME_BY_NINE_ORPHANS = false;
+        e.choices.DRAWN_GAME_BY_NINE_TERMINALS = false;
         e.choices.SHO_KAN = false;
         e.choices.TSUMO = false;
         e.choices.REACH = false;

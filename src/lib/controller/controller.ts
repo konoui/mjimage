@@ -64,7 +64,7 @@ import {
 } from ".";
 import { nextWind } from "../core/";
 
-export interface GameHistory {
+export interface RoundHistory {
   round: Round;
   scores: { [wind in string]: number };
   players: { [id in string]: Wind };
@@ -84,8 +84,9 @@ export class Controller {
   actor = createActor(createControllerMachine(this), {});
   observer: Observer;
   handlers: { [id: string]: EventHandler } = {};
+  // TODO 同じイベント ID は同じ特定イベントの配列になるので特定イベント ID の配列の union が良さそう
   mailBox: { [id: string]: PlayerEvent[] } = {};
-  histories: GameHistory[] = [];
+  histories: RoundHistory[] = [];
   debugMode: boolean;
 
   constructor(
@@ -120,20 +121,12 @@ export class Controller {
       [shuffled[3]]: WIND.N,
     });
   }
-  boardParams(w: Wind): BoardContext {
-    const hand = this.hand(w);
-    let reached: 1 | 2 | undefined = !hand.reached ? undefined : 1;
-    if (reached) {
-      const d = this.river.discards(w);
-      reached =
-        d.length == 0 || (d.length == 1 && d[0].t.has(OP.HORIZONTAL)) ? 2 : 1;
-    }
+  getBaseBoardParams(w: Wind) {
     return {
       doraIndicators: this.observer.doraIndicators,
       round: this.placeManager.round,
       myWind: w,
       sticks: this.observer.placeManager.sticks,
-      reached: reached,
     };
   }
   hand(w: Wind) {
@@ -171,15 +164,16 @@ export class Controller {
   }
   // TODO event instead of eventID to validate choice here
   pollReplies(eventID: string, wind: readonly Wind[]) {
+    // 全てのイベントは同じタイプ
     const events = this.mailBox[eventID];
     if (events == null) {
       throw new Error(
-        `not enqueued ${eventID} at ${this.actor.getSnapshot().value}`
+        `${eventID} is not enqueued at ${this.actor.getSnapshot().value}`
       );
     }
     if (events.length != wind.length) {
       throw new Error(
-        `${eventID}: num of event: got: ${wind.length}, want: ${events.length}`
+        `${eventID}: num of events: got: ${wind.length}, want: ${events.length}`
       );
     }
     if (wind.length == 0) {
@@ -198,7 +192,7 @@ export class Controller {
       const e = selected.events[0];
       switch (selected.type) {
         case "RON":
-          assert(e.choices.RON, "ron choice is none");
+          assert(e.choices.RON, "RON choice is not available");
           this.actor.send({
             type: selected.type,
             iam: e.wind,
@@ -210,7 +204,7 @@ export class Controller {
           });
           break;
         case "DAI_KAN":
-          assert(e.choices.DAI_KAN, "daikan choice is none");
+          assert(e.choices.DAI_KAN, "DAI_KAN choice is not available");
           this.actor.send({
             type: selected.type,
             iam: e.wind,
@@ -220,17 +214,18 @@ export class Controller {
         case "CHI":
         case "PON":
           const c = e.choices[selected.type];
-          assert(c, `${selected.type} choice is none`);
+          assert(c, `${selected.type} choice is not available"`);
           assert(
             selected.events.length == 1,
             `found more than one selected: ${JSON.stringify(selected, null, 2)}`
           );
-          const block = BlockPon.deserialize(c[0]);
+          const block = Block.deserialize(c[0]);
           this.actor.send({
             type: selected.type,
             iam: e.wind,
             block: block,
           });
+          break;
       }
     } else if (sample.type == "CHOICE_AFTER_DRAWN") {
       const selected = prioritizeDrawnEvents(events as ChoiceAfterDrawnEvent[]);
@@ -242,7 +237,7 @@ export class Controller {
       const w = e.wind;
       switch (selected.type) {
         case "TSUMO":
-          assert(e.choices.TSUMO, "tsumo choice is none");
+          assert(e.choices.TSUMO, "TSUMO choice is not available");
           this.actor.send({
             type: selected.type,
             ret: deserializeWinResult(e.choices.TSUMO),
@@ -252,7 +247,7 @@ export class Controller {
           break;
         case "REACH":
           const candidates = e.choices[selected.type];
-          assert(candidates, `${selected.type} candidates is none`);
+          assert(candidates, `${selected.type} candidates are not available`);
           this.actor.send({
             type: "REACH",
             tile: Tile.from(candidates[0].tile),
@@ -261,7 +256,7 @@ export class Controller {
           break;
         case "DISCARD":
           const tiles = e.choices[selected.type];
-          assert(tiles, `${selected.type} choice is none`);
+          assert(tiles, `${selected.type} choice is not available`);
           this.actor.send({
             type: selected.type,
             tile: Tile.from(tiles[0]).clone({ remove: OP.TSUMO }),
@@ -270,7 +265,7 @@ export class Controller {
           break;
         case "AN_KAN": {
           const choices = e.choices[selected.type];
-          assert(choices, `${selected.type} choice is none`);
+          assert(choices, `${selected.type} choice is not available`);
           this.actor.send({
             type: selected.type,
             block: BlockAnKan.from(choices[0].tiles),
@@ -280,7 +275,7 @@ export class Controller {
         }
         case "SHO_KAN": {
           const choices = e.choices[selected.type];
-          assert(choices, `${selected.type} choice is none`);
+          assert(choices, `${selected.type} choice is not available`);
           this.actor.send({
             type: selected.type,
             block: BlockShoKan.from(choices[0].tiles),
@@ -288,14 +283,14 @@ export class Controller {
           });
           break;
         }
-        case "DRAWN_GAME_BY_NINE_ORPHANS":
-          this.actor.send({ type: "DRAWN_GAME_BY_NINE_ORPHANS", iam: w });
+        case "DRAWN_GAME_BY_NINE_TERMINALS":
+          this.actor.send({ type: "DRAWN_GAME_BY_NINE_TERMINALS", iam: w });
           break;
       }
     } else if (sample.type == "CHOICE_AFTER_CALLED") {
       assert(
         sample.choices.DISCARD,
-        `discard candidate tile is none: ${JSON.stringify(
+        `discard candidate tile is not available: ${JSON.stringify(
           sample,
           null,
           2
@@ -343,7 +338,7 @@ export class Controller {
       }
 
       const e = selected[0];
-      assert(e.choices.RON, "ron choice is none");
+      assert(e.choices.RON, "RON choice is not available");
       this.actor.send({
         type: "RON",
         iam: e.wind,
@@ -356,13 +351,13 @@ export class Controller {
       });
       return;
     } else {
-      console.warn(`controller found unexpected event: ${sample.type}`);
+      throw new Error(`controller found an unexpected event: ${sample.type}`);
     }
   }
   export() {
     return this.histories.concat();
   }
-  static load(h: GameHistory) {
+  static load(h: RoundHistory) {
     const events = h.choiceEvents;
     const playerIDs = Object.keys(h.players);
     const empty: EventHandler = {
@@ -428,7 +423,7 @@ export class Controller {
       sticks: this.placeManager.sticks,
       hiddenDoraIndicators,
     }).calc(ret.hand);
-    assert(final);
+    assert(final, `[bug] the final result is false`);
     return final;
   }
   doWin(
@@ -443,88 +438,112 @@ export class Controller {
     }
   ): WinResult | false {
     if (t == null) return false;
-    let hand = this.hand(w);
-    const env = this.boardParams(w);
-    const isRon = hand.drawn == null;
+    const hand = this.hand(w);
+    const discarded = this.river.discards(w);
+    let cloned = hand;
+    const base = this.getBaseBoardParams(w);
+    const env: BoardContext = { ...base };
+    const isRon = cloned.drawn == null;
     if (isRon) {
       if (params == null) throw new Error("should ron but params == null");
       if (params.discardedBy == w) return false;
       if (params.missingRon) return false;
-      hand = hand.clone();
+      cloned = cloned.clone();
       env.ronWind = params.discardedBy;
       env.finalDiscardWin = !this.wall.canDraw;
       env.quadWin = params.quadWin;
-      hand.inc([t]);
+      cloned.inc([t]);
     } else {
       env.finalWallWin = !this.wall.canDraw;
       env.replacementWin = params?.replacementWin;
     }
     env.oneShotWin = params?.oneShot;
+    env.doubleReached =
+      discarded.length == 0 ||
+      (discarded.length == 1 && discarded[0].t.has(OP.HORIZONTAL));
+    return ActionLogic.doWin(hand, env, t, discarded);
+  }
+  doPon(w: Wind, discardedBy: Wind, t?: Tile): readonly BlockPon[] | false {
+    if (t == null) return false;
+    const hand = this.hand(w);
+    return ActionLogic.doPon(hand, w, discardedBy, t);
+  }
+  doChi(w: Wind, discardedBy: Wind, t?: Tile): readonly BlockChi[] | false {
+    if (t == null) return false;
+    const hand = this.hand(w);
+    return ActionLogic.doChi(hand, w, discardedBy, t);
+  }
+  doReach(w: Wind): readonly TileAnalysis[] | false {
+    const hand = this.hand(w);
+    return ActionLogic.doReach(hand);
+  }
+  doDiscard(w: Wind, called?: BlockChi | BlockPon): readonly Tile[] {
+    const hand = this.hand(w);
+    return ActionLogic.doDiscard(hand, called);
+  }
+  doAnKan(w: Wind): readonly BlockAnKan[] | false {
+    const hand = this.hand(w);
+    return ActionLogic.doAnkan(hand);
+  }
+  doShoKan(w: Wind): readonly BlockShoKan[] | false {
+    const hand = this.hand(w);
+    return ActionLogic.doShoKan(hand);
+  }
+  doDaiKan(w: Wind, discardedBy: Wind, t: Tile): BlockDaiKan | false {
+    const hand = this.hand(w);
+    return ActionLogic.doDaiKan(hand, w, discardedBy, t);
+  }
+  canDeclareNineTerminalsAbort(w: Wind) {
+    if (this.river.discards(w).length != 0) return false;
+    const h = this.hand(w);
+    let num = 0;
+    for (const t of Object.values(TYPE)) {
+      if (t == TYPE.BACK) continue;
+      const arr = t == TYPE.Z ? NZ : N19;
+      for (const n of arr) {
+        if (h.get(t, n) > 0) num++;
+      }
+    }
+    return num >= 9;
+  }
+  initialHands() {
+    return this.wall.initialHands();
+  }
+}
 
-    const tc = new BlockCalculator(hand);
-    const dc = new PointCalculator(hand, env);
+export class ActionLogic {
+  static doWin(
+    hand: Hand,
+    env: BoardContext,
+    t: Tile,
+    riverDiscarded: readonly { t: Tile }[]
+  ) {
+    const isRon = env.ronWind != null;
+    const cloned = isRon ? hand.clone() : hand;
+    // ロン牌を手牌に加える
+    if (isRon) cloned.inc([t]);
+    const tc = new BlockCalculator(cloned);
+    const dc = new PointCalculator(cloned, env);
     const hands = tc.calc(t);
     const ret = dc.calc(...hands);
     if (!ret) return false;
-    if (ret.yakus.length == 0) return false;
 
-    // case ron フリテン対応
+    // 自分捨てた牌へのフリテン対応
     if (isRon) {
-      const c = Efficiency.getEffectiveTiles(this.hand(w)).effectiveTiles;
-      if (this.river.discards(w).some((v) => c.some((ct) => ct.equals(v.t))))
+      const c = Efficiency.getEffectiveTiles(hand).effectiveTiles;
+      if (riverDiscarded.some((v) => c.some((ct) => ct.equals(v.t))))
         return false;
     }
     return ret;
   }
-  doPon(w: Wind, discardedBy: Wind, t?: Tile): readonly BlockPon[] | false {
-    if (t == null) return false;
-    if (w == discardedBy) return false;
-    const hand = this.hand(w);
-    if (hand.reached) return false;
-    if (hand.hands.length < 3) return false;
-    if (hand.get(t.t, t.n) < 2) return false;
-
-    const sample = t.clone({ removeAll: true });
-    const idx = getCallBlockIndex(w, discardedBy, BLOCK.PON);
-
-    const base = new BlockPon([sample, sample, sample]).clone({
-      replace: { idx, tile: t.clone({ add: OP.HORIZONTAL }) },
-    });
-
-    // if discarded tile is RED
-    if (is5Tile(t) && t.has(OP.RED)) {
-      const newBlock = base.clone({
-        replace: {
-          idx: idx,
-          tile: sample.clone({
-            add: [OP.RED, OP.HORIZONTAL],
-          }),
-        },
-      });
-      return [newBlock];
-    }
-    // if the hand has red
-    const ridx = (idx % 2) + 1;
-    if (is5Tile(t) && hand.get(t.t, 0) > 0) {
-      const red = base.clone({
-        replace: { idx: ridx, tile: sample.clone({ add: OP.RED }) },
-      });
-      // red and non red case if the hand has 3 tiles including red
-      if (hand.get(sample.t, 5) == 3) {
-        const nonRed = base.clone({
-          replace: { idx: ridx, tile: sample },
-        });
-        return [red, nonRed];
-      } else return [red];
-    }
-
-    return [base];
-  }
-  doChi(w: Wind, discardedBy: Wind, t?: Tile): readonly BlockChi[] | false {
-    if (t == null) return false;
+  static doChi(
+    hand: Hand,
+    iam: Wind,
+    discardedBy: Wind,
+    t: Tile
+  ): false | readonly BlockChi[] {
     if (!t.isNum()) return false;
-    if (nextWind(discardedBy) != w) return false;
-    const hand = this.hand(w);
+    if (nextWind(discardedBy) != iam) return false;
     if (hand.reached) return false;
     if (hand.hands.length < 3) return false;
 
@@ -578,7 +597,7 @@ export class Controller {
     // 鳴く牌とスジの牌を削除し、手配が0になればそのブロックでは鳴けない。
     for (let i = 0; i < blocks.length; i++) {
       const b = blocks[i];
-      const tiles = cannotDiscardTiles(b);
+      const tiles = getForbiddenDiscardTiles(b);
       const toDec: Tile[] = [];
       for (const t of tiles) {
         const n = hand.get(t.t, t.n);
@@ -610,29 +629,59 @@ export class Controller {
     // 4. else if hand as red and non red tiles return original blocks and red blocks
     const hasRed = hand.get(t.t, 0) > 0;
     if (!hasRed) return blocks;
-    const redBlocks = hasRed ? this.getRedPattern(blocksWith5) : [];
+    const redBlocks = hasRed ? getRedPatterns(blocksWith5) : [];
     if (redBlocks.length > 0 && hasRed && hand.get(t.t, 5) == 1)
       return [...blocksWithout5, ...redBlocks];
     return [...blocks, ...redBlocks];
   }
-  private getRedPattern(blocksWith5: readonly BlockChi[]): readonly BlockChi[] {
-    if (blocksWith5.length == 0) return [];
-    return blocksWith5
-      .map((b) => {
-        if (is5Tile(b.tiles[1])) {
-          const rt = b.tiles[1].clone({ add: OP.RED });
-          const n = b.clone({ replace: { idx: 1, tile: rt } });
-          return n;
-        } else if (is5Tile(b.tiles[2])) {
-          const rt = b.tiles[2].clone({ add: OP.RED });
-          const n = b.clone({ replace: { idx: 2, tile: rt } });
-          return n;
-        }
-      })
-      .filter((b) => b != null);
+  static doPon(
+    hand: Hand,
+    iam: Wind,
+    discardedBy: Wind,
+    t: Tile
+  ): false | readonly BlockPon[] {
+    if (iam == discardedBy) return false;
+    if (hand.reached) return false;
+    if (hand.hands.length < 3) return false;
+    if (hand.get(t.t, t.n) < 2) return false;
+
+    const sample = t.clone({ removeAll: true });
+    const idx = getCallBlockIndex(iam, discardedBy, BLOCK.PON);
+
+    const base = new BlockPon([sample, sample, sample]).clone({
+      replace: { idx, tile: t.clone({ add: OP.HORIZONTAL }) },
+    });
+
+    // if discarded tile is RED
+    if (is5Tile(t) && t.has(OP.RED)) {
+      const newBlock = base.clone({
+        replace: {
+          idx: idx,
+          tile: sample.clone({
+            add: [OP.RED, OP.HORIZONTAL],
+          }),
+        },
+      });
+      return [newBlock];
+    }
+    // if the hand has red
+    const ridx = (idx % 2) + 1;
+    if (is5Tile(t) && hand.get(t.t, 0) > 0) {
+      const red = base.clone({
+        replace: { idx: ridx, tile: sample.clone({ add: OP.RED }) },
+      });
+      // red and non red case if the hand has 3 tiles including red
+      if (hand.get(sample.t, 5) == 3) {
+        const nonRed = base.clone({
+          replace: { idx: ridx, tile: sample },
+        });
+        return [red, nonRed];
+      } else return [red];
+    }
+
+    return [base];
   }
-  doReach(w: Wind): readonly TileAnalysis[] | false {
-    const hand = this.hand(w);
+  static doReach(hand: Hand): false | readonly TileAnalysis[] {
     if (hand.reached) return false;
     if (!hand.menzen) return false;
     const s = new ShantenCalculator(hand).calc();
@@ -640,28 +689,67 @@ export class Controller {
     const r = Efficiency.calcEffectiveTiles(hand, hand.hands);
     return r;
   }
-  doDiscard(w: Wind, called?: BlockChi | BlockPon): readonly Tile[] {
-    if (this.hand(w).reached) return [this.hand(w).drawn!];
-    const hand = this.hand(w).hands;
-    if (called == null) return hand;
-
+  static doDiscard(hand: Hand, called?: BlockChi | BlockPon): readonly Tile[] {
+    if (hand.reached) return [hand.drawn!];
+    const handTiles = hand.hands;
+    if (called == null) return handTiles;
     if (called instanceof BlockPon) {
-      return hand.filter((v) => !v.equals(called.tiles[0]));
+      return handTiles.filter((v) => !v.equals(called.tiles[0]));
     }
-    const tiles = cannotDiscardTiles(called);
-    const ret = hand.filter((v) => !tiles.some((t) => v.equals(t)));
+    const tiles = getForbiddenDiscardTiles(called);
+    const ret = handTiles.filter((v) => !tiles.some((t) => v.equals(t)));
     assert(
       ret.length > 0,
-      `[bug] no tiles to discard. hand: ${this.hand(
-        w
-      )}, suji: ${tiles}, block-chi: ${called}`
+      `[bug] no tiles to discard. hand: ${hand}, forbidden tiles: ${tiles}, block-chi: ${called}`
     );
     return ret;
   }
+  static doDaiKan(
+    hand: Hand,
+    iam: Wind,
+    discardedBy: Wind,
+    t: Tile
+  ): false | BlockDaiKan {
+    if (hand.reached) return false;
+    if (iam == discardedBy) return false;
 
-  doAnKan(w: Wind): readonly BlockAnKan[] | false {
-    const hand = this.hand(w);
-    // TODO ハイテイ ではカンできない
+    const sample = t.clone({ removeAll: true });
+    if (hand.get(sample.t, sample.n) != 3) return false;
+
+    const idx = getCallBlockIndex(iam, discardedBy, BLOCK.DAI_KAN);
+    const base = new BlockDaiKan([sample, sample, sample, sample]).clone({
+      replace: { idx, tile: sample.clone({ add: OP.HORIZONTAL }) },
+    });
+
+    let block = base;
+    // 捨て牌が red ならその idx を red にする
+    if (is5Tile(t) && t.has(OP.RED)) {
+      block = base.clone({
+        replace: {
+          idx: idx,
+          tile: sample.clone({ add: [OP.HORIZONTAL, OP.RED] }),
+        },
+      });
+    }
+    // 捨て牌が non red なら鳴いた位置からずらして red にする
+    else if (is5Tile(t) && !t.has(OP.RED)) {
+      assert(
+        hand.get(t.t, 0) > 0,
+        `[bug] hand does not have red tile to daikan: ${hand.toString()}`
+      );
+      const ridx = (idx % 3) + 1;
+      block = base.clone({
+        replace: { idx: ridx, tile: sample.clone({ add: OP.RED }) },
+      });
+    }
+
+    assert(
+      block.tiles.filter((t) => t.has(OP.HORIZONTAL)).length == 1,
+      `[bug] daikan has unexpected horizontal operators: ${block.toString()}`
+    );
+    return block;
+  }
+  static doAnkan(hand: Hand): false | BlockAnKan[] {
     if (hand.reached) return false; // FIXME 待ち変更がなければできる
     const blocks: BlockAnKan[] = [];
     for (const [t, n] of forHand()) {
@@ -676,12 +764,11 @@ export class Controller {
     for (const b of blocks)
       assert(
         b.tiles.filter((t) => t.has(OP.HORIZONTAL)).length == 0,
-        `bug ankan has horizontal op: ${b.toString()}`
+        `[bug] ankan has horizontal op: ${b.toString()}`
       );
     return blocks;
   }
-  doShoKan(w: Wind): readonly BlockShoKan[] | false {
-    const hand = this.hand(w);
+  static doShoKan(hand: Hand): false | BlockShoKan[] {
     if (hand.reached) return false;
     // TODO ハイテイ ではカンできない
     const called = hand.called.filter((b) => b instanceof BlockPon);
@@ -704,73 +791,36 @@ export class Controller {
     for (const b of blocks)
       assert(
         b.tiles.filter((t) => t.has(OP.HORIZONTAL)).length == 2,
-        `bug shokan has unexpected horizontal operators: ${b.toString()}`
+        `[bug] shokan has unexpected horizontal operators: ${b.toString()}`
       );
     return blocks;
   }
-  doDaiKan(w: Wind, discardedBy: Wind, t: Tile): BlockDaiKan | false {
-    const hand = this.hand(w);
-    if (hand.reached) return false;
-    if (w == discardedBy) return false;
+}
 
-    const sample = t.clone({ removeAll: true });
-    if (hand.get(sample.t, sample.n) != 3) return false;
-
-    const idx = getCallBlockIndex(w, discardedBy, BLOCK.DAI_KAN);
-    const base = new BlockDaiKan([sample, sample, sample, sample]).clone({
-      replace: { idx, tile: sample.clone({ add: OP.HORIZONTAL }) },
-    });
-
-    let block = base;
-    // 捨て牌が red ならその idx を red にする
-    if (is5Tile(t) && t.has(OP.RED)) {
-      block = base.clone({
-        replace: {
-          idx: idx,
-          tile: sample.clone({ add: [OP.HORIZONTAL, OP.RED] }),
-        },
-      });
-    }
-    // 捨て牌が non red なら鳴いた位置からずらして red にする
-    else if (is5Tile(t) && !t.has(OP.RED)) {
-      assert(
-        hand.get(t.t, 0) > 0,
-        `bug hand does not have red tile: ${hand.toString()}`
-      );
-      const ridx = (idx % 3) + 1;
-      block = base.clone({
-        replace: { idx: ridx, tile: sample.clone({ add: OP.RED }) },
-      });
-    }
-
-    assert(
-      block.tiles.filter((t) => t.has(OP.HORIZONTAL)).length == 1,
-      `bug daikan has unexpected horizontal operators: ${block.toString()}`
-    );
-    return block;
-  }
-  canDrawnGame(w: Wind) {
-    if (this.river.discards(w).length != 0) return false;
-    const h = this.hand(w);
-    let num = 0;
-    for (const t of Object.values(TYPE)) {
-      if (t == TYPE.BACK) continue;
-      const arr = t == TYPE.Z ? NZ : N19;
-      for (const n of arr) {
-        if (h.get(t, n) > 0) num++;
+/**
+ * 赤なしのチーブロックを赤ありのチーブロックにして返す。
+ */
+function getRedPatterns(blocksWith5: readonly BlockChi[]): readonly BlockChi[] {
+  if (blocksWith5.length == 0) return [];
+  return blocksWith5
+    .map((b) => {
+      if (is5Tile(b.tiles[1])) {
+        const rt = b.tiles[1].clone({ add: OP.RED });
+        const n = b.clone({ replace: { idx: 1, tile: rt } });
+        return n;
+      } else if (is5Tile(b.tiles[2])) {
+        const rt = b.tiles[2].clone({ add: OP.RED });
+        const n = b.clone({ replace: { idx: 2, tile: rt } });
+        return n;
       }
-    }
-    return num >= 9;
-  }
-  initialHands() {
-    return this.wall.initialHands();
-  }
+    })
+    .filter((b) => b != null);
 }
 
 /**
  * 食いかえ対象の牌を返す
  */
-function cannotDiscardTiles(b: BlockChi) {
+function getForbiddenDiscardTiles(b: BlockChi): readonly Tile[] {
   const called = b.tiles[0];
   const h1 = b.tiles[1].n;
   // -423 の 1 , -978　の 6
@@ -812,11 +862,14 @@ export abstract class BaseActor {
   scoreManager = new ScoreManager({}); // empty for init
   hands = createWindMap(new ActorHand("")); // empty for init
   counter = new Counter();
-  doraIndicators: Tile[] = []; // empty for init
+  private _doraIndicators: Tile[] = []; // empty for init
   eventHandler: EventHandler;
   constructor(id: string, eventHandler: EventHandler) {
     this.id = id;
     this.eventHandler = eventHandler;
+  }
+  get doraIndicators(): readonly Tile[] {
+    return this._doraIndicators;
   }
   hand(w: Wind) {
     return this.hands[w];
@@ -843,7 +896,7 @@ export abstract class BaseActor {
           sticks: e.sticks,
         });
         this.scoreManager = new ScoreManager(e.scores);
-        this.doraIndicators = [doraIndicator];
+        this._doraIndicators = [doraIndicator];
 
         this.counter.dec(doraIndicator);
         for (const w of Object.values(WIND)) {
@@ -918,7 +971,7 @@ export abstract class BaseActor {
         break;
       case "NEW_DORA": {
         const doraIndicator = Tile.from(e.doraIndicator);
-        this.doraIndicators.push(doraIndicator);
+        this._doraIndicators.push(doraIndicator);
         this.counter.dec(doraIndicator);
         break;
       }
@@ -928,9 +981,9 @@ export abstract class BaseActor {
         break;
       case "END_GAME":
         switch (e.subType) {
-          case "NINE_TILES":
-          case "FOUR_KAN":
-          case "FOUR_WIND":
+          case "NINE_TERMINALS":
+          case "FOUR_KANS":
+          case "FOUR_WINDS":
             this.placeManager.incrementDeadStick();
             break;
           case "DRAWN_GAME": {

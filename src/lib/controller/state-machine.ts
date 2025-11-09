@@ -144,7 +144,7 @@ export const createControllerMachine = (c: Controller) => {
                 type: "disable_one_shot_for_me",
               },
             },
-            DRAWN_GAME_BY_NINE_ORPHANS: {
+            DRAWN_GAME_BY_NINE_TERMINALS: {
               target: "drawn_game",
               // TODO guard for drawn game
             },
@@ -404,7 +404,7 @@ export const createControllerMachine = (c: Controller) => {
           | { type: "AN_KAN"; block: BlockAnKan; iam: Wind }
           | { type: "SHO_KAN"; block: BlockShoKan; iam: Wind }
           | { type: "DAI_KAN"; block: BlockDaiKan; iam: Wind }
-          | { type: "DRAWN_GAME_BY_NINE_ORPHANS"; iam: Wind },
+          | { type: "DRAWN_GAME_BY_NINE_TERMINALS"; iam: Wind },
         context: {} as ControllerContext,
       },
     },
@@ -459,7 +459,8 @@ export const createControllerMachine = (c: Controller) => {
               AN_KAN: serializeBlocksOrFalse(context.controller.doAnKan(w)),
               SHO_KAN: serializeBlocksOrFalse(context.controller.doShoKan(w)),
               DISCARD: context.controller.doDiscard(w).map((v) => v.toString()),
-              DRAWN_GAME_BY_NINE_ORPHANS: context.controller.canDrawnGame(w),
+              DRAWN_GAME_BY_NINE_TERMINALS:
+                context.controller.canDeclareNineTerminalsAbort(w),
             },
           };
           context.controller.emit(e);
@@ -750,13 +751,13 @@ export const createControllerMachine = (c: Controller) => {
         notify_end: ({ context, event }) => {
           const id = context.genEventID();
           const hands = createWindMap("");
-          if (event.type == "DRAWN_GAME_BY_NINE_ORPHANS") {
+          if (event.type == "DRAWN_GAME_BY_NINE_TERMINALS") {
             hands[event.iam] = context.controller.hand(event.iam).toString();
             for (const w of Object.values(WIND)) {
               const e: EndEvent = {
                 id: id,
                 type: "END_GAME",
-                subType: "NINE_TILES",
+                subType: "NINE_TERMINALS",
                 wind: w,
                 shouldContinue: true,
                 sticks: context.controller.placeManager.sticks,
@@ -789,11 +790,11 @@ export const createControllerMachine = (c: Controller) => {
             }
           } else if (
             !context.controller.wall.canKan ||
-            context.controller.river.cannotContinue()
+            context.controller.river.isFourWindsAbort()
           ) {
             const subType = !context.controller.wall.canKan
-              ? ("FOUR_KAN" as const)
-              : ("FOUR_WIND" as const);
+              ? ("FOUR_KANS" as const)
+              : ("FOUR_WINDS" as const);
             for (const w of Object.values(WIND)) {
               const e: EndEvent = {
                 id: id,
@@ -886,7 +887,7 @@ export const createControllerMachine = (c: Controller) => {
           return (
             !context.controller.wall.canDraw ||
             !context.controller.wall.canKan ||
-            context.controller.river.cannotContinue()
+            context.controller.river.isFourWindsAbort()
           );
         },
       },

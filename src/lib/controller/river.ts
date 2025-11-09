@@ -7,7 +7,7 @@ export interface IRiver {
   discards(w?: Wind): readonly { w: Wind; t: Tile; callMarker?: boolean }[];
   lastTile: { w: Wind; t: Tile; callMarker?: boolean };
   markCalled(): void;
-  cannotContinue(): boolean;
+  isFourWindsAbort(): boolean;
 }
 
 export class River {
@@ -31,7 +31,7 @@ export class River {
   markCalled() {
     this.lastTile.callMarker = true;
   }
-  cannotContinue() {
+  isFourWindsAbort() {
     const discards = this.discards();
     if (discards.length != 4) return false;
     let t = discards[0].t;

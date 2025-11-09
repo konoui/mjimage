@@ -26,7 +26,7 @@ type ChoiceEvent =
   | "AN_KAN"
   | "SHO_KAN"
   | "DAI_KAN"
-  | "DRAWN_GAME_BY_NINE_ORPHANS";
+  | "DRAWN_GAME_BY_NINE_TERMINALS";
 
 export interface DistributeEvent {
   id: string;
@@ -44,7 +44,12 @@ export interface DistributeEvent {
 export interface EndEvent {
   id: string;
   type: Extract<Event, "END_GAME">;
-  subType: "WIN_GAME" | "DRAWN_GAME" | "FOUR_KAN" | "FOUR_WIND" | "NINE_TILES";
+  subType:
+    | "WIN_GAME"
+    | "DRAWN_GAME"
+    | "FOUR_KANS"
+    | "FOUR_WINDS"
+    | "NINE_TERMINALS";
   wind: Wind;
   scores: { readonly [key: string]: number };
   sticks: { readonly reach: number; readonly dead: number };
@@ -123,7 +128,7 @@ export interface ChoiceAfterDrawnEvent {
   type: Extract<Event, "CHOICE_AFTER_DRAWN">;
   wind: Wind;
   drawerInfo: { readonly wind: Wind; readonly tile: string };
-  choices: DrawnChoice;
+  choices: DrawChoice;
 }
 
 export interface ChoiceAfterDiscardedEvent {
@@ -131,7 +136,7 @@ export interface ChoiceAfterDiscardedEvent {
   type: Extract<Event, "CHOICE_AFTER_DISCARDED">;
   wind: Wind;
   discarterInfo: { readonly wind: Wind; readonly tile: string };
-  choices: DiscardedChoice;
+  choices: DiscardChoice;
 }
 
 export interface ChoiceForReachAcceptance {
@@ -139,14 +144,14 @@ export interface ChoiceForReachAcceptance {
   type: Extract<Event, "CHOICE_FOR_REACH_ACCEPTANCE">;
   wind: Wind;
   reacherInfo: { readonly wind: Wind; readonly tile: string };
-  choices: Pick<DiscardedChoice, "RON">;
+  choices: Pick<DiscardChoice, "RON">;
 }
 
 export interface ChoiceAfterCalled {
   id: string;
   type: Extract<Event, "CHOICE_AFTER_CALLED">;
   wind: Wind;
-  choices: Pick<DrawnChoice, "DISCARD">;
+  choices: Pick<DrawChoice, "DISCARD">;
 }
 
 export interface ChoiceForChanKan {
@@ -154,7 +159,7 @@ export interface ChoiceForChanKan {
   type: Extract<Event, "CHOICE_FOR_CHAN_KAN">;
   wind: Wind;
   callerInfo: { readonly wind: Wind; readonly tile: string };
-  choices: Pick<DiscardedChoice, "RON">;
+  choices: Pick<DiscardChoice, "RON">;
 }
 
 export type PlayerEvent =
@@ -174,27 +179,27 @@ export type PlayerEvent =
   | ChoiceForReachAcceptance
   | ChoiceForChanKan;
 
-interface DiscardedChoice {
+interface DiscardChoice {
   RON: false | SerializedWinResult;
   PON: false | readonly SerializedBlock[];
   CHI: false | readonly SerializedBlock[];
   DAI_KAN: false | SerializedBlock;
 }
 
-interface DrawnChoice {
+interface DrawChoice {
   TSUMO: false | SerializedWinResult;
   REACH: false | readonly SerializedTileAnalysis[];
   AN_KAN: false | readonly SerializedBlock[];
   SHO_KAN: false | readonly SerializedBlock[];
   DISCARD: false | readonly string[];
-  DRAWN_GAME_BY_NINE_ORPHANS: boolean;
+  DRAWN_GAME_BY_NINE_TERMINALS: boolean;
 }
 
-type ChoiceType = DiscardedChoice | DrawnChoice;
+type ChoiceType = DiscardChoice | DrawChoice;
 type ChoiceOrder<T extends ChoiceType> = (keyof T)[];
 
 export function prioritizeDiscardedEvents(events: ChoiceAfterDiscardedEvent[]) {
-  const order: ChoiceOrder<DiscardedChoice> = ["RON", "DAI_KAN", "PON", "CHI"];
+  const order: ChoiceOrder<DiscardChoice> = ["RON", "DAI_KAN", "PON", "CHI"];
   const choices = events.map((e) => e.choices);
   const indexes = prioritizeEvents(choices, order);
   const selected = indexes.map((idx) => events[idx]);
@@ -205,12 +210,12 @@ export function prioritizeDiscardedEvents(events: ChoiceAfterDiscardedEvent[]) {
 }
 
 export function prioritizeDrawnEvents(events: ChoiceAfterDrawnEvent[]) {
-  const order: ChoiceOrder<DrawnChoice> = [
+  const order: ChoiceOrder<DrawChoice> = [
     "TSUMO",
     "REACH",
     "AN_KAN",
     "SHO_KAN",
-    "DRAWN_GAME_BY_NINE_ORPHANS",
+    "DRAWN_GAME_BY_NINE_TERMINALS",
     "DISCARD",
   ];
   const choices = events.map((e) => e.choices);

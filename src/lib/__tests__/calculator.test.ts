@@ -741,7 +741,6 @@ describe("PointCalculator/calc", () => {
       doraIndicators: [new Tile(TYPE.P, 9)],
       myWind: WIND.S,
       round: ROUND.E1,
-      reached: 1,
       sticks: {
         reach: 2,
         dead: 3,

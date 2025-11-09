@@ -934,7 +934,7 @@ export interface BoardContext {
   myWind: Wind;
   ronWind?: Wind;
   sticks?: { readonly reach: number; readonly dead: number };
-  reached?: 1 | 2;
+  doubleReached?: boolean;
   replacementWin?: boolean;
   quadWin?: boolean;
   finalWallWin?: boolean;
@@ -1093,7 +1093,7 @@ export class PointCalculator {
           : params.hiddenDoraIndicators.map((v) => toDora(v)),
       roundWind: Tile.from(roundWind(params.round)),
       myWind: Tile.from(params.myWind),
-      reached: params.reached ?? 0,
+      reached: params.doubleReached ? 2 : hand.reached ? 1 : 0,
       sticks: params.sticks ?? { dead: 0, reach: 0 },
       replacementWin: params.replacementWin ?? false,
       quadWin: params.quadWin ?? false,
