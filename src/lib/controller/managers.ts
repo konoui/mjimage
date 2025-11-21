@@ -120,7 +120,7 @@ export class Counter {
     [TYPE.P]: TupleOfSize<number, 10>;
     [TYPE.Z]: TupleOfSize<number, 8>;
   };
-  private safeTileMap = createWindMap({} as { [name: string]: boolean }, true);
+  private safeTileMap = createWindMap({} as { [tile: string]: boolean }, true);
   constructor(public disabled = false) {
     this.c = this.initial();
   }
@@ -133,12 +133,13 @@ export class Counter {
     for (let t of tiles) {
       if (t.t == TYPE.BACK) continue;
       if (this.get(t) <= 0)
-        throw new Error(
-          `[counter] cannot decrease ${t.toString()} due to zero`
-        );
+        throw new Error(`[counter] tile ${t} appears more than 4 times`);
       this.c[t.t][t.n] -= 1;
-      // FIXME validate red has more than 0
-      if (t.has(OP.RED)) this.c[t.t][0] -= 1;
+      if (t.has(OP.RED)) {
+        if (this.c[t.t][0] <= 0)
+          throw new Error(`[counter] red tile ${t} appears more than once`);
+        this.c[t.t][0] -= 1;
+      }
     }
   }
   addTileToSafeMap(t: Tile, targetUser: Wind) {
