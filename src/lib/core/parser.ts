@@ -4,8 +4,8 @@ import { assert } from "./../myassert";
 type Separator = typeof INPUT_SEPARATOR;
 
 /**
- * 牌を比較する。
- * ソート時に使用する。
+ * 各種牌と数字を比較する。
+ * 手牌中の種類、牌のソート時に使用する。
  */
 export const compareTiles = (i: Tile, j: Tile) => {
   if (i.t == j.t) {
@@ -40,7 +40,7 @@ const compareOperators = (i: Operator, j: Operator) => {
  * 鳴いた牌をソートする。
  * 具体的に鳴いた牌の場所を維持しつつ、その他の牌をソートする。
  */
-export const sortCalledTiles = (arr: readonly Tile[]) => {
+export const compareCalledTiles = (arr: readonly Tile[]) => {
   const indexes: number[] = [];
   arr.forEach((t, index) => {
     if (t.has(OP.HORIZONTAL)) {
@@ -162,7 +162,7 @@ export abstract class Block {
     this._tiles = tiles;
     this._type = type;
     if (this.isCalled()) {
-      this._tiles = sortCalledTiles(this._tiles);
+      this._tiles = compareCalledTiles(this._tiles);
       return;
     }
 

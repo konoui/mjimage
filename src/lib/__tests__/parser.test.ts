@@ -7,7 +7,7 @@ import {
   BlockChi,
   BlockOther,
   BlockHand,
-  sortCalledTiles,
+  compareCalledTiles,
   BlockPon,
   BlockShoKan,
 } from "../core/parser";
@@ -144,7 +144,7 @@ describe("sort called tiles", () => {
   test("keep a horizontal location", () => {
     const t = new Tile(TYPE.M, 3);
     const want = [t, t.clone({ add: OP.HORIZONTAL }), t];
-    const got = sortCalledTiles([...want]);
+    const got = compareCalledTiles([...want]);
     expect(got).toStrictEqual(want);
     expect(got[1].has(OP.HORIZONTAL)).toBe(true);
   });
