@@ -25,7 +25,7 @@ export class ScoreManager {
   }
   update(
     result: { readonly [w in Wind]: number },
-    windMap: { readonly [id: string]: Wind }
+    windMap: { readonly [id: string]: Wind },
   ) {
     for (let id in windMap) {
       const w = windMap[id];
@@ -45,7 +45,7 @@ export class PlaceManager {
     params?: {
       readonly round: Round;
       readonly sticks: { readonly reach: number; readonly dead: number };
-    }
+    },
   ) {
     this._round = params?.round ?? ROUND.E1;
     this._sticks = structuredClone(params?.sticks) ?? { reach: 0, dead: 0 };
@@ -120,7 +120,9 @@ export class Counter {
     [TYPE.P]: TupleOfSize<number, 10>;
     [TYPE.Z]: TupleOfSize<number, 8>;
   };
-  private safeTileMap = createWindMap(() => ({} as { [tile: string]: boolean }));
+  private safeTileMap = createWindMap(
+    () => ({}) as { [tile: string]: boolean },
+  );
   constructor(public disabled = false) {
     this.c = this.initial();
   }
@@ -142,10 +144,16 @@ export class Counter {
       }
     }
   }
+  /**
+   * @deprecated 非推奨にします。
+   */
   addTileToSafeMap(t: Tile, targetUser: Wind) {
     if (this.disabled) return;
     this.safeTileMap[targetUser][this.key(t.t, t.n)] = true;
   }
+  /**
+   * @deprecated 非推奨にします。
+   */
   isSafeTile(k: Type, n: number, targetUser: Wind) {
     return this.safeTileMap[targetUser][this.key(k, n)];
   }
