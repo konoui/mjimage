@@ -79,8 +79,8 @@ export const createControllerMachine = (c: Controller) => {
       initial: "distribute",
       context: {
         currentWind: WIND.E,
-        oneShotMap: createWindMap(false),
-        missingMap: createWindMap(false),
+        oneShotMap: createWindMap(() => false),
+        missingMap: createWindMap(() => false),
         controller: c,
         genEventID: incrementalIDGenerator(),
       },
@@ -418,7 +418,7 @@ export const createControllerMachine = (c: Controller) => {
           const id = context.genEventID();
           const initHands = context.controller.initialHands();
           for (const w of Object.values(WIND)) {
-            const hands = createWindMap("_____________");
+            const hands = createWindMap(() => "_____________");
             hands[w] = initHands[w].toString();
             const e: DistributeEvent = {
               id: id,
@@ -750,7 +750,7 @@ export const createControllerMachine = (c: Controller) => {
         },
         notify_end: ({ context, event }) => {
           const id = context.genEventID();
-          const hands = createWindMap("");
+          const hands = createWindMap(() => "");
           if (event.type == "DRAWN_GAME_BY_NINE_TERMINALS") {
             hands[event.iam] = context.controller.hand(event.iam).toString();
             for (const w of Object.values(WIND)) {
@@ -762,7 +762,7 @@ export const createControllerMachine = (c: Controller) => {
                 shouldContinue: true,
                 sticks: context.controller.placeManager.sticks,
                 scores: context.controller.scoreManager.summary,
-                deltas: createWindMap(0),
+                deltas: createWindMap(() => 0),
                 hands: hands,
               };
               context.controller.emit(e);
@@ -804,8 +804,8 @@ export const createControllerMachine = (c: Controller) => {
                 shouldContinue: true,
                 sticks: context.controller.placeManager.sticks,
                 scores: context.controller.scoreManager.summary,
-                deltas: createWindMap(0),
-                hands: createWindMap(""),
+                deltas: createWindMap(() => 0),
+                hands: createWindMap(() => ""),
               };
               context.controller.emit(e);
             }
@@ -822,7 +822,7 @@ export const createControllerMachine = (c: Controller) => {
             }
 
             const nothing = wind.length == 0 || wind.length == 4;
-            const deltas = createWindMap(0);
+            const deltas = createWindMap(() => 0);
             for (const w of Object.values(WIND)) {
               if (wind.includes(w))
                 deltas[w] += nothing ? 0 : 3000 / wind.length;

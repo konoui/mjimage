@@ -37,7 +37,7 @@ export class ScoreManager {
 
 export class PlaceManager {
   private playerToWind: { [id: string]: Wind } = {};
-  private windToPlayer = createWindMap("");
+  private windToPlayer = createWindMap(() => "");
   private _round: Round;
   private _sticks: { reach: number; dead: number };
   constructor(
@@ -120,7 +120,7 @@ export class Counter {
     [TYPE.P]: TupleOfSize<number, 10>;
     [TYPE.Z]: TupleOfSize<number, 8>;
   };
-  private safeTileMap = createWindMap({} as { [tile: string]: boolean }, true);
+  private safeTileMap = createWindMap(() => ({} as { [tile: string]: boolean }));
   constructor(public disabled = false) {
     this.c = this.initial();
   }

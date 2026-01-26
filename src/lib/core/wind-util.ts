@@ -1,18 +1,15 @@
 import { Round, Wind, WIND, BLOCK, TYPE } from ".";
 import { assert } from "../myassert";
 
-export function createWindMap<T>(initial: T, clone = false) {
-  const m: { [key in Wind]: T } = {
-    [WIND.E]: initial,
-    [WIND.S]: initial,
-    [WIND.W]: initial,
-    [WIND.N]: initial,
-  };
-  if (clone) {
-    for (let w of Object.values(WIND)) m[w] = structuredClone(initial);
-  }
+export type WindMap<T> = Record<Wind, T>;
 
-  return m;
+export function createWindMap<T>(factory: () => T): WindMap<T> {
+  return {
+    [WIND.E]: factory(),
+    [WIND.S]: factory(),
+    [WIND.W]: factory(),
+    [WIND.N]: factory(),
+  };
 }
 
 /**

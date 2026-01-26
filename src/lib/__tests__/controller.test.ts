@@ -382,7 +382,7 @@ class MockPlayer extends Player {
 }
 
 class MockWall extends Wall {
-  private initial = createWindMap("");
+  private initial = createWindMap(() => "");
   wall: string[] = [];
   oWall = new Wall();
   exclude: string[] = [];

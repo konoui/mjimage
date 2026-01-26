@@ -1297,7 +1297,7 @@ export class PointCalculator {
     myWind: Wind,
     ronWind?: Wind
   ) {
-    const deltas = createWindMap(0);
+    const deltas = createWindMap(() => 0);
 
     if (!isTsumo) {
       assert(ronWind != null, "tumo is false but ron wind is null");

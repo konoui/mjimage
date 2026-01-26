@@ -860,7 +860,7 @@ export abstract class BaseActor {
   river: IRiver = new River();
   placeManager = new PlaceManager({}); // empty for init
   scoreManager = new ScoreManager({}); // empty for init
-  hands = createWindMap(new ActorHand("")); // empty for init
+  hands = createWindMap(() => new ActorHand("")); // empty for init
   counter = new Counter();
   private _doraIndicators: Tile[] = []; // empty for init
   eventHandler: EventHandler;
@@ -1017,7 +1017,7 @@ export class Observer extends BaseActor {
   constructor(eventHandler: EventHandler) {
     super("observer", eventHandler);
     this.counter.disabled = true;
-    this.hands = createWindMap(new ActorHand("_____________"));
+    this.hands = createWindMap(() => new ActorHand("_____________"));
   }
   setHands(e: DistributeEvent): void {
     this.hands[e.wind] = new ActorHand(e.hands[e.wind]);

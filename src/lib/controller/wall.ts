@@ -78,7 +78,7 @@ export class Wall {
   }
 
   initialHands() {
-    const m = createWindMap("");
+    const m = createWindMap(() => "");
     for (let i = 0; i < 3; i++) {
       for (const w of Object.values(WIND)) {
         for (let j = 0; j < 4; j++) {
