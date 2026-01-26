@@ -10,6 +10,7 @@ export interface IRiver {
   lastTile: DiscardEntry;
   markCalled(): void;
   isFourWindsAbort(): boolean;
+  reset(): void;
 }
 
 export class River implements IRiver {
@@ -25,12 +26,15 @@ export class River implements IRiver {
   }
 
   discards(w?: Wind): readonly DiscardEntry[] {
-    return w == undefined ? this.all : this.byWind.get(w) ?? [];
+    return w == undefined ? this.all : (this.byWind.get(w) ?? []);
   }
 
   get lastTile(): DiscardEntry {
     const last = this.all.at(-1);
-    assert(last != null, `lastTile is null. river: ${JSON.stringify(this.all, null, 2)}`);
+    assert(
+      last != null,
+      `lastTile is null. river: ${JSON.stringify(this.all, null, 2)}`,
+    );
     return last;
   }
 
@@ -43,5 +47,10 @@ export class River implements IRiver {
     const first = this.all[0].t;
     if (first.isNum()) return false;
     return this.all.every((d) => first.equals(d.t));
+  }
+
+  reset() {
+    this.all = [];
+    this.byWind.clear();
   }
 }
