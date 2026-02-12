@@ -1,4 +1,4 @@
-import { parseTableInput, TableInput } from "../image/table-parser";
+import { parseYamlStringInput, TableInput } from "../image/table-parser";
 import { ROUND, WIND } from "../core";
 describe("parse-table", () => {
   test("simple", () => {
@@ -21,7 +21,7 @@ describe("parse-table", () => {
       hand: 4m
       score: 12000
     board:
-      doras: 1m
+      dora_indicators: 1m
       sticks:
         reach: 1
         dead: 3
@@ -54,11 +54,11 @@ describe("parse-table", () => {
           reach: 1,
           dead: 3,
         },
-        doras: "1m",
+        doraIndicators: "1m",
         front: WIND.E,
       },
     };
-    const got = parseTableInput(input);
+    const got = parseYamlStringInput(input);
     expect(got).toStrictEqual(want);
   });
 });

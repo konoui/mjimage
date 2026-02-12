@@ -11,7 +11,7 @@ import { parse, ScoreBoardInput, DiscardsInput, HandsInput } from "./";
 
 const chunkTilesForDisplay = (input: readonly Tile[], chunkSize = 6) => {
   return Array.from({ length: Math.ceil(input.length / chunkSize) }, (_, i) =>
-    input.slice(i * chunkSize, (i + 1) * chunkSize)
+    input.slice(i * chunkSize, (i + 1) * chunkSize),
   );
 };
 
@@ -21,7 +21,7 @@ const simpleRotate = (
   height: number,
   degree: 0 | 90 | 180 | 270,
   x: number = 0,
-  y: number = 0
+  y: number = 0,
 ) => {
   const g = new G().add(e);
   if (degree == 90) {
@@ -49,7 +49,7 @@ const simpleRotate = (
 
 const createDiscardArea = (
   tiles: readonly Tile[],
-  helper: ImageHelper
+  helper: ImageHelper,
 ): MySVGElement => {
   const g = new G();
   const chunks = chunkTilesForDisplay(tiles);
@@ -73,7 +73,7 @@ const createDiscardArea = (
 const createStickAndDora = (
   helper: ImageHelper,
   fontCtx: FontContext,
-  scoreBoard: ScoreBoardInput
+  scoreBoard: ScoreBoardInput,
 ): MySVGElement => {
   const font = fontCtx.font;
   const textWidth = fontCtx.textWidth;
@@ -128,7 +128,7 @@ const createStickAndDora = (
   stickGroup.add(text100);
 
   const doraImg = helper
-    .createImage(scoreBoard.doras[0], 0, 0)
+    .createImage(scoreBoard.doraIndicators[0], 0, 0)
     .x(stickWidth + textWidth)
     .y(0);
   stickGroup.add(doraImg);
@@ -147,36 +147,36 @@ const createStickAndDora = (
 const createHands = (
   helper: ImageHelper,
   hands: HandsInput,
-  minWidth: number = 0
+  minWidth: number = 0,
 ): MySVGElement => {
   const fe = createBlockHand(helper, hands.front);
   const re = createBlockHand(helper, hands.right);
   const oe = createBlockHand(helper, hands.opposite);
   const le = createBlockHand(helper, hands.left);
   const maxWidth = [fe.width, re.width, oe.width, le.width].reduce((a, b) =>
-    Math.max(a, b)
+    Math.max(a, b),
   );
   const sizeWidth = Math.max(
     minWidth + helper.tileHeight * 2 + helper.blockMargin * 2,
-    maxWidth + helper.tileWidth * 2 + helper.blockMargin
+    maxWidth + helper.tileWidth * 2 + helper.blockMargin,
   ); // additional margin
   const sizeHeight = sizeWidth;
 
   const front = simpleRotate(fe.e, fe.width, fe.height, 0).translate(
     (sizeWidth - fe.width) / 2,
-    sizeHeight - fe.height
+    sizeHeight - fe.height,
   );
   const right = simpleRotate(re.e, re.width, re.height, 270).translate(
     sizeWidth - re.height,
-    (sizeWidth - re.width) / 2
+    (sizeWidth - re.width) / 2,
   );
   const opposite = simpleRotate(oe.e, oe.width, oe.height, 180).translate(
     (sizeWidth - oe.width) / 2,
-    0
+    0,
   );
   const left = simpleRotate(le.e, le.width, le.height, 90).translate(
     0,
-    (sizeWidth - le.width) / 2
+    (sizeWidth - le.width) / 2,
   );
 
   const g = new G().size(sizeWidth, sizeHeight);
@@ -197,7 +197,7 @@ const getPlaces = (front: "東" | "南" | "西" | "北") => {
 const createScoreBoard = (
   helper: ImageHelper,
   fontCtx: FontContext,
-  scoreBoard: ScoreBoardInput
+  scoreBoard: ScoreBoardInput,
 ): MySVGElement => {
   const sizeWidth = helper.tileWidth * 5 + helper.tileHeight * 1; // 11111-1
 
@@ -208,13 +208,13 @@ const createScoreBoard = (
   const boardRect = createStickAndDora(helper, fontCtx, scoreBoard);
   boardRect.e.translate(
     sizeWidth / 2 - boardRect.width / 2,
-    sizeWidth / 2 - boardRect.height / 2
+    sizeWidth / 2 - boardRect.height / 2,
   );
 
   const createScore = (
     place: string,
     score: number,
-    attr: any
+    attr: any,
   ): MySVGElement => {
     // http://defghi1977.html.xdomain.jp/tech/svgMemo/svgMemo_08.htm
     const s = `${place} ${score}`;
@@ -228,7 +228,7 @@ const createScoreBoard = (
   };
 
   const [frontPlace, rightPlace, oppositePlace, leftPlace] = getPlaces(
-    scoreBoard.frontPlace
+    scoreBoard.frontPlace,
   );
 
   const scores = scoreBoard.scores;
@@ -247,7 +247,7 @@ const createScoreBoard = (
   });
   const rightText = simpleRotate(rt.e, rt.width, rt.height, 270).translate(
     sizeWidth,
-    sizeWidth / 2 - rt.width
+    sizeWidth / 2 - rt.width,
   );
 
   let ot = createScore(oppositePlace, scores.opposite, {
@@ -256,7 +256,7 @@ const createScoreBoard = (
   });
   const oppositeText = simpleRotate(ot.e, ot.width, ot.height, 180).translate(
     sizeWidth / 2 - ot.width,
-    -ot.height
+    -ot.height,
   );
 
   const lt = createScore(leftPlace, scores.left, {
@@ -265,7 +265,7 @@ const createScoreBoard = (
   });
   const leftText = simpleRotate(lt.e, lt.width, lt.height, 90).translate(
     -lt.height,
-    sizeWidth / 2
+    sizeWidth / 2,
   );
 
   const g = new G();
@@ -287,7 +287,7 @@ const createScoreBoard = (
 
 const createDiscards = (
   helper: ImageHelper,
-  discards: DiscardsInput
+  discards: DiscardsInput,
 ): MySVGElement => {
   const fe = createDiscardArea(discards.front, helper);
   const re = createDiscardArea(discards.right, helper);
@@ -295,7 +295,7 @@ const createDiscards = (
   const le = createDiscardArea(discards.left, helper);
 
   const maxDiscardHeight = [fe.height, re.height, oe.height, le.height].reduce(
-    (a, b) => Math.max(a, b)
+    (a, b) => Math.max(a, b),
   );
 
   const discardWidth = helper.tileWidth * 5 + helper.tileHeight * 1; // 11111-1
@@ -311,24 +311,24 @@ const createDiscards = (
 
   const front = simpleRotate(fe.e, discardWidth, discardHeight, 0).translate(
     centerX,
-    sizeHeight - discardHeight
+    sizeHeight - discardHeight,
   );
 
   const right = simpleRotate(re.e, discardWidth, discardHeight, 270).translate(
     sizeWidth - discardHeight,
-    centerY
+    centerY,
   );
 
   const opposite = simpleRotate(
     oe.e,
     discardWidth,
     discardHeight,
-    180
+    180,
   ).translate(centerX, 0);
 
   const left = simpleRotate(le.e, discardWidth, discardHeight, 90).translate(
     0,
-    centerY
+    centerY,
   );
 
   g.add(front);
@@ -346,7 +346,7 @@ export const createTable = (
   fontCtx: FontContext,
   handsProps: HandsInput,
   discardsProps: DiscardsInput,
-  scoreBoardProps: ScoreBoardInput
+  scoreBoardProps: ScoreBoardInput,
 ): MySVGElement => {
   const g = new G();
   const discards = createDiscards(helper, discardsProps);
@@ -354,12 +354,12 @@ export const createTable = (
   const scoreBoard = createScoreBoard(helper, fontCtx, scoreBoardProps);
   discards.e.translate(
     (hands.width - discards.width) / 2,
-    (hands.height - discards.height) / 2
+    (hands.height - discards.height) / 2,
   );
 
   scoreBoard.e.translate(
     (hands.width - scoreBoard.width) / 2,
-    (hands.height - scoreBoard.height) / 2
+    (hands.height - scoreBoard.height) / 2,
   );
 
   g.add(hands.e);
@@ -378,7 +378,7 @@ export const drawTable = (
   tableInput: string,
   config: ImageHelperConfig = {},
   fontCtx: FontContext,
-  params: { responsive: boolean } = { responsive: false }
+  params: { responsive: boolean } = { responsive: false },
 ) => {
   const helper = new ImageHelper(config);
   const ctx = fontCtx;

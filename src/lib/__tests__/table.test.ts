@@ -87,7 +87,7 @@ describe("createTable", () => {
         reach: 1,
         dead: 3,
       },
-      doras: [new Tile(TYPE.M, 3)],
+      doraIndicators: [new Tile(TYPE.M, 3)],
     };
 
     const helper = new ImageHelper(helperConfig);
@@ -131,7 +131,7 @@ describe("createTable", () => {
         reach: 1,
         dead: 3,
       },
-      doras: [new Tile(TYPE.M, 3)],
+      doraIndicators: [new Tile(TYPE.M, 3)],
     };
 
     const helper = new ImageHelper(helperConfig);

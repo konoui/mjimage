@@ -29,7 +29,7 @@ const windInputSchema = optional(
     hand: optional(string(), ""),
     score: optional(number(), 25000),
   }),
-  { discard: "", hand: "", score: 25000 }
+  { discard: "", hand: "", score: 25000 },
 );
 
 // windInputsSchema の定義
@@ -44,7 +44,7 @@ const windInputsSchema = strictObject({
 const defaultBoard = {
   round: ROUND.E1,
   sticks: { reach: 0, dead: 0 },
-  doras: WIND.S,
+  doraIndicators: WIND.S,
   front: WIND.E,
 };
 
@@ -52,28 +52,28 @@ const boardInputSchema = optional(
   strictObject({
     round: optional(
       picklist(Object.keys(ROUND_MAP) as Round[]),
-      defaultBoard.round
+      defaultBoard.round,
     ),
     sticks: optional(
       strictObject({
         reach: optional(
           pipe(number(), minValue(0, ""), maxValue(9, "")),
-          defaultBoard.sticks.reach
+          defaultBoard.sticks.reach,
         ),
         dead: optional(
           pipe(number(), minValue(0, ""), maxValue(9, "")),
-          defaultBoard.sticks.dead
+          defaultBoard.sticks.dead,
         ),
       }),
-      defaultBoard.sticks
+      defaultBoard.sticks,
     ),
-    doras: optional(string(), defaultBoard.doras),
+    doraIndicators: optional(string(), defaultBoard.doraIndicators),
     front: optional(
       picklist(Object.keys(WIND_MAP) as Wind[]),
-      defaultBoard.front
+      defaultBoard.front,
     ),
   }),
-  defaultBoard
+  defaultBoard,
 );
 
 // tableInputSchema の定義
@@ -83,10 +83,10 @@ const tableInputSchema = strictObject({
 });
 
 // 型定義
-type RawWindInput = InferInput<typeof windInputSchema>;
-type RawWindInputs = InferInput<typeof windInputsSchema>;
-type RawBoardInput = InferInput<typeof boardInputSchema>;
-type RawTableInput = InferInput<typeof tableInputSchema>;
+export type RawWindInput = InferInput<typeof windInputSchema>;
+export type RawWindInputs = InferInput<typeof windInputsSchema>;
+export type RawBoardInput = InferInput<typeof boardInputSchema>;
+export type RawTableInput = InferInput<typeof tableInputSchema>;
 
 export type TableInput = InferOutput<typeof tableInputSchema>;
 
@@ -107,7 +107,7 @@ export interface HandsInput {
 }
 
 export interface ScoreBoardInput {
-  doras: readonly Tile[];
+  doraIndicators: readonly Tile[];
   round: BoardRound;
   sticks: { reach: number; dead: number };
   scores: {
@@ -125,27 +125,33 @@ type BoardWind = (typeof WIND_MAP)[keyof typeof WIND_MAP];
 /**
  * 麻雀卓の文字列をパースし、内部表現に変換する
  */
-export const parse = (s: string) => {
-  const d = parseTableInput(s);
-  return convertInput(d);
+export const parse = (yamlString: string) => {
+  const d = parseYamlStringInput(yamlString);
+  return convertTableInput(d);
 };
 
 /**
- * 麻雀卓の文字列をパースする。
+ * 麻雀卓の YAML 形式の文字列をパースする。
  * パース後さらに内部表現に変換する必要がある。
  */
-export const parseTableInput = (s: string) => {
-  const rawInput = parseStringInput(s);
+export const parseYamlStringInput = (yamlString: string): TableInput => {
+  const rawInput = parseYamlLikeStringInput(yamlString);
+  return parseRawTableInput(rawInput);
+};
 
+/**
+ * Raw 形式の入力を TableInput に変換する
+ */
+export function parseRawTableInput(rawInput: RawTableInput): TableInput {
   const ret = safeParse(tableInputSchema, rawInput);
   if (!ret.success) {
     throw ret.issues;
   }
   return ret.output;
-};
+}
 
 // YAMLライクな形式をパースして構造化データに変換
-const parseStringInput = (input: string): RawTableInput => {
+const parseYamlLikeStringInput = (input: string): RawTableInput => {
   const table = "table";
   const board = "board";
   const lines = input
@@ -209,7 +215,7 @@ const parseWindSection = (lines: readonly string[]) => {
 
 // ボードセクションをパース
 const parseBoardSection = (lines: readonly string[]) => {
-  const doras = "doras";
+  const doraIndicators = "dora_indicators";
   const round = "round";
   const front = "front";
   const sticks = "sticks";
@@ -221,8 +227,8 @@ const parseBoardSection = (lines: readonly string[]) => {
   let i = 0;
   for (; i < lines.length; i++) {
     const line = lines[i];
-    if (line.startsWith(doras)) {
-      result.doras = extractValue(line, doras);
+    if (line.startsWith(doraIndicators)) {
+      result.doraIndicators = extractValue(line, doraIndicators);
     } else if (line.startsWith(round)) {
       result.round = extractValue(line, round) as Round;
     } else if (line.startsWith(front)) {
@@ -251,7 +257,7 @@ const parseBoardSection = (lines: readonly string[]) => {
 /**
  * パースした入力を内部表現へ変換する。
  */
-export const convertInput = (i: TableInput) => {
+export const convertTableInput = (i: TableInput) => {
   const frontPlace = i.board.front;
   const m = createPlaceMap(frontPlace);
   const f = (w: Wind) => {
@@ -275,7 +281,7 @@ export const convertInput = (i: TableInput) => {
     round: ROUND_MAP[i.board.round],
     frontPlace: WIND_MAP[frontPlace],
     sticks: i.board.sticks,
-    doras: new Parser(i.board.doras).tiles(),
+    doraIndicators: new Parser(i.board.doraIndicators).tiles(),
     scores: {
       front: i[m.front].score,
       right: i[m.right].score,
