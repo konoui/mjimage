@@ -33,7 +33,7 @@ import { assert } from "../myassert";
 export type TupleOfSize<
   T,
   N extends number,
-  R extends unknown[] = []
+  R extends unknown[] = [],
 > = R["length"] extends N ? R : TupleOfSize<T, N, [T, ...R]>;
 
 export interface HandData {
@@ -135,11 +135,11 @@ export class Hand {
     if (this.drawn != null) {
       const drawn = this.drawn;
       const idx = tiles.findIndex(
-        (t) => t.equals(drawn) && drawn.has(OP.RED) == t.has(OP.RED)
+        (t) => t.equals(drawn) && drawn.has(OP.RED) == t.has(OP.RED),
       );
       assert(
         idx >= 0,
-        `drawn tile ${this.drawn} not found in hand: ${tiles.join("")}`
+        `drawn tile ${this.drawn} not found in hand: ${tiles.join("")}`,
       );
       tiles[idx] = tiles[idx].clone({ add: OP.TSUMO });
     }
@@ -193,7 +193,7 @@ export class Hand {
   sum(type: Type) {
     return Array.from(forHand({ filterBy: [type] })).reduce(
       (sum, [t, n]) => sum + this.get(t, n),
-      0
+      0,
     );
   }
   /**
@@ -316,11 +316,11 @@ export class Hand {
 
     if (b instanceof BlockShoKan) {
       const idx = this.data.called.findIndex(
-        (v) => v.is(BLOCK.PON) && v.tiles[0].equals(b.tiles[0])
+        (v) => v.is(BLOCK.PON) && v.tiles[0].equals(b.tiles[0]),
       );
       if (idx == -1)
         throw new Error(
-          `cannot find pon block ${b.tiles[0]} to call shokan: ${b}`
+          `cannot find pon block ${b.tiles[0]} to call shokan: ${b}`,
         );
       let t = b.tiles[0];
       // 適当に選んだ牌が red であればエラーが発生しないように red を削除して dec する
@@ -357,7 +357,7 @@ export class ShantenCalculator {
     return Math.min(
       this.sevenPairs(),
       this.thirteenOrphans(),
-      this.standardType()
+      this.standardType(),
     );
   }
   /**
@@ -452,7 +452,7 @@ export class ShantenCalculator {
   }
   private calcNumberTilePatterns(
     t: typeof TYPE.M | typeof TYPE.S | typeof TYPE.P,
-    n = 1
+    n = 1,
   ): {
     patternA: [number, number, number];
     patternB: [number, number, number];
@@ -474,7 +474,7 @@ export class ShantenCalculator {
       ]);
       const r = this.calcNumberTilePatterns(t, n);
       this.hand.inc(tiles);
-      r.patternA[0]++, r.patternB[0]++;
+      (r.patternA[0]++, r.patternB[0]++);
       if (
         r.patternA[2] < max.patternA[2] ||
         (r.patternA[2] == max.patternA[2] && r.patternA[1] < max.patternA[1])
@@ -493,7 +493,7 @@ export class ShantenCalculator {
       const tiles = this.hand.dec(new Array(3).fill(new Tile(t, n)));
       const r = this.calcNumberTilePatterns(t, n);
       this.hand.inc(tiles);
-      r.patternA[0]++, r.patternB[0]++;
+      (r.patternA[0]++, r.patternB[0]++);
       if (
         r.patternA[2] < max.patternA[2] ||
         (r.patternA[2] == max.patternA[2] && r.patternA[1] < max.patternA[1])
@@ -542,7 +542,7 @@ export class ShantenCalculator {
     nSet: number,
     nSerialPair: number,
     nIsolated: number,
-    hasPair: boolean
+    hasPair: boolean,
   ) {
     let n = hasPair ? 4 : 5;
 
@@ -581,7 +581,7 @@ export class BlockCalculator {
         ...this.nineGates(),
         ...this.standardType(),
       ],
-      lastTile
+      lastTile,
     );
   }
 
@@ -590,7 +590,7 @@ export class BlockCalculator {
    */
   markedHands(
     hands: readonly (readonly Block[])[],
-    lastTile: Tile
+    lastTile: Tile,
   ): readonly (readonly Block[])[] {
     if (hands.length == 0) return [];
     return hands.map((hand) => this.markedHand(hand, lastTile)).flat();
@@ -601,11 +601,14 @@ export class BlockCalculator {
    */
   markedHand(
     hand: readonly Block[],
-    lastTile: Tile
+    lastTile: Tile,
   ): readonly (readonly Block[])[] {
     if (hand.length == 0) return [];
-    const op =
-      this.hand.drawn != null || lastTile.has(OP.TSUMO) ? OP.TSUMO : OP.RON;
+    const op = lastTile.has(OP.RON)
+      ? OP.RON
+      : lastTile.has(OP.TSUMO) || this.hand.drawn != null
+        ? OP.TSUMO
+        : OP.RON;
 
     const indexes: [number, number][] = []; // [block index, tile index]
     const m: { [key: string]: boolean } = {}; // reduce same blocks such as ["123m", "123m"]
@@ -613,7 +616,7 @@ export class BlockCalculator {
       const block = hand[bIdx];
       if (block.isCalled()) continue;
       const tIdx = block.tiles.findIndex(
-        (t) => t.equals(lastTile) && lastTile.has(OP.RED) == t.has(OP.RED)
+        (t) => t.equals(lastTile) && lastTile.has(OP.RED) == t.has(OP.RED),
       );
       if (tIdx < 0) continue;
       const key = buildBlockKey(block);
@@ -624,7 +627,7 @@ export class BlockCalculator {
 
     if (indexes.length == 0)
       throw new Error(
-        `tile ${lastTile.toString()} not found in hand: ${hand.toString()}`
+        `tile ${lastTile.toString()} not found in hand: ${hand.toString()}`,
       );
 
     const newHands: Block[][] = [];
@@ -760,7 +763,7 @@ export class BlockCalculator {
         group.length === 0
           ? acc // 空の配列があればそのまま acc を返す
           : acc.flatMap((p) => group.map((choice) => [...p, ...choice])),
-      [[]]
+      [[]],
     );
     return ret;
   }
@@ -847,7 +850,7 @@ export class BlockCalculator {
   }
   private handleNumType(
     t: typeof TYPE.M | typeof TYPE.S | typeof TYPE.P,
-    n: number = 1
+    n: number = 1,
   ): readonly (readonly Block[])[] {
     if (n > 9) return [];
 
@@ -1029,7 +1032,7 @@ export function getPointDescription(params: {
   const pointDesc = generatePointDescription(
     params.base,
     params.isTsumo,
-    params.isParent
+    params.isParent,
   );
 
   const scoreName = SCORE_NAMES[params.base as keyof typeof SCORE_NAMES];
@@ -1041,7 +1044,7 @@ export function getPointDescription(params: {
 function generatePointDescription(
   base: number,
   isTsumo: boolean,
-  isParent: boolean
+  isParent: boolean,
 ): string {
   if (!isTsumo) {
     // RON: 単一の点数
@@ -1055,7 +1058,7 @@ function generatePointDescription(
   } else {
     // 子のツモ: 範囲表示
     return `${myCeil(base * POINT_COEFFICIENT.CHILD_TUMO_FROM_CHILD)}-${myCeil(
-      base * POINT_COEFFICIENT.CHILD_TUMO_FROM_PARENT
+      base * POINT_COEFFICIENT.CHILD_TUMO_FROM_PARENT,
     )}`;
   }
 }
@@ -1121,7 +1124,7 @@ export class PointCalculator {
       scoreInfo.isTsumo,
       scoreInfo.isParent,
       scoreInfo.myWind,
-      this.cfg.orig.ronWind
+      this.cfg.orig.ronWind,
     );
 
     const basePoints = deltas[scoreInfo.myWind];
@@ -1295,7 +1298,7 @@ export class PointCalculator {
     isTsumo: boolean,
     isParent: boolean,
     myWind: Wind,
-    ronWind?: Wind
+    ronWind?: Wind,
   ) {
     const deltas = createWindMap(() => 0);
 
@@ -1314,7 +1317,7 @@ export class PointCalculator {
     base: number,
     isParent: boolean,
     myWind: Wind,
-    ronWind: Wind
+    ronWind: Wind,
   ) {
     const coefficient = isParent
       ? POINT_COEFFICIENT.PARENT_RON
@@ -1329,7 +1332,7 @@ export class PointCalculator {
     deltas: { [w in Wind]: number },
     base: number,
     isParent: boolean,
-    myWind: Wind
+    myWind: Wind,
   ) {
     if (isParent) {
       const basePoints = myCeil(base * POINT_COEFFICIENT.PARENT_TSUMO);
@@ -1354,7 +1357,7 @@ export class PointCalculator {
   private addStickPoints(
     deltas: { [w in Wind]: number },
     myWind: Wind,
-    ronWind: Wind | undefined
+    ronWind: Wind | undefined,
   ) {
     deltas[myWind] += SCORING.REACH_STICK * this.cfg.sticks.reach;
     const deadPoint = SCORING.DEAD_STICK * this.cfg.sticks.dead;
@@ -1404,7 +1407,7 @@ export class PointCalculator {
   }
   dD1(h: readonly Block[]): readonly Yaku[] {
     const cond = h.some((block) =>
-      block.tiles.some((t) => t.t == TYPE.Z || N19.includes(t.n))
+      block.tiles.some((t) => t.t == TYPE.Z || N19.includes(t.n)),
     );
     return cond ? [] : [{ name: "断么九", han: 1 }];
   }
@@ -1448,12 +1451,12 @@ export class PointCalculator {
     const allTiles = h.flatMap((b) => b.tiles);
     const dcount = allTiles.reduce(
       (count, t) => count + this.cfg.doras.filter((d) => t.equals(d)).length,
-      0
+      0,
     );
     const bcount = allTiles.reduce(
       (count, t) =>
         count + this.cfg.hiddenDoras.filter((d) => t.equals(d)).length,
-      0
+      0,
     );
     const rcount = allTiles.filter((t) => t.has(OP.RED)).length;
 
@@ -1499,7 +1502,7 @@ export class PointCalculator {
         b instanceof BlockDaiKan ||
         b instanceof BlockThree ||
         b instanceof BlockPon ||
-        b instanceof BlockPair
+        b instanceof BlockPair,
     );
     return cond ? [{ name: "対々和", han: 2 }] : [];
   }
@@ -1517,7 +1520,7 @@ export class PointCalculator {
       (b) =>
         b instanceof BlockAnKan ||
         b instanceof BlockShoKan ||
-        b instanceof BlockDaiKan
+        b instanceof BlockDaiKan,
     ).length;
     return l >= 3 ? [{ name: "三槓子", han: 2 }] : [];
   }
@@ -1655,7 +1658,7 @@ export class PointCalculator {
     const double = h.some(
       (b) =>
         b instanceof BlockPair &&
-        b.tiles.some((t) => t.has(OP.TSUMO) || t.has(OP.RON))
+        b.tiles.some((t) => t.has(OP.TSUMO) || t.has(OP.RON)),
     );
     return double
       ? [{ name: "国士無双13面待ち", han: 26, isYakuman: true }]
@@ -1672,13 +1675,13 @@ export class PointCalculator {
       (b) =>
         b instanceof BlockAnKan ||
         (b instanceof BlockThree && b.tiles.every((t) => !t.has(OP.RON))) ||
-        b instanceof BlockPair
+        b instanceof BlockPair,
     );
     if (!cond1) return [];
     const cond2 = h.some(
       (b) =>
         b instanceof BlockPair &&
-        b.tiles.some((t) => t.has(OP.TSUMO) || t.has(OP.RON))
+        b.tiles.some((t) => t.has(OP.TSUMO) || t.has(OP.RON)),
     );
     return cond2
       ? [{ name: "四暗刻単騎待ち", han: 26, isYakuman: true }]
@@ -1691,7 +1694,7 @@ export class PointCalculator {
       h.filter(
         (b) =>
           !(b instanceof BlockPair) &&
-          b.tiles.some((t) => t.t == TYPE.Z && z.includes(t.n))
+          b.tiles.some((t) => t.t == TYPE.Z && z.includes(t.n)),
       ).length == 3;
     return cond ? [{ name: "大三元", han: 13, isYakuman: true }] : [];
   }
@@ -1708,7 +1711,7 @@ export class PointCalculator {
           b instanceof BlockThree ||
           b instanceof BlockPon ||
           b instanceof BlockPair) &&
-        N19.includes(b.tiles[0].n)
+        N19.includes(b.tiles[0].n),
     );
     return cond ? [{ name: "清老頭", han: 13, isYakuman: true }] : [];
   }
@@ -1719,7 +1722,7 @@ export class PointCalculator {
         b instanceof BlockAnKan ||
         b instanceof BlockShoKan ||
         b instanceof BlockDaiKan ||
-        b instanceof BlockPair
+        b instanceof BlockPair,
     );
     return cond ? [{ name: "四槓子", han: 13, isYakuman: true }] : [];
   }
@@ -1771,7 +1774,7 @@ export class PointCalculator {
     const round = this.cfg.roundWind.n;
 
     const lastBlock = h.find((b) =>
-      b.tiles.some((t) => t.has(OP.TSUMO) || t.has(OP.RON))
+      b.tiles.some((t) => t.has(OP.TSUMO) || t.has(OP.RON)),
     )!;
     const isCalled = this.getCalledPenalty() == 1;
     const isTsumo = lastBlock.tiles.some((t) => t.has(OP.TSUMO));
@@ -1807,8 +1810,10 @@ export class PointCalculator {
       if (b instanceof BlockPair) return 2; // 単騎
       const tiles = b.tiles;
       const idx = tiles.findIndex((t) => t.has(OP.TSUMO) || t.has(OP.RON));
-      if (idx == 1) return 2; // カンチャン
-      else if (idx == 0 && tiles[2].n == 9) return 2; //ペンチャン
+      if (idx == 1)
+        return 2; // カンチャン
+      else if (idx == 0 && tiles[2].n == 9)
+        return 2; //ペンチャン
       else if (idx == 2 && tiles[0].n == 1) return 2; //ペンチャン
       return 0; // リャンメン
     };
@@ -1847,11 +1852,14 @@ const buildBlockKey = (b: Block) => {
 const countSameBlocks = (h: readonly Block[]) => {
   const m = h
     .filter((b) => b instanceof BlockRun)
-    .reduce((acc, b) => {
-      const key = buildBlockKey(b);
-      acc[key] = (acc[key] || 0) + 1;
-      return acc;
-    }, {} as { [key: string]: number });
+    .reduce(
+      (acc, b) => {
+        const key = buildBlockKey(b);
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      },
+      {} as { [key: string]: number },
+    );
 
   return Object.values(m).filter((v) => v >= 2).length;
 };
