@@ -1660,7 +1660,7 @@ export class PointCalculator {
         b instanceof BlockPair &&
         b.tiles.some((t) => t.has(OP.TSUMO) || t.has(OP.RON)),
     );
-    return double
+    return double && this.cfg.disableDoubleYakuman !== true
       ? [{ name: "国士無双13面待ち", han: 26, isYakuman: true }]
       : [{ name: "国士無双", han: 13, isYakuman: true }];
   }
@@ -1683,7 +1683,7 @@ export class PointCalculator {
         b instanceof BlockPair &&
         b.tiles.some((t) => t.has(OP.TSUMO) || t.has(OP.RON)),
     );
-    return cond2
+    return cond2 && this.cfg.disableDoubleYakuman !== true
       ? [{ name: "四暗刻単騎待ち", han: 26, isYakuman: true }]
       : [{ name: "四暗刻", han: 13, isYakuman: true }];
   }

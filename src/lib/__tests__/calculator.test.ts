@@ -723,6 +723,7 @@ describe("PointCalculator/calc", () => {
     expect(!!got).toEqual(true);
     expect((got as WinResult).han).toBe(26);
     expect((got as WinResult).points).toBe(96000);
+    expect((got as WinResult).yakus[0].name).toBe("四暗刻単騎待ち");
 
     const got2 = new PointCalculator(h, {
       ...cfg,
@@ -731,6 +732,7 @@ describe("PointCalculator/calc", () => {
     expect(!!got2).toEqual(true);
     expect((got2 as WinResult).han).toBe(13);
     expect((got2 as WinResult).points).toBe(48000);
+    expect((got2 as WinResult).yakus[0].name).toBe("四暗刻");
   });
   test("1300-2600/リーチ棒と供託", () => {
     const input = "123s456s4r56m78m22m,t9m";
