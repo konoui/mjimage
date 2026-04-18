@@ -977,6 +977,9 @@ interface WinningHand {
   yakus: readonly Yaku[];
   han: number;
   isYakuman?: boolean;
+  metadata: {
+    winning_tile_block_type: (typeof WINING_TILE_BLOCK_TYPE)[keyof typeof WINING_TILE_BLOCK_TYPE];
+  };
 }
 
 const SCORING = {
@@ -1012,6 +1015,19 @@ const POINT_COEFFICIENT = {
   PARENT_TSUMO: 2,
   CHILD_TUMO_FROM_PARENT: 2,
   CHILD_TUMO_FROM_CHILD: 1,
+} as const;
+
+/**
+ * あがり形におけるあがり牌の形を表す。
+ * 多面待ちであってあがり形はどれかになる。
+ */
+export const WINING_TILE_BLOCK_TYPE = {
+  PENCHAN: "penchan",
+  KANCHAN: "kanchan",
+  RYANMEN: "ryanmen",
+  SHANPON: "shanpon",
+  TANKI: "tanki",
+  //  THIRTEEN: "thirteen ",
 } as const;
 
 /**
@@ -1182,6 +1198,9 @@ export class PointCalculator {
         fu: 30,
         hand: hand,
         isYakuman: true,
+        metadata: {
+          winning_tile_block_type: getWiningTileBlockType(hand),
+        },
       });
     }
 
@@ -1227,6 +1246,9 @@ export class PointCalculator {
         han: v.reduce((sum, yaku) => sum + yaku.han, 0),
         fu: fu,
         hand: hand,
+        metadata: {
+          winning_tile_block_type: getWiningTileBlockType(hand),
+        },
       });
     }
 
@@ -1840,6 +1862,40 @@ export class PointCalculator {
 
     return fu;
   }
+}
+
+function getWiningTileBlockType(hand: readonly Block[]) {
+  const op = hand.some((b) => b.tiles.some((t) => t.has(OP.RON)))
+    ? OP.RON
+    : OP.TSUMO;
+  const lastBlocks = hand.filter((b) => {
+    return b.tiles.some((tb) => tb.has(op));
+  });
+  assert(
+    lastBlocks.length == 1,
+    `last block must be 1: ${lastBlocks}, ${hand.join("")}, isTusmo: ${op}`,
+  );
+  const lastBlock = lastBlocks[0];
+  if (lastBlock instanceof BlockRun) {
+    const idx = lastBlock.tiles.findIndex((t) => t.has(op));
+    if (idx == 1) return WINING_TILE_BLOCK_TYPE.KANCHAN;
+    // 12v3p / v789p
+    const isPenchan =
+      (idx == 2 && lastBlock.tiles[0].n == 1) ||
+      (idx == 0 && lastBlock.tiles[2].n == 9);
+    if (isPenchan) return WINING_TILE_BLOCK_TYPE.PENCHAN;
+    return WINING_TILE_BLOCK_TYPE.RYANMEN;
+  } else if (lastBlock instanceof BlockPair)
+    return WINING_TILE_BLOCK_TYPE.TANKI;
+  else if (lastBlock instanceof BlockThree)
+    return WINING_TILE_BLOCK_TYPE.SHANPON;
+  // 国士無双
+  // TODO 13面待ちの場合は、thriteen にしても良いかも
+  if (lastBlock instanceof BlockIsolated) return WINING_TILE_BLOCK_TYPE.TANKI;
+  else
+    throw new Error(
+      `unexpected agari type ${lastBlock}, ${hand.join("").toString()}`,
+    );
 }
 
 /**
