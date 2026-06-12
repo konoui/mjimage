@@ -45,7 +45,7 @@
         "svgo": "^4.0.0",
         "tsx": "^4.19.1",
         "typescript": "^5.5.4",
-        "vite": "^7.0.5",
+        "vite": "^8.0.16",
         "vite-plugin-dts": "^4.2.2",
         "vite-tsconfig-paths": "^5.0.1",
         "vitest": "^4.1.0"
