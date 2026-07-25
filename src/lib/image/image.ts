@@ -30,6 +30,12 @@ export interface ImageHelperConfig {
    * 有効化する場合、手動で牌の svg を読み込み参照する必要がある。
    */
   svgSprite?: boolean;
+  /**
+   * 文字（ドラ・ツモの注記、卓の点数表示など）に使うフォント。
+   * デフォルトは FONT_FAMILY。
+   * 全角 1 文字が 1em で描かれる前提でレイアウトするため、日本語を含むフォントを指定する。
+   */
+  fontFamily?: string;
 }
 
 export interface DrawOptions {
@@ -60,6 +66,15 @@ const blockImageSize = (b: Block, scale: number) => {
   return { width: sumWidth, height: maxHeight };
 };
 
+/**
+ * 牌の実寸。ブロック内部の座標計算とコンテナの寸法計算で同じ値を使うため、
+ * 丸めを含めてここに一本化する。
+ */
+export const scaledTileWidth = (scale: number) =>
+  parseFloat((TILE_CONTEXT.WIDTH * scale).toPrecision(5));
+export const scaledTileHeight = (scale: number) =>
+  parseFloat((TILE_CONTEXT.HEIGHT * scale).toPrecision(5));
+
 const tileImageSize = (
   tile: Tile,
   scale: number
@@ -69,15 +84,23 @@ const tileImageSize = (
   baseWidth: number;
   baseHeight: number;
 } => {
-  const h = parseFloat((TILE_CONTEXT.HEIGHT * scale).toPrecision(5));
-  const w = parseFloat((TILE_CONTEXT.WIDTH * scale).toPrecision(5));
+  const h = scaledTileHeight(scale);
+  const w = scaledTileWidth(scale);
   const size = tile.has(OP.HORIZONTAL)
     ? { width: h, height: w, baseWidth: w, baseHeight: h }
     : { width: w, height: h, w, baseWidth: w, baseHeight: h };
+  // 牌の右に注記（(ドラ)/(ツモ)）を置く分。文字はこの幅に収まるよう縮められる。
   if (tile.has(OP.TSUMO) || tile.has(OP.IMAGE_DORA))
-    size.width += w * TILE_CONTEXT.TEXT_SCALE; // note not contains text height
+    size.width += w * TILE_CONTEXT.TEXT_SCALE;
   return size;
 };
+
+/**
+ * 文字列の幅を em 単位で見積もる。半角は 0.5em、全角は 1em として数える。
+ * 注記が牌の右に確保した幅へ収まるフォントサイズを決めるために使う。
+ */
+const textEmWidth = (text: string) =>
+  [...text].reduce((w, c) => w + (c.charCodeAt(0) < 0x100 ? 0.5 : 1), 0);
 
 class BaseHelper {
   readonly tileWidth: number;
@@ -86,13 +109,15 @@ class BaseHelper {
   readonly imageExt: "svg" | "webp";
   readonly scale: number;
   readonly svgSprite: boolean;
+  readonly fontFamily: string;
   constructor(props: ImageHelperConfig = {}) {
     this.scale = props.scale ?? 1;
     this.imageHostUrl = props.imageHostUrl ?? "";
     this.imageExt = props.imageExt ?? "svg";
-    this.tileWidth = TILE_CONTEXT.WIDTH * this.scale;
-    this.tileHeight = TILE_CONTEXT.HEIGHT * this.scale;
+    this.tileWidth = scaledTileWidth(this.scale);
+    this.tileHeight = scaledTileHeight(this.scale);
     this.svgSprite = props.svgSprite ?? false;
+    this.fontFamily = props.fontFamily ?? FONT_FAMILY;
   }
 
   // 横向き牌を縦向き牌と水平に揃えるためのY座標オフセットを計算
@@ -106,6 +131,8 @@ class BaseHelper {
     let img = this.svgSprite
       ? new Use().use(BaseHelper.buildID(tile))
       : new Image().load(this.buildURL(tile));
+    // ツモ切りの表現。README の「牌の色が暗くなる」に対応する。
+    // グレースケール化ではなくコントラストを落としている（OP 名とはずれる）。
     if (tile instanceof Tile && tile.has(OP.COLOR_GRAYSCALE))
       img.css({ filter: "contrast(65%)" });
     return img;
@@ -121,21 +148,20 @@ class BaseHelper {
   }
 
   createTextImage(tile: Tile, x: number, y: number, t: string) {
-    const image = this.createImage(tile, x, y);
-
     const size = tileImageSize(tile, this.scale);
-    const fontSize = size.baseHeight * 0.2;
-    const textX = size.baseWidth;
-    const textY = size.baseHeight;
-    const text = new Text().plain(t);
-    text
-      .size(size.baseWidth, size.baseHeight)
-      .font({
-        family: FONT_FAMILY,
-        size: fontSize,
-      })
-      .dx(textX)
-      .dy(textY);
+    // tileImageSize が牌の右に足している幅にちょうど収まる大きさにする。
+    const reservedWidth = size.baseWidth * TILE_CONTEXT.TEXT_SCALE;
+    const fontSize = reservedWidth / textEmWidth(t);
+
+    // g 側で (x, y) へ移動するので、中身は原点基準で組む。
+    const image = this.createImage(tile, 0, 0);
+    const text = new Text()
+      .plain(t)
+      .font({ family: this.fontFamily, size: fontSize })
+      // ディセンダが牌の下辺より下へ出ないよう字面の下端で揃える。
+      .attr({ "dominant-baseline": "text-after-edge" })
+      .x(size.baseWidth)
+      .y(size.baseHeight);
 
     const g = new G();
     g.add(image).add(text).translate(x, y);
@@ -213,7 +239,7 @@ export class ImageHelper extends BaseHelper {
   /**
    * ポンのブロックから SVG 要素を作る
    */
-  createBlockPon(block: BlockChi) {
+  createBlockPon(block: BlockPon) {
     this.findHorizontalIndex(block);
     return this.createHorizontalBlock(block.tiles);
   }
@@ -408,7 +434,9 @@ export const createBlockHand = (
   const maxHeight = elms.reduce((max, elm) => Math.max(max, elm.height), 0);
 
   const viewBoxHeight = maxHeight;
-  const viewBoxWidth = sumWidth + (blocks.length - 1) * helper.blockMargin;
+  // ブロック間の余白はブロックの隙間の数だけ。ブロックが無い場合は 0（負の幅にしない）。
+  const viewBoxWidth =
+    sumWidth + Math.max(0, blocks.length - 1) * helper.blockMargin;
 
   const hand = new G();
   let pos = 0;

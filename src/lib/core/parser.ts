@@ -658,6 +658,9 @@ export class Parser {
     // それ以外の場合は、t op がツモブロックとして定義されていると判断できる。
     if (sIdx > -1 && tIdx > sIdx) return res;
     const handEnd = sIdx < 0 ? res.length : sIdx;
+    // ツモ牌以外に手牌がなければ切り出す必要がない。
+    // そのまま進めると先頭に区切り文字が付き、空のブロックができてしまう。
+    if (handEnd <= 1) return res;
     const hand = res.slice(0, handEnd);
     const tsumo = hand[tIdx];
     // 横牌がある場合手牌ではない。
@@ -689,11 +692,16 @@ export class Parser {
 
     if (tiles.length == 0) return res;
 
+    // 区切り文字が先頭にある/連続している場合に牌ゼロ枚のブロックを作らない。
+    // 空のブロックは描画時に tiles[0] を参照して落ちる。
+    const push = (tiles: readonly Tile[]) => {
+      if (tiles.length == 0) return;
+      res.push(blockWrapper(tiles, detectBlockType(tiles)));
+    };
+
     for (const t of tiles) {
       if (t == INPUT_SEPARATOR) {
-        const type = detectBlockType(cluster);
-        const b = blockWrapper(cluster, type);
-        res.push(b);
+        push(cluster);
         cluster = [];
         continue;
       }
@@ -701,9 +709,7 @@ export class Parser {
     }
 
     // handle last block
-    const type = detectBlockType(cluster);
-    const b = blockWrapper(cluster, type);
-    res.push(b);
+    push(cluster);
     cluster = [];
     return res;
   }

@@ -1,4 +1,3 @@
-export * from "./lib/measure-text/";
 export * from "./lib/core/";
 export * from "./lib/image/";
 export * from "./lib/calculator/";

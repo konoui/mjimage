@@ -1,4 +1,12 @@
-import { Tile, BLOCK, BlockOther, WIND_MAP, STICK_CONTEXT } from "../core/";
+import {
+  Tile,
+  BLOCK,
+  BlockOther,
+  WIND_MAP,
+  STICK_CONTEXT,
+  TABLE_CONTEXT,
+  OP,
+} from "../core/";
 import {
   ImageHelper,
   createBlockHand,
@@ -6,7 +14,6 @@ import {
   MySVGElement,
 } from "../image/image";
 import { Svg, Text, G, Rect, Mark } from "../svgjs/svg";
-import { FontContext } from "../measure-text/";
 import { parse, ScoreBoardInput, DiscardsInput, HandsInput } from "./";
 
 const chunkTilesForDisplay = (input: readonly Tile[], chunkSize = 6) => {
@@ -15,37 +22,60 @@ const chunkTilesForDisplay = (input: readonly Tile[], chunkSize = 6) => {
   );
 };
 
+/**
+ * 卓に描く文字の寸法。牌のスケールから導く。
+ *
+ * レイアウトが文字に対して要求するのは「全角 1 文字分の隙間」と「1 行分の高さ」だけで、
+ * どちらも全角 1 文字 = 1em なので実測を必要としない
+ * （実測しても全角の送り幅は font-size と同じ値になる）。
+ */
+interface TableFont {
+  font: { family: string; size: number };
+  /** 全角 1 文字分 = 1em */
+  em: number;
+}
+
+const tableFont = (helper: ImageHelper): TableFont => {
+  const size = TABLE_CONTEXT.BASE * helper.scale;
+  return { font: { family: helper.fontFamily, size }, em: size };
+};
+
+/**
+ * 要素を [0,width]x[0,height] の矩形とみなして回転させる。
+ * 回転後も同じ矩形を占めるよう平行移動を合わせる。
+ */
 const simpleRotate = (
   e: Mark,
   width: number,
   height: number,
   degree: 0 | 90 | 180 | 270,
-  x: number = 0,
-  y: number = 0,
 ) => {
   const g = new G().add(e);
   if (degree == 90) {
-    const translatedX = x;
-    const translatedY = y - height;
-    g.rotate(degree, 0, height).translate(translatedX, translatedY);
+    g.rotate(degree, 0, height).translate(0, -height);
     return new G().add(g);
   }
   if (degree == 180) {
-    const translatedX = x + width;
-    const translatedY = y - height;
-    g.rotate(degree, 0, height).translate(translatedX, translatedY);
+    g.rotate(degree, 0, height).translate(width, -height);
     return new G().add(g);
   }
   if (degree == 270) {
-    const translatedX = x + height;
-    const translatedY = y + (width - height);
-    g.rotate(degree, 0, height).translate(translatedX, translatedY);
+    g.rotate(degree, 0, height).translate(height, width - height);
     return new G().add(g);
   }
 
   // 0
   return new G().add(g);
 };
+
+/**
+ * 河の一行分の幅。鳴かれた牌は横向きになり縦向きより幅を取るため、実際に並べて測る。
+ */
+const riverRowWidth = (tiles: readonly Tile[], helper: ImageHelper) =>
+  tiles.reduce(
+    (sum, t) => sum + (t.has(OP.HORIZONTAL) ? helper.tileHeight : helper.tileWidth),
+    0,
+  );
 
 const createDiscardArea = (
   tiles: readonly Tile[],
@@ -54,45 +84,68 @@ const createDiscardArea = (
   const g = new G();
   const chunks = chunkTilesForDisplay(tiles);
 
+  let width = 0;
   for (let i = 0; i < chunks.length; i++) {
     const tiles = chunks[i];
     const posY = i * helper.tileHeight;
+    width = Math.max(width, riverRowWidth(tiles, helper));
     const e = helper
       .createBlockDiscard(new BlockOther(tiles, BLOCK.IMAGE_DISCARD))
       .translate(0, posY);
     g.add(e);
   }
-  // width is 11111-1
   return {
     e: g,
-    width: helper.tileWidth * 5 + helper.tileHeight * 1,
+    width: width,
     height: helper.tileHeight * chunks.length,
   };
 };
 
+/**
+ * ドラ表示牌の枠数。入力が空でも中央のボードの大きさが変わらないよう最低 1 枠は確保する。
+ */
+const doraSlotCount = (scoreBoard: ScoreBoardInput) =>
+  Math.max(1, scoreBoard.doraIndicators.length);
+
+/**
+ * 中央のボード（局・供託棒・ドラ表示牌）の幅。
+ * 要素を組み立てる前に卓の大きさを決めるために使うので、寸法だけを別に計算できるようにする。
+ */
+const stickAndDoraWidth = (
+  helper: ImageHelper,
+  tf: TableFont,
+  scoreBoard: ScoreBoardInput,
+) =>
+  STICK_CONTEXT.WIDTH * helper.scale +
+  tf.em +
+  helper.tileWidth * doraSlotCount(scoreBoard);
+
 const createStickAndDora = (
   helper: ImageHelper,
-  fontCtx: FontContext,
+  tf: TableFont,
   scoreBoard: ScoreBoardInput,
 ): MySVGElement => {
-  const font = fontCtx.font;
-  const textWidth = fontCtx.textWidth;
-  const textHeight = fontCtx.textHeight;
+  const font = tf.font;
+  const em = tf.em;
 
   const num100 = scoreBoard.sticks.dead;
   const num1000 = scoreBoard.sticks.reach;
   const stickWidth = STICK_CONTEXT.WIDTH * helper.scale;
   const stickHeight = STICK_CONTEXT.HEIGHT * helper.scale;
 
-  const roundWidth = textWidth * 3;
-  const roundHeight = textHeight + 25 * helper.scale; // margin;
-  const roundX = (stickWidth + helper.tileWidth + textWidth - roundWidth) / 2;
+  const width = stickAndDoraWidth(helper, tf, scoreBoard);
+  const roundHeight = em * (1 + TABLE_CONTEXT.ROUND_MARGIN_SCALE);
 
+  // 局は text-anchor で中央に寄せる。文字列の実幅を推定しないため、
+  // 全角・半角が混ざっても位置がずれない。
+  // またベースラインは alphabetic なので、y に文字の高さを与えないと
+  // 確保した領域の上へはみ出してボード全体が上にずれる。
   const roundText = new Text()
     .plain(scoreBoard.round)
     .font(font)
-    .x(roundX)
-    .y(0);
+    .x(width / 2)
+    .y(em)
+    .attr({ "text-anchor": "middle" });
 
   const stickGroupHeight = helper.tileHeight;
   const stickGroup = new G()
@@ -127,11 +180,14 @@ const createStickAndDora = (
   stickGroup.add(stick100);
   stickGroup.add(text100);
 
-  const doraImg = helper
-    .createImage(scoreBoard.doraIndicators[0], 0, 0)
-    .x(stickWidth + textWidth)
-    .y(0);
-  stickGroup.add(doraImg);
+  // 指定された表示牌をすべて描く。空の場合は枠だけ残して何も描かない。
+  scoreBoard.doraIndicators.forEach((tile, i) => {
+    const doraImg = helper
+      .createImage(tile, 0, 0)
+      .x(stickWidth + em + helper.tileWidth * i)
+      .y(0);
+    stickGroup.add(doraImg);
+  });
 
   const g = new G();
   g.add(roundText);
@@ -139,53 +195,63 @@ const createStickAndDora = (
 
   return {
     e: g,
-    width: stickWidth + helper.tileWidth + textWidth,
+    width: width,
     height: roundHeight + helper.tileHeight,
   };
 };
 
-const createHands = (
-  helper: ImageHelper,
-  hands: HandsInput,
-  minWidth: number = 0,
-): MySVGElement => {
-  const fe = createBlockHand(helper, hands.front);
-  const re = createBlockHand(helper, hands.right);
-  const oe = createBlockHand(helper, hands.opposite);
-  const le = createBlockHand(helper, hands.left);
-  const maxWidth = [fe.width, re.width, oe.width, le.width].reduce((a, b) =>
-    Math.max(a, b),
-  );
-  const sizeWidth = Math.max(
-    minWidth + helper.tileHeight * 2 + helper.blockMargin * 2,
-    maxWidth + helper.tileWidth * 2 + helper.blockMargin,
-  ); // additional margin
-  const sizeHeight = sizeWidth;
+/**
+ * 4 家分をまとめて扱うための入れ物。
+ * front を手前として時計回りに right / opposite / left が並ぶ。
+ */
+type Seats<T> = { front: T; right: T; opposite: T; left: T };
+
+const mapSeats = <A, B>(seats: Seats<A>, f: (v: A) => B): Seats<B> => ({
+  front: f(seats.front),
+  right: f(seats.right),
+  opposite: f(seats.opposite),
+  left: f(seats.left),
+});
+
+const maxOfSeats = <T>(seats: Seats<T>, f: (v: T) => number) =>
+  Math.max(f(seats.front), f(seats.right), f(seats.opposite), f(seats.left));
+
+/**
+ * 4 家の要素を正方形の各辺に貼り付ける。
+ * 要素は自分の辺に接し（辺からの距離は offset）、辺に沿っては中央寄せする。
+ * 各要素は自分自身の実寸で配置するので、他家の大きさに引きずられない。
+ */
+const layoutSeats = (
+  areas: Seats<MySVGElement>,
+  sizeWidth: number,
+  offset: number,
+): G => {
+  const { front: fe, right: re, opposite: oe, left: le } = areas;
+  const along = (width: number) => (sizeWidth - width) / 2;
 
   const front = simpleRotate(fe.e, fe.width, fe.height, 0).translate(
-    (sizeWidth - fe.width) / 2,
-    sizeHeight - fe.height,
+    along(fe.width),
+    sizeWidth - offset - fe.height,
   );
   const right = simpleRotate(re.e, re.width, re.height, 270).translate(
-    sizeWidth - re.height,
-    (sizeWidth - re.width) / 2,
+    sizeWidth - offset - re.height,
+    along(re.width),
   );
   const opposite = simpleRotate(oe.e, oe.width, oe.height, 180).translate(
-    (sizeWidth - oe.width) / 2,
-    0,
+    along(oe.width),
+    offset,
   );
   const left = simpleRotate(le.e, le.width, le.height, 90).translate(
-    0,
-    (sizeWidth - le.width) / 2,
+    offset,
+    along(le.width),
   );
 
-  const g = new G().size(sizeWidth, sizeHeight);
+  const g = new G().size(sizeWidth, sizeWidth);
   g.add(front);
   g.add(right);
   g.add(opposite);
   g.add(left);
-
-  return { e: new G().add(g), width: sizeWidth, height: sizeHeight };
+  return g;
 };
 
 const getPlaces = (front: "東" | "南" | "西" | "北") => {
@@ -196,35 +262,38 @@ const getPlaces = (front: "東" | "南" | "西" | "北") => {
 
 const createScoreBoard = (
   helper: ImageHelper,
-  fontCtx: FontContext,
+  tf: TableFont,
   scoreBoard: ScoreBoardInput,
+  sizeWidth: number,
 ): MySVGElement => {
-  const sizeWidth = helper.tileWidth * 5 + helper.tileHeight * 1; // 11111-1
-
-  const font = fontCtx.font;
-  const textWidth = fontCtx.textWidth;
-  const textHeight = fontCtx.textHeight;
-  const numWidth = fontCtx.numWidth;
-  const boardRect = createStickAndDora(helper, fontCtx, scoreBoard);
+  const font = tf.font;
+  const boardRect = createStickAndDora(helper, tf, scoreBoard);
   boardRect.e.translate(
     sizeWidth / 2 - boardRect.width / 2,
     sizeWidth / 2 - boardRect.height / 2,
   );
 
+  /**
+   * 各家の点数を、正方形の辺の中点を基準に、その家を向く向きで内側に垂らす。
+   * 寄せは text-anchor / dominant-baseline に任せるため、文字列の実寸に依存しない。
+   * 4 辺で同じ属性を使うので、風や桁数が変わっても位置は変わらない。
+   */
   const createScore = (
     place: string,
     score: number,
-    attr: any,
-  ): MySVGElement => {
+    degree: 0 | 90 | 180 | 270,
+    cx: number,
+    cy: number,
+  ) => {
     // http://defghi1977.html.xdomain.jp/tech/svgMemo/svgMemo_08.htm
-    const s = `${place} ${score}`;
-    const t = new Text().plain(s).font(font).attr(attr);
-    const g = new G().add(t);
-    return {
-      e: g,
-      width: textWidth + numWidth * score.toString().length,
-      height: textHeight,
-    };
+    const t = new Text()
+      .plain(`${place} ${score}`)
+      .font(font)
+      .attr({
+        "text-anchor": "middle",
+        "dominant-baseline": "text-after-edge",
+      });
+    return new G().add(t).rotate(degree, 0, 0).translate(cx, cy);
   };
 
   const [frontPlace, rightPlace, oppositePlace, leftPlace] = getPlaces(
@@ -232,41 +301,7 @@ const createScoreBoard = (
   );
 
   const scores = scoreBoard.scores;
-  let ft = createScore(frontPlace, scores.front, {
-    x: sizeWidth / 2,
-    y: sizeWidth,
-    "dominant-baseline": "text-after-edge",
-    "text-anchor": "middle",
-  });
-  const frontText = ft.e;
-
-  // Note TODO why it works
-  const rt = createScore(rightPlace, scores.right, {
-    "dominant-baseline": "text-after-edge",
-    "text-anchor": "middle",
-  });
-  const rightText = simpleRotate(rt.e, rt.width, rt.height, 270).translate(
-    sizeWidth,
-    sizeWidth / 2 - rt.width,
-  );
-
-  let ot = createScore(oppositePlace, scores.opposite, {
-    "text-anchor": "middle",
-    "dominant-baseline": "text-after-edge",
-  });
-  const oppositeText = simpleRotate(ot.e, ot.width, ot.height, 180).translate(
-    sizeWidth / 2 - ot.width,
-    -ot.height,
-  );
-
-  const lt = createScore(leftPlace, scores.left, {
-    "dominant-baseline": "ideographic",
-    "text-anchor": "middle",
-  });
-  const leftText = simpleRotate(lt.e, lt.width, lt.height, 90).translate(
-    -lt.height,
-    sizeWidth / 2,
-  );
+  const half = sizeWidth / 2;
 
   const g = new G();
   const rect = new Rect()
@@ -277,95 +312,84 @@ const createScoreBoard = (
     .stroke("#000000");
   g.add(rect);
   g.add(boardRect.e);
-  g.add(frontText);
-  g.add(rightText);
-  g.add(oppositeText);
-  g.add(leftText);
+  g.add(createScore(frontPlace, scores.front, 0, half, sizeWidth));
+  g.add(createScore(rightPlace, scores.right, 270, sizeWidth, half));
+  g.add(createScore(oppositePlace, scores.opposite, 180, half, 0));
+  g.add(createScore(leftPlace, scores.left, 90, 0, half));
 
   return { e: g, width: sizeWidth, height: sizeWidth };
 };
 
-const createDiscards = (
+/**
+ * 卓の中央（点数表示）の一辺の長さの下限。
+ * 河の一行と中央のボードはこの幅に収まる必要がある。
+ * 素の下限は「11111-1」（縦 5 枚 + 横 1 枚）。
+ */
+const minCenterWidth = (
   helper: ImageHelper,
-  discards: DiscardsInput,
-): MySVGElement => {
-  const fe = createDiscardArea(discards.front, helper);
-  const re = createDiscardArea(discards.right, helper);
-  const oe = createDiscardArea(discards.opposite, helper);
-  const le = createDiscardArea(discards.left, helper);
-
-  const maxDiscardHeight = [fe.height, re.height, oe.height, le.height].reduce(
-    (a, b) => Math.max(a, b),
+  discardAreas: Seats<MySVGElement>,
+  boardWidth: number,
+) => {
+  const nominal = helper.tileWidth * 5 + helper.tileHeight * 1; // 11111-1
+  return Math.max(
+    nominal,
+    boardWidth,
+    maxOfSeats(discardAreas, (a) => a.width),
   );
-
-  const discardWidth = helper.tileWidth * 5 + helper.tileHeight * 1; // 11111-1
-  const discardHeight = maxDiscardHeight; // using dynamic value. max value is pai height * 4
-
-  const sizeWidth = discardWidth + maxDiscardHeight * 2 + helper.blockMargin; // add margin
-  const sizeHeight = sizeWidth;
-
-  const g = new G().size(sizeWidth, sizeHeight);
-
-  const centerX = sizeWidth / 2 - discardWidth / 2;
-  const centerY = sizeHeight / 2 - discardWidth / 2;
-
-  const front = simpleRotate(fe.e, discardWidth, discardHeight, 0).translate(
-    centerX,
-    sizeHeight - discardHeight,
-  );
-
-  const right = simpleRotate(re.e, discardWidth, discardHeight, 270).translate(
-    sizeWidth - discardHeight,
-    centerY,
-  );
-
-  const opposite = simpleRotate(
-    oe.e,
-    discardWidth,
-    discardHeight,
-    180,
-  ).translate(centerX, 0);
-
-  const left = simpleRotate(le.e, discardWidth, discardHeight, 90).translate(
-    0,
-    centerY,
-  );
-
-  g.add(front);
-  g.add(right);
-  g.add(opposite);
-  g.add(left);
-  return { e: new G().add(g), width: sizeWidth, height: sizeHeight };
 };
 
 /**
  * 麻雀卓の SVG 要素を作成する。
+ *
+ * 卓は「中央の正方形 + 四方に同じ厚みの外周（河 + 手牌 + 余白）」として組む。
+ * 卓の一辺は手牌の広さでも決まるが、その余りは外周ではなく中央の正方形に吸わせる。
+ * 外周に配ると河が手牌から離れて中央へ浮いてしまうため。
  */
 export const createTable = (
   helper: ImageHelper,
-  fontCtx: FontContext,
   handsProps: HandsInput,
   discardsProps: DiscardsInput,
   scoreBoardProps: ScoreBoardInput,
 ): MySVGElement => {
   const g = new G();
-  const discards = createDiscards(helper, discardsProps);
-  const hands = createHands(helper, handsProps, discards.height);
-  const scoreBoard = createScoreBoard(helper, fontCtx, scoreBoardProps);
-  discards.e.translate(
-    (hands.width - discards.width) / 2,
-    (hands.height - discards.height) / 2,
+  // 文字の寸法は牌のスケールから導く。呼び出し側が牌と文字で別々の値を渡せないようにする。
+  const ctx = tableFont(helper);
+
+  const handAreas = mapSeats(handsProps, (blocks) =>
+    createBlockHand(helper, blocks),
+  );
+  const discardAreas = mapSeats(discardsProps, (tiles) =>
+    createDiscardArea(tiles, helper),
   );
 
-  scoreBoard.e.translate(
-    (hands.width - scoreBoard.width) / 2,
-    (hands.height - scoreBoard.height) / 2,
-  );
+  const maxHandHeight = maxOfSeats(handAreas, (a) => a.height);
+  const maxHandWidth = maxOfSeats(handAreas, (a) => a.width);
+  const maxDiscardHeight = maxOfSeats(discardAreas, (a) => a.height);
 
-  g.add(hands.e);
-  g.add(discards.e);
+  // 外周の厚み。一番深い河と一番背の高い手牌が四方どこでも収まるようにする。
+  const ringWidth =
+    maxDiscardHeight + maxHandHeight + helper.blockMargin * 1.5;
+  // 河は手牌のすぐ内側に置く。
+  const discardOffset = maxHandHeight + helper.blockMargin;
+
+  // 手牌が広い場合、卓はその分だけ大きくなる。差分は中央の正方形が受け持つ。
+  const centerWidth = Math.max(
+    minCenterWidth(
+      helper,
+      discardAreas,
+      stickAndDoraWidth(helper, ctx, scoreBoardProps),
+    ),
+    maxHandWidth + helper.tileWidth * 2 + helper.blockMargin - ringWidth * 2,
+  );
+  const sizeWidth = centerWidth + ringWidth * 2;
+
+  const scoreBoard = createScoreBoard(helper, ctx, scoreBoardProps, centerWidth);
+  scoreBoard.e.translate(ringWidth, ringWidth);
+
+  g.add(layoutSeats(handAreas, sizeWidth, 0));
+  g.add(layoutSeats(discardAreas, sizeWidth, discardOffset));
   g.add(scoreBoard.e);
-  return { e: g, width: hands.width, height: hands.height };
+  return { e: g, width: sizeWidth, height: sizeWidth };
 };
 
 /**
@@ -377,14 +401,12 @@ export const drawTable = (
   svg: Svg,
   tableInput: string,
   config: ImageHelperConfig = {},
-  fontCtx: FontContext,
   params: { responsive: boolean } = { responsive: false },
 ) => {
   const helper = new ImageHelper(config);
-  const ctx = fontCtx;
 
   const { discards, hands, scoreBoard } = parse(tableInput);
-  const table = createTable(helper, ctx, hands, discards, scoreBoard);
+  const table = createTable(helper, hands, discards, scoreBoard);
   if (!params.responsive) svg.size(table.width, table.height);
   svg.viewbox(0, 0, table.width, table.height);
   svg.add(table.e);

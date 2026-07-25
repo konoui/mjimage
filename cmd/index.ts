@@ -5,11 +5,12 @@ import {
   optimizeSVG,
   SVG,
   drawTable,
-  FONT_FAMILY,
 } from "@konoui/mjimage";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const args = yargs(hideBin(process.argv))
   .command("mjimage", "generate")
@@ -35,8 +36,8 @@ const args = yargs(hideBin(process.argv))
   })
   .parseSync();
 
-if (args.filePath == "" && args.input == "") {
-  console.error("specify either --filePath or --input");
+if (args.inputFile == "" && args.input == "") {
+  console.error("specify either --input-file or --input");
   process.exit(1);
 }
 
@@ -45,7 +46,11 @@ const input =
   args.input != "" ? args.input : fs.readFileSync(args.inputFile).toString();
 
 const tableRegex = /^\s*table/;
-const spritePath = "../browser-mjimage/static/svg/tiles.svg";
+// カレントディレクトリではなくこのスクリプトの位置を基準に解決する。
+const spritePath = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../browser-mjimage/static/svg/tiles.svg"
+);
 const imgConfig = { svgSprite: true };
 const imgHelper = new ImageHelper(imgConfig);
 
@@ -57,13 +62,7 @@ function loadImgTiles() {
 const tiles = loadImgTiles();
 const draw = SVG().importSymbol(tiles);
 if (tableRegex.test(input)) {
-  drawTable(draw, input, imgConfig, {
-    font: { family: FONT_FAMILY, size: 40 },
-    textWidth: 16.0,
-    textHeight: 16.0,
-    numWidth: 11.84,
-    numHeight: 11.84,
-  });
+  drawTable(draw, input, imgConfig);
 } else {
   const blocks = new Parser(input).parse();
   const hand = createBlockHand(imgHelper, blocks, {

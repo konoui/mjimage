@@ -130,3 +130,54 @@ describe("generate svg", () => {
     }).toThrow(/found an unknown block with operator tiles/);
   });
 });
+
+describe("block edge cases", () => {
+  const helper = new ImageHelper({ scale: 1 });
+
+  // 牌ゼロ枚のブロックは描画時に tiles[0] を参照して落ちる。
+  // ツモ記号が先頭にある入力ではパーサが内部で先頭に区切り文字を挿入していた。
+  test("inputs that used to produce empty blocks", () => {
+    for (const input of ["t3s", "t3s,123m", ",123m", "123m,,456m"]) {
+      const blocks = new Parser(input).parse();
+      expect(blocks.every((b) => b.tiles.length > 0)).toBe(true);
+      expect(() => createBlockHand(helper, blocks)).not.toThrow();
+    }
+  });
+
+  // ツモ牌の切り出しは手牌が残る場合だけ行う。
+  test("tsumo is split out only when a hand remains", () => {
+    const shape = (s: string) => new Parser(s).parse().map((b) => b.tiles.length);
+    expect(shape("t3s")).toEqual([1]);
+    expect(shape("123m,t3s")).toEqual([3, 1]);
+    expect(shape("1m t3s")).toEqual([1, 1]);
+    expect(shape("123456789m1234s,t1p")).toEqual([13, 1]);
+  });
+
+  test("empty input produces a non-negative size", () => {
+    const hand = createBlockHand(helper, new Parser("").parse());
+    expect(hand.width).toBe(0);
+    expect(hand.height).toBe(0);
+  });
+
+  // (ドラ)/(ツモ) の注記は、牌の右に確保した幅に収まる。
+  test("dora/tsumo note fits the declared block width", () => {
+    for (const input of ["d3s", "t3s"]) {
+      const hand = createBlockHand(helper, new Parser(input).parse());
+      const draw = SVG();
+      draw.add(hand.e);
+      const svg = draw.svg();
+      const m = svg.match(
+        /<text[^>]*font-size="([\d.]+)"[^>]*x="([\d.]+)"[^>]*>([^<]*)</,
+      )!;
+      const [, fontSize, x, text] = m;
+      // 半角 0.5em / 全角 1em
+      const em = [...text].reduce(
+        (w, c) => w + (c.charCodeAt(0) < 0x100 ? 0.5 : 1),
+        0,
+      );
+      expect(Number(x) + Number(fontSize) * em).toBeLessThanOrEqual(hand.width);
+      // ディセンダが牌の下辺より下へ出ない
+      expect(svg).toContain('dominant-baseline="text-after-edge"');
+    }
+  });
+});

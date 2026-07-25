@@ -11,7 +11,14 @@ export const STICK_CONTEXT = {
   WIDTH: 125,
   HEIGHT: 27.5,
 } as const;
-export const TABLE_CONTEXT = { BASE: 40 } as const;
+export const TABLE_CONTEXT = {
+  BASE: 40,
+  /**
+   * 局表示の下に空ける余白。文字の高さに対する比率で持つ。
+   * 牌のスケールではなくフォントに追従させるための係数。
+   */
+  ROUND_MARGIN_SCALE: 0.625,
+} as const;
 /**
  * ブロックの塊を表す区切り文字を表す。
  */
@@ -182,13 +189,13 @@ export const ROUND_MAP = {
   [ROUND.S2]: "南２局",
   [ROUND.S3]: "南３局",
   [ROUND.S4]: "南４局",
-  [ROUND.W1]: "西1局",
-  [ROUND.W2]: "西2局",
-  [ROUND.W3]: "西3局",
-  [ROUND.W4]: "西4局",
-  [ROUND.N1]: "北1局",
-  [ROUND.N2]: "北2局",
-  [ROUND.N3]: "北3局",
+  [ROUND.W1]: "西１局",
+  [ROUND.W2]: "西２局",
+  [ROUND.W3]: "西３局",
+  [ROUND.W4]: "西４局",
+  [ROUND.N1]: "北１局",
+  [ROUND.N2]: "北２局",
+  [ROUND.N3]: "北３局",
   [ROUND.N4]: "北４局",
 } as const;
 

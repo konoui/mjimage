@@ -1,7 +1,6 @@
 import {
   Parser,
   TILE_CONTEXT,
-  MeasureText,
   drawTable,
   drawBlocks,
   ImageHelperConfig,
@@ -39,7 +38,6 @@ export class mjimage {
     let svgSprite = props.svgSprite ?? defaultSvgSprite;
     if (typeof querySelector === "string") querySelector = [querySelector];
 
-    const mtext = new MeasureText();
     querySelector.forEach((qs) => {
       console.debug("try to find", qs);
       const targets = document.querySelectorAll(qs) as NodeListOf<HTMLElement>;
@@ -64,7 +62,6 @@ export class mjimage {
         try {
           if (tableRegex.test(input)) {
             const scale = calculateScale(tableScale, textHeight);
-            const fontCtx = mtext.measureTableFontContext(scale);
             drawTable(
               svg,
               input,
@@ -73,7 +70,6 @@ export class mjimage {
                 svgSprite,
                 scale: scale,
               },
-              fontCtx,
               { responsive: responsive }
             );
           } else {
