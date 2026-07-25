@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My First Parcel App</title>
+    <title>mjimage dev</title>
   </head>
   <script type="module">
-    import { mjimage } from "./mjimage.ts";
+    import { mjimage } from "../src/browser/mjimage";
     window.onload = function () {
       mjimage.initialize({
-        imageHostUrl: "http://localhost:1234/svg/",
+        imageHostUrl: "http://localhost:5173/svg/",
         scale: 1,
         tableScale: 2,
         responsive: true,

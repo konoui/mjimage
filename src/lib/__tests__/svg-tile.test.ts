@@ -4,7 +4,7 @@ import fs from "fs";
 import { loadTestData, SVG, Use } from "./utils/helper";
 
 const update = false;
-const spritePath = "browser-mjimage/static/svg/tiles.svg";
+const spritePath = "public/svg/tiles.svg";
 
 describe("use", () => {
   test("import existing", () => {

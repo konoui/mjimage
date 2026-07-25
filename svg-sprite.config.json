@@ -1,5 +1,5 @@
 {
-    "dest": "static/svg/",
+    "dest": "public/svg/",
     "mode": {
         "symbol": {
             "dest": ".",

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SRC_IMAGE_DIR="./static/png/"
-DST_IMAGE_DIR="./static/webp"
+SRC_IMAGE_DIR="./assets/png/"
+DST_IMAGE_DIR="./public/webp"
 PNG_FILES="*.png"
 # brew install cwebp
 while read -r f; do

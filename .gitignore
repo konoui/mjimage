@@ -1,5 +1,3 @@
 dist/
-browser/
+dist-browser/
 node_modules/
-.parcel-cache/
-parcel-bundle-reports/

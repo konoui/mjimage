@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SRC_IMAGE_DIR="./static/png/"
-DST_IMAGE_DIR="./static/svg"
+SRC_IMAGE_DIR="./assets/png/"
+DST_IMAGE_DIR="./public/svg"
 PNG_FILES="*.png"
 # go install github.com/xyproto/png2svg/cmd/png2svg@latest
 while read -r f; do

@@ -5,7 +5,7 @@ import {
   optimizeSVG,
   SVG,
   drawTable,
-} from "@konoui/mjimage";
+} from "../index";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import fs from "fs";
@@ -49,7 +49,7 @@ const tableRegex = /^\s*table/;
 // カレントディレクトリではなくこのスクリプトの位置を基準に解決する。
 const spritePath = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  "../browser-mjimage/static/svg/tiles.svg"
+  "../../public/svg/tiles.svg"
 );
 const imgConfig = { svgSprite: true };
 const imgHelper = new ImageHelper(imgConfig);

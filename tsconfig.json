@@ -20,7 +20,9 @@
     "strict": true,
     "noFallthroughCasesInSwitch": true,
 
-    "types": ["vitest/globals"],
+    // types を明示すると @types/* が自動で読まれなくなるため node も列挙する。
+    // src/cmd, src/e2e, テストが fs/path/process を使う。
+    "types": ["vitest/globals", "node"],
     "outDir": "./dist"
   },
   "include": ["src/**/*"]

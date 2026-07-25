@@ -42,7 +42,7 @@
 456m456s456p1w2w3w1d,t2p,d3p
 ```
 
-![hand1](./cmd/output/example1.svg)
+![hand1](./example/output/example1.svg)
 
 #### 例 2）
 
@@ -50,7 +50,7 @@
 23789p, t1w, -456p, 9-99p, d3p
 ```
 
-![hand2](./cmd/output/example2.svg)
+![hand2](./example/output/example2.svg)
 
 ※ スペースは無視されます。
 
@@ -83,7 +83,7 @@ table:
     front: 2z
 ```
 
-![table](./cmd/output/table-example1.svg)
+![table](./example/output/table-example1.svg)
 
 ## 牌画像
 
@@ -93,6 +93,28 @@ table:
 
 [Hugo 設定例](doc/configuration.md)
 
-[html の例](browser-mjimage/example/index.html)
+[html の例](example/index.html)
 
-[CLI](./cmd/README.md)
+[CLI](./src/cmd/README.md)
+
+## 開発
+
+```
+npm run build          # ライブラリを dist/ に生成する
+npm run build:browser  # ブラウザ向け global.js と牌画像を dist-browser/ に生成する
+npm run dev            # 開発サーバを起動する（http://localhost:5173/dev/）
+npm test
+npm run deploy         # ブラウザ配布物をビルドし直して S3 に同期する
+```
+
+構成:
+
+| パス | 内容 |
+| --- | --- |
+| `src/` | ライブラリ本体 |
+| `src/browser/` | `window.mjimage` を生やすブラウザ向けエントリ |
+| `public/svg`, `public/webp` | 配布する牌画像。`dist-browser/` にコピーされる |
+| `assets/png`, `assets/giff` | 牌画像の変換元。配布しない |
+| `dev/` | 開発用ページ |
+| `example/` | 配布する利用例 |
+| `src/cmd/` | CLI |

@@ -5,7 +5,7 @@ import {
   drawBlocks,
   ImageHelperConfig,
   SVG,
-} from "@konoui/mjimage";
+} from "../index";
 
 interface InitializeConfig extends Omit<ImageHelperConfig, "scale"> {
   querySelector?: string | string[];
