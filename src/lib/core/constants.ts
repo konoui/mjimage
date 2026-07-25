@@ -199,6 +199,19 @@ export const ROUND_MAP = {
   [ROUND.N4]: "北４局",
 } as const;
 
+/**
+ * 牌種ごとに存在する数字。
+ * 数牌の 0 は赤 5 の別名。字牌は 1z-7z（東南西北白發中）の 7 種しかない。
+ * 入力の検証と、牌画像の ID 一覧の生成で同じ定義を使う。
+ */
+export const TILE_NUMBERS = {
+  [TYPE.M]: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+  [TYPE.P]: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+  [TYPE.S]: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+  [TYPE.Z]: [1, 2, 3, 4, 5, 6, 7],
+  [TYPE.BACK]: [0],
+} as const satisfies { [key in (typeof TYPE)[keyof typeof TYPE]]: number[] };
+
 export type Type = (typeof TYPE)[keyof typeof TYPE];
 export type Wind = (typeof WIND)[keyof typeof WIND];
 export type Round = (typeof ROUND)[keyof typeof ROUND];

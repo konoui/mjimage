@@ -1,5 +1,13 @@
 import { Lexer } from "./lexer";
-import { BLOCK, OP, TYPE, INPUT_SEPARATOR, Type, Operator } from "./";
+import {
+  BLOCK,
+  OP,
+  TYPE,
+  TILE_NUMBERS,
+  INPUT_SEPARATOR,
+  Type,
+  Operator,
+} from "./";
 import { assert } from "./../myassert";
 type Separator = typeof INPUT_SEPARATOR;
 
@@ -775,12 +783,29 @@ function isConsecutiveSequence(rtiles: readonly Tile[]): boolean {
   return true;
 }
 
+/**
+ * 牌種が確定した時点で値域を検証する。
+ * パース中は型が未確定のプレースホルダ（TYPE.BACK）を使うため、数字だけでは
+ * 8z のような存在しない牌を弾けない。ここが利用者の入力に対する唯一の関門になる。
+ */
+function validateTile(tile: Tile) {
+  const numbers: readonly number[] = TILE_NUMBERS[tile.t];
+  if (!numbers.includes(tile.n))
+    throw new Error(`invalid tile: ${tile.n}${tile.t}`);
+  // 赤ドラは数牌にしかない（赤5白のような牌は存在しない）
+  if (tile.has(OP.RED) && !tile.isNum())
+    throw new Error(
+      `red dora operator can only be used with a number tile, got: ${tile.n}${tile.t}`
+    );
+}
+
 function makeTiles(
   cluster: readonly TileBase[],
   k: Type
 ): readonly (Tile | Separator)[] {
   return cluster.map((v) => {
     let tile = new Tile(k, v.n, v.ops);
+    validateTile(tile);
     // convert 0 alias to red operator
     if (tile.isNum() && tile.n == 0) tile = tile.clone({ n: 5, add: OP.RED });
     return tile;

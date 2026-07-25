@@ -28,7 +28,8 @@ export abstract class Mark {
   type: string;
   attrs: Attrs = {};
   styles: Styles = {};
-  private deleteMarker = false;
+  /** 自分を保持しているコンテナ。remove() で自分自身を外すために持つ。 */
+  parent: Container | undefined;
   constructor(type: string) {
     this.type = type;
   }
@@ -55,8 +56,10 @@ export abstract class Mark {
     this.attrs.height = height;
     return this;
   }
+  /** 親から自分を取り除く。親に属していない場合は何もしない。 */
   remove() {
-    this.deleteMarker = true;
+    this.parent?.removeChild(this);
+    this.parent = undefined;
   }
   protected left(...v: string[]) {
     return `<${[
@@ -75,8 +78,12 @@ export abstract class Mark {
     return "";
   }
   toString(): string {
-    if (this.deleteMarker) return "";
-    return `${this.left()}${this.center()}${this.right()}`;
+    const inner = this.center();
+    if (inner != "") return `${this.left()}${inner}${this.right()}`;
+    // 中身が無ければ空要素として畳む。left() の派生実装（G の transform など）
+    // を活かすため、開始タグの末尾だけを差し替える。
+    const open = this.left();
+    return `${open.slice(0, -1)}/>`;
   }
   attr(attrs: Record<string, string>): this;
   attr(key: string): string;
@@ -143,7 +150,6 @@ export class Rect extends Mark {
 }
 
 export class Text extends Mark {
-  attrs: Attrs & { fontFamily?: string; fontSize?: number };
   private _text: string = "";
   constructor(text = "") {
     super("text");
@@ -155,12 +161,14 @@ export class Text extends Mark {
     return this;
   }
   font(font: { family: string; size: number }) {
-    this.attrs.fontFamily = font.family;
-    this.attrs.fontSize = font.size;
+    // SVG の属性名をそのまま持つ。キャメルケースで持って出力時に変換すると、
+    // viewBox のような本来キャメルケースの属性まで巻き込んでしまう。
+    this.attrs["font-family"] = font.family;
+    this.attrs["font-size"] = font.size;
     return this;
   }
   protected center() {
-    return this._text;
+    return escapeText(this._text);
   }
 }
 
@@ -178,16 +186,42 @@ export class Symbol extends Mark {
   }
 }
 
-export class G extends Mark {
+/**
+ * 子要素を持つ要素の共通部分。
+ */
+export abstract class Container extends Mark {
   children: Mark[] = [];
+  add(e: Mark): this {
+    e.parent = this;
+    this.children.push(e);
+    return this;
+  }
+  removeChild(e: Mark) {
+    const i = this.children.indexOf(e);
+    if (i >= 0) this.children.splice(i, 1);
+  }
+  protected center() {
+    return this.children.map((c) => c.toString()).join("");
+  }
+  /**
+   * 子要素を走査する。deep が true の場合は子孫まで辿る。
+   * 走査中にコールバックが remove() を呼んでも崩れないよう、複製に対して回す。
+   */
+  each(block: (idx: number, children: Mark[]) => void, deep: boolean) {
+    const children = [...this.children];
+    for (let i = 0; i < children.length; i++) {
+      const child = children[i];
+      if (deep && child instanceof Container) child.each(block, true);
+      block(i, children);
+    }
+  }
+}
+
+export class G extends Container {
   private rotateMatrix: Matrix | undefined;
   private translateMatrix: Matrix | undefined;
   constructor() {
     super("g");
-  }
-  add(e: Mark) {
-    this.children.push(e);
-    return this;
   }
   rotate(angle: number, cx: number, cy: number) {
     this.rotateMatrix = rotateDEG(angle, cx, cy);
@@ -196,9 +230,6 @@ export class G extends Mark {
   translate(x: number, y: number) {
     this.translateMatrix = translate(x, y);
     return this;
-  }
-  protected center() {
-    return this.children.map((c) => c.toString()).join("");
   }
   protected left(...v: string[]) {
     // svgjs handle translate first, the followings are same results.
@@ -211,17 +242,6 @@ export class G extends Mark {
       ? super.left()
       : super.left(serializeGMatrix(compose(matrixes)));
   }
-  each(block: (idx: number, children: Mark[]) => void, deep: boolean) {
-    for (let i = 0; i < this.children.length; i++) {
-      const child = this.children[i];
-      if (child instanceof G) {
-        if (deep) {
-          child.each(block, true);
-        }
-      }
-      block(i, this.children);
-    }
-  }
 }
 
 const svgHeaders = [
@@ -230,22 +250,14 @@ const svgHeaders = [
   `xmlns:xlink="http://www.w3.org/1999/xlink"`,
 ];
 
-export class Svg extends Mark {
-  children: Mark[] = [];
+export class Svg extends Container {
   constructor() {
     super("svg");
   }
   private viewBox:
     | { x: number; y: number; width: number; height: number }
     | undefined;
-  add(e: Mark) {
-    this.children.push(e);
-    return this;
-  }
-  protected center() {
-    return this.children.map((c) => c.toString()).join("");
-  }
-  protected left(...v: string[]): string {
+  protected left(): string {
     return `<${[
       this.type,
       ...svgHeaders,
@@ -277,17 +289,6 @@ export class Svg extends Mark {
   dy(y: number): this {
     throw new Error("unimplemented");
   }
-  each(block: (idx: number, children: Mark[]) => void, deep: boolean) {
-    for (let i = 0; i < this.children.length; i++) {
-      const child = this.children[i];
-      if (child instanceof G) {
-        if (deep) {
-          child.each(block, true);
-        }
-      }
-      block(i, this.children);
-    }
-  }
 }
 
 // aliases
@@ -301,26 +302,63 @@ export const MyUse = Use;
 export const MyRect = Rect;
 export const MyText = Text;
 
-function camelToSnake(str: string): string {
-  return str.replace(/[A-Z]/g, (match) => "-" + match.toLowerCase());
+/**
+ * 出力する小数の桁数。
+ * 座標計算で出る 403.91999999999996 や、回転行列の 6.12e-17（実質 0）といった
+ * 浮動小数点の誤差を落とす。1e-6 の誤差は SVG の描画では無視できる。
+ */
+const PRECISION = 6;
+
+const round = (v: number) => {
+  if (!Number.isFinite(v)) return v;
+  const r = Number(v.toFixed(PRECISION));
+  // -0 を 0 に正規化する
+  return r === 0 ? 0 : r;
+};
+
+const serializeValue = (v: unknown) =>
+  typeof v === "number" ? String(round(v)) : escapeAttr(String(v));
+
+/** 属性値として安全な文字列にする。利用者が渡す URL やフォント名が入る。 */
+function escapeAttr(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/** テキストノードとして安全な文字列にする。 */
+function escapeText(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function serializeViewBox(
   v: { x: number; y: number; width: number; height: number } | undefined
 ) {
   if (v == null) return "";
-  return `viewBox="${v.x} ${v.y} ${v.width} ${v.height}"`;
+  return `viewBox="${round(v.x)} ${round(v.y)} ${round(v.width)} ${round(
+    v.height
+  )}"`;
 }
 
 function serializeGMatrix(m: Matrix | undefined): string {
   if (m == null) return "";
-  return `transform="${toSVG(m)}"`;
+  const rounded: Matrix = {
+    a: round(m.a),
+    b: round(m.b),
+    c: round(m.c),
+    d: round(m.d),
+    e: round(m.e),
+    f: round(m.f),
+  };
+  return `transform="${toSVG(rounded)}"`;
 }
 
 function serializeAttrs(attrs: Attrs): string {
   return Object.entries(attrs)
     .filter(([_, value]) => value !== undefined)
-    .map(([key, value]) => `${camelToSnake(key)}="${value}"`)
+    .map(([key, value]) => `${key}="${serializeValue(value)}"`)
     .join(" ");
 }
 
@@ -330,7 +368,7 @@ function serializeStyles(style: Styles): string {
       return `${k}: ${v};`;
     })
     .join(" ");
-  return s != "" ? `style="${s}"` : "";
+  return s != "" ? `style="${escapeAttr(s)}"` : "";
 }
 
 function* parse(input: string) {
@@ -341,7 +379,12 @@ function* parse(input: string) {
 
   const doc = parser.parse(input);
 
-  for (const symbol of doc.svg["symbol"]) {
+  // symbol が 1 個だけの場合、fast-xml-parser は配列ではなく単体を返す。
+  const found = doc?.svg?.symbol;
+  const symbols =
+    found == null ? [] : Array.isArray(found) ? found : [found];
+
+  for (const symbol of symbols) {
     const v = builder.build(symbol) as string;
     const symobj = new Symbol(v);
     for (const [key, value] of Object.entries(symbol)) {

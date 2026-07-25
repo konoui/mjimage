@@ -179,3 +179,34 @@ describe("toString", () => {
     expect(b.toString()).toEqual("11m111s__");
   });
 });
+
+describe("tile value range", () => {
+  // 字牌は 1z-7z（東南西北白發中）しかない。値域を検証しないと
+  // 存在しない牌画像（z0/z8/z9）を参照する SVG が出来上がる。
+  test("rejects honor tiles outside 1z-7z", () => {
+    for (const s of ["0z", "8z", "9z"]) {
+      expect(() => new Parser(s).parse()).toThrow(/invalid tile/);
+    }
+    for (const s of ["1z", "2z", "3z", "4z", "5z", "6z", "7z"]) {
+      expect(() => new Parser(s).parse()).not.toThrow();
+    }
+  });
+
+  // 赤ドラは数牌の 5 のみ。赤5白のような牌は存在しない。
+  test("rejects red dora on non-number tiles", () => {
+    expect(() => new Parser("r5z").parse()).toThrow(/red dora/);
+    expect(() => new Parser("r3m").parse()).toThrow(/red dora/);
+    for (const s of ["r5m", "r5p", "r5s", "0m", "0p", "0s"]) {
+      expect(() => new Parser(s).parse()).not.toThrow();
+    }
+  });
+
+  test("accepts every number tile", () => {
+    for (const t of ["m", "p", "s"]) {
+      for (let n = 0; n <= 9; n++) {
+        expect(() => new Parser(`${n}${t}`).parse()).not.toThrow();
+      }
+    }
+    expect(() => new Parser("_").parse()).not.toThrow();
+  });
+});

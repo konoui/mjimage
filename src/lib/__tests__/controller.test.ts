@@ -395,8 +395,11 @@ class MockWall extends Wall {
   pushTile(t: string) {
     this.wall.push(t);
   }
-  get doraIndicators() {
-    return [new Tile(TYPE.Z, 8)];
+  // 点数を固定したいのでドラが誰にも乗らない表示牌を使う。
+  // 中(7z) の次は白(5z) で、どのテストの和了手牌にも含まれない。
+  // 以前は存在しない 8z をダミーにしていたが、牌の値域検証で弾かれるようになった。
+  get doraIndicators(): Tile[] {
+    return [new Tile(TYPE.Z, 7)];
   }
   get hiddenDoraIndicators() {
     return this.doraIndicators;

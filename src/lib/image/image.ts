@@ -10,7 +10,14 @@ import {
   BlockOther,
 } from "../core/parser";
 import { Svg, G, Image, Text, Use, Symbol } from "../svgjs/svg";
-import { FONT_FAMILY, TILE_CONTEXT, TYPE, OP, BLOCK } from "../core";
+import {
+  FONT_FAMILY,
+  TILE_CONTEXT,
+  TILE_NUMBERS,
+  TYPE,
+  OP,
+  BLOCK,
+} from "../core";
 
 export interface ImageHelperConfig {
   scale?: number;
@@ -473,14 +480,11 @@ export const drawBlocks = (
   svg.add(hand.e);
 };
 
+/** 牌画像として存在しうる ID の一覧。入力の検証と同じ値域定義を使う。 */
 const getValidIDs = () => {
-  const values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-  return Object.values(TYPE).flatMap((t) => {
-    if (t === TYPE.BACK) {
-      return [BaseHelper.buildID(new Tile(t, 0))];
-    }
-    return values.map((v) => BaseHelper.buildID(new Tile(t, v)));
-  });
+  return Object.values(TYPE).flatMap((t) =>
+    TILE_NUMBERS[t].map((v) => BaseHelper.buildID(new Tile(t, v)))
+  );
 };
 
 const findUsedIDs = (draw: Svg) => {
