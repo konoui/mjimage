@@ -1,12 +1,14 @@
 import { copyFileSync } from "node:fs";
-import tsconfigPaths from "vite-tsconfig-paths";
 import dts from "vite-plugin-dts";
 import { defineConfig } from "vitest/config";
 import { resolve } from "path";
 
 export default defineConfig({
+  resolve: {
+    // vite-tsconfig-paths の代替。Vite 8 が tsconfig の paths を解決する。
+    tsconfigPaths: true,
+  },
   plugins: [
-    tsconfigPaths(),
     dts({
       rollupTypes: true,
       afterBuild: () => {
