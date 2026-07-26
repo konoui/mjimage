@@ -1,4 +1,4 @@
-import { assert } from "../myassert";
+import { assert } from "../assert";
 import { TYPE, Wind } from "../core/constants";
 import { Tile } from "../core/parser";
 import { TileAnalysis } from "../calculator";

@@ -1,3 +1,4 @@
+// controller の外向きの公開面。controller 内部のモジュール同士はここを経由しない。
 export * from "./events";
 export * from "./managers";
 export * from "./river";

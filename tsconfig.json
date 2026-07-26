@@ -19,6 +19,8 @@
     /* Linting */
     "strict": true,
     "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
 
     // types を明示すると @types/* が自動で読まれなくなるため node も列挙する。
     // src/cmd, src/e2e, テストが fs/path/process を使う。

@@ -7,11 +7,14 @@ import {
   SVGFragment,
   BuiltFragment,
   roundSize,
-} from "../image/image";
+} from "./image";
 import { Text, G, Rect, Mark } from "../svgjs/svg";
-import { ScoreBoard, TableInput } from "./table-parser";
+import { ScoreBoard, TableInput } from "../input";
 
-const chunkTilesForDisplay = (input: readonly Tile[], chunkSize = 6) => {
+const chunkTilesForDisplay = (
+  input: readonly Tile[],
+  chunkSize: number = TABLE_CONTEXT.RIVER_ROW_SIZE,
+) => {
   return Array.from({ length: Math.ceil(input.length / chunkSize) }, (_, i) =>
     input.slice(i * chunkSize, (i + 1) * chunkSize),
   );

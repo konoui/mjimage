@@ -2,7 +2,6 @@ import {
   Wind,
   Round,
   TYPE,
-  WIND,
   createWindMap,
   OP,
   ROUND,
@@ -10,7 +9,7 @@ import {
 } from "../core/";
 import { TupleOfSize } from "../calculator";
 import { Tile } from "../core/parser";
-import { nextWind, nextRound, Type } from "../core";
+import { nextRound, Type } from "../core";
 export class ScoreManager {
   private reachValue = 1000;
   private m: { [id: string]: number };

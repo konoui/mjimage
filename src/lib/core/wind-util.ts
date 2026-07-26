@@ -1,5 +1,5 @@
-import { Round, Wind, WIND, BLOCK, TYPE } from ".";
-import { assert } from "../myassert";
+// barrel（./index.ts）は外向きの公開面。兄弟モジュールは実体を直接参照する。
+import { Round, Wind, WIND, TYPE } from "./constants";
 
 export type WindMap<T> = Record<Wind, T>;
 
@@ -26,13 +26,6 @@ export const nextRound = (r: Round) => {
 };
 
 /**
- * 前の局を返す
- */
-export const prevRound = (r: Round) => {
-  return nextRound(nextRound(nextRound(r)));
-};
-
-/**
  * ラウンドから場風を返す
  */
 export const roundWind = (r: Round) => {
@@ -53,8 +46,6 @@ export const nextWind = (w: Wind): Wind => {
  */
 export const prevWind = (w: Wind): Wind => {
   let n = Number(w.toString()[0]);
-  const cycle = [1, 4, 3, 2];
-  const index = cycle.indexOf(n);
-  const prev = cycle[(index + 1) % cycle.length];
-  return `${prev}${TYPE.Z}` as Wind;
+  n = ((n + 2) % 4) + 1;
+  return `${n}${TYPE.Z}` as Wind;
 };

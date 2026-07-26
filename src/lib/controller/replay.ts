@@ -1,5 +1,5 @@
-import { assert } from "../myassert";
-import { Controller, RoundHistory } from "./";
+import { assert } from "../assert";
+import { Controller, RoundHistory } from "./controller";
 
 export class Replayer {
   index = 0;

@@ -1,9 +1,9 @@
 import { render, isTableInput, RenderOptions } from "../index";
 import { TILE_CONTEXT } from "../lib/image/constants";
 
-interface InitializeConfig extends Omit<RenderOptions, "scale"> {
+interface InitializeConfig extends RenderOptions {
   querySelector?: string | string[];
-  scale?: number;
+  /** 卓の描画にだけ使う倍率。省略時は scale と同じ。 */
   tableScale?: number;
   responsive?: boolean;
 }
@@ -24,14 +24,19 @@ const calculateScale = (scale: number, textHeight: number) => {
 export class mjimage {
   static initialize = (props: InitializeConfig = {}) => {
     console.debug("initializing....");
-    let querySelector = props.querySelector ?? defaultQuerySelector;
-    let handScale = props.scale ?? defaultScale;
-    let tableScale = props.tableScale ?? handScale;
-    let responsive = props.responsive ?? defaultResponsive;
-    let svgSprite = props.svgSprite ?? defaultSvgSprite;
-    if (typeof querySelector === "string") querySelector = [querySelector];
+    // ブラウザ固有の設定を取り除き、残り（RenderOptions）はそのまま render に渡す。
+    const {
+      querySelector = defaultQuerySelector,
+      tableScale,
+      responsive = defaultResponsive,
+      ...renderOptions
+    } = props;
+    const handScale = renderOptions.scale ?? defaultScale;
+    const svgSprite = renderOptions.svgSprite ?? defaultSvgSprite;
+    const selectors =
+      typeof querySelector === "string" ? [querySelector] : querySelector;
 
-    querySelector.forEach((qs) => {
+    selectors.forEach((qs) => {
       console.debug("try to find", qs);
       const targets = document.querySelectorAll(qs) as NodeListOf<HTMLElement>;
       for (let i = 0; i < targets.length; i++) {
@@ -54,11 +59,11 @@ export class mjimage {
         try {
           // 牌の大きさは要素の文字の大きさに合わせる。卓と手牌で倍率が違う。
           const scale = calculateScale(
-            isTableInput(input) ? tableScale : handScale,
+            isTableInput(input) ? tableScale ?? handScale : handScale,
             textHeight
           );
           const { svg, width, height } = render(input, {
-            ...props,
+            ...renderOptions,
             svgSprite,
             scale: scale,
           });

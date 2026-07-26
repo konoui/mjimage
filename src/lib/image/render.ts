@@ -7,7 +7,7 @@ import {
   roundSize,
 } from "./image";
 import { buildTable } from "./table";
-import { parseTableInput } from "./table-parser";
+import { parseTableInput } from "../input";
 
 const tableRegex = /^\s*table/;
 
@@ -47,7 +47,7 @@ export const render = (
   const helper = new ImageHelper(options);
   const fragment = isTableInput(input)
     ? buildTable(helper, parseTableInput(input))
-    : buildHand(helper, new Parser(input).parse(), options);
+    : buildHand(helper, new Parser(input).parse());
   const { width, height } = roundSize(fragment);
 
   const svg = SVG();

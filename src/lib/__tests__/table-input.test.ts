@@ -2,7 +2,7 @@ import {
   parseTableInput,
   parseYamlStringInput,
   ValidatedTableInput,
-} from "../image/table-parser";
+} from "../input";
 import { ROUND, WIND } from "../core";
 describe("parse-table", () => {
   test("simple", () => {

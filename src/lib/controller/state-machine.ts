@@ -5,7 +5,6 @@ import {
   ChoiceAfterDrawnEvent,
   ChoiceForChanKan,
   ChoiceForReachAcceptance,
-  Controller,
   DiscardEvent,
   DistributeEvent,
   EndEvent,
@@ -14,7 +13,8 @@ import {
   ReachEvent,
   RonEvent,
   TsumoEvent,
-} from "./index";
+} from "./events";
+import type { Controller } from "./controller";
 import {
   BlockAnKan,
   BlockChi,
@@ -32,7 +32,7 @@ import {
   serializeWinResult,
 } from "./../calculator";
 import { nextWind, createWindMap } from "../core";
-import { assert } from "../myassert";
+import { assert } from "../assert";
 
 type ControllerContext = {
   currentWind: Wind;
@@ -410,11 +410,11 @@ export const createControllerMachine = (c: Controller) => {
     },
     {
       actions: {
-        updateNextWind: ({ context, event }) => {
+        updateNextWind: ({ context }) => {
           const cur = context.currentWind;
           context.currentWind = nextWind(cur);
         },
-        notify_distribution: ({ context, event }) => {
+        notify_distribution: ({ context }) => {
           const id = context.genEventID();
           const initHands = context.controller.initialHands();
           for (const w of Object.values(WIND)) {
@@ -437,7 +437,7 @@ export const createControllerMachine = (c: Controller) => {
           }
           context.controller.next();
         },
-        notify_choice_after_drawn: ({ context, event }, params) => {
+        notify_choice_after_drawn: ({ context }, params) => {
           const w = context.currentWind;
           const drawn = context.controller.hand(w).drawn;
           const id = context.genEventID();
@@ -466,7 +466,7 @@ export const createControllerMachine = (c: Controller) => {
           context.controller.emit(e);
           context.controller.pollReplies(id, [w]);
         },
-        notify_choice_after_discarded: ({ context, event }) => {
+        notify_choice_after_discarded: ({ context }) => {
           const id = context.genEventID();
           const discarded = context.controller.river.lastTile;
           const ltile = discarded.t.clone({ add: OP.HORIZONTAL });
@@ -505,7 +505,7 @@ export const createControllerMachine = (c: Controller) => {
           // TODO skip not euqueued winds
           context.controller.pollReplies(id, Object.values(WIND));
         },
-        notify_choice_after_called: ({ context, event }, params) => {
+        notify_choice_after_called: ({ context }, _params) => {
           const id = context.genEventID();
           const w = context.currentWind;
           let discard = context.controller.doDiscard(w);
@@ -526,7 +526,7 @@ export const createControllerMachine = (c: Controller) => {
           context.controller.emit(e);
           context.controller.pollReplies(id, [w]);
         },
-        notify_choice_for_reach_acceptance: ({ context, event }) => {
+        notify_choice_for_reach_acceptance: ({ context }) => {
           const id = context.genEventID();
           const discarded = context.controller.river.lastTile;
           const ltile = discarded.t.clone({ add: OP.HORIZONTAL });
@@ -626,7 +626,7 @@ export const createControllerMachine = (c: Controller) => {
           }
           context.controller.next();
         },
-        notify_draw: ({ context, event }, params) => {
+        notify_draw: ({ context }, params) => {
           const id = context.genEventID();
 
           const action = (params as { action: string } | undefined)?.action; // TODO avoid as
@@ -742,10 +742,10 @@ export const createControllerMachine = (c: Controller) => {
             // nothing because handling by discarded
           }
         },
-        disable_one_shot: ({ context, event }) => {
+        disable_one_shot: ({ context }) => {
           for (const w of Object.values(WIND)) context.oneShotMap[w] = false;
         },
-        disable_one_shot_for_me: ({ context, event }) => {
+        disable_one_shot_for_me: ({ context }) => {
           context.oneShotMap[context.currentWind] = false;
         },
         notify_end: ({ context, event }) => {
@@ -849,7 +849,7 @@ export const createControllerMachine = (c: Controller) => {
       },
       actors: {},
       guards: {
-        canChi: ({ context, event }, params) => {
+        canChi: ({ context, event }, _params) => {
           if (event.type == "CHI")
             return !!context.controller.doChi(
               event.iam,
@@ -859,7 +859,7 @@ export const createControllerMachine = (c: Controller) => {
           console.error(`guards.canChi receive ${event.type}`);
           return false;
         },
-        canPon: ({ context, event }, params) => {
+        canPon: ({ context, event }, _params) => {
           if (event.type == "PON")
             return !!context.controller.doPon(
               event.iam,
@@ -869,21 +869,21 @@ export const createControllerMachine = (c: Controller) => {
           console.error(`guards.canPon receive ${event.type}`);
           return false;
         },
-        canWin: ({ context, event }, params) => {
+        canWin: ({ event }, _params) => {
           if (event.type == "TSUMO" || event.type == "RON") {
             return true; // TODO
           }
           console.error(`guards.canWin receive ${event.type}`);
           return false;
         },
-        canReach: ({ context, event }, params) => {
+        canReach: ({ context, event }, _params) => {
           if (event.type == "REACH") {
             return !!context.controller.doReach(event.iam);
           }
           console.error(`guards.canReach receive ${event.type}`);
           return false;
         },
-        cannotContinue: ({ context, event }, params) => {
+        cannotContinue: ({ context }, _params) => {
           return (
             !context.controller.wall.canDraw ||
             !context.controller.wall.canKan ||

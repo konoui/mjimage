@@ -1,5 +1,8 @@
-import { OP, Tile, Type } from "../core";
-import { Hand, ShantenCalculator, forHand } from "./calc";
+import { OP, Type } from "../core";
+import { Tile } from "../core/parser";
+import { Hand, withTiles, withoutTiles } from "./hand";
+import { ShantenCalculator } from "./shanten";
+import { forHand } from "./tile";
 
 export interface SerializedTileAnalysis {
   tile: string;
@@ -40,19 +43,31 @@ export class Efficiency {
     }
   ): readonly TileAnalysis[] {
     if (choices.length == 0) throw new Error(`no tiles available to discard`);
+    return hand.preserving(() =>
+      Efficiency.calcEffectiveTilesOf(hand, choices, options)
+    );
+  }
+
+  private static calcEffectiveTilesOf(
+    hand: Hand,
+    choices: readonly Tile[],
+    options?: {
+      arrangeRed?: boolean;
+      standardTypeOnly?: boolean;
+    }
+  ): readonly TileAnalysis[] {
     const map = new Map<string, TileAnalysis>();
     let minShanten = Number.POSITIVE_INFINITY;
     for (const t of choices) {
-      const tiles = hand.dec([t]);
-      const c = Efficiency.getEffectiveTiles(hand, options);
-      hand.inc(tiles);
+      const c = withoutTiles(hand, [t], () =>
+        Efficiency.getEffectiveTiles(hand, options)
+      );
       // convert 0 and remove operators
-      const da =
-        options?.arrangeRed && t.has(OP.RED)
-          ? t.clone({ removeAll: true })
-          : t.has(OP.RED)
-          ? t.clone({ removeAll: true, add: OP.RED })
-          : t.clone({ removeAll: true });
+      // arrangeRed の場合は赤も通常の牌として扱うため、赤の印を残さない。
+      const keepRed = !options?.arrangeRed && t.has(OP.RED);
+      const da = keepRed
+        ? t.clone({ removeAll: true, add: OP.RED })
+        : t.clone({ removeAll: true });
       if (c.shanten < minShanten) {
         map.clear();
         map.set(da.toString(), {
@@ -84,6 +99,16 @@ export class Efficiency {
       typeFilter?: readonly Type[];
     }
   ) {
+    return hand.preserving(() => Efficiency.effectiveTilesOf(hand, options));
+  }
+
+  private static effectiveTilesOf(
+    hand: Hand,
+    options?: {
+      standardTypeOnly?: boolean;
+      typeFilter?: readonly Type[];
+    }
+  ) {
     let r = Number.POSITIVE_INFINITY;
     let effectiveTiles: Tile[] = [];
 
@@ -94,9 +119,9 @@ export class Efficiency {
     })) {
       if (hand.get(t, n) >= 4) continue;
       const tile = new Tile(t, n);
-      const tiles = hand.inc([tile]);
-      const s = options?.standardTypeOnly ? sc.standardType() : sc.calc();
-      hand.dec(tiles);
+      const s = withTiles(hand, [tile], () =>
+        options?.standardTypeOnly ? sc.standardType() : sc.calc()
+      );
 
       if (s < r) {
         r = s;

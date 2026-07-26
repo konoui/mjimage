@@ -231,7 +231,7 @@ export class G extends Container {
     this.translateMatrix = translate(x, y);
     return this;
   }
-  protected left(...v: string[]) {
+  protected left(..._v: string[]) {
     // svgjs handle translate first, the followings are same results.
     // console.log("trans/rotate", new G().translate(10, 20).rotate(10, 10, 20).svg());
     // console.log("rotate/trans", new G().rotate(10, 10, 20).translate(10, 20).svg());
@@ -280,16 +280,16 @@ export class Svg extends Container {
     }
     return this;
   }
-  x(x: number): this {
+  x(_x: number): this {
     throw new Error("unimplemented");
   }
-  y(y: number): this {
+  y(_y: number): this {
     throw new Error("unimplemented");
   }
-  dx(x: number): this {
+  dx(_x: number): this {
     throw new Error("unimplemented");
   }
-  dy(y: number): this {
+  dy(_y: number): this {
     throw new Error("unimplemented");
   }
 }
