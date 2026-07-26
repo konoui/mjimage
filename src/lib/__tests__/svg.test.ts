@@ -1,7 +1,7 @@
 import { XMLValidator, XMLParser } from "fast-xml-parser";
 import fs from "fs";
 import { Parser } from "../core/parser";
-import { ImageHelper, drawBlocks, drawTable } from "../image";
+import { ImageHelper, render } from "../image";
 import { SVG } from "./utils/helper";
 import { TYPE, TILE_NUMBERS } from "../core/constants";
 import { G as MyG, Rect as MyRect } from "../svgjs/svg";
@@ -22,9 +22,7 @@ describe("svg serialization", () => {
   // 利用者が渡す値（imageHostUrl / fontFamily）はそのまま属性値になる。
   test("escapes consumer supplied attribute values", () => {
     const hostUrl = 'https://cdn/?v=1&s=2" onload="x()';
-    const draw = SVG();
-    drawBlocks(draw, new Parser("1m").parse(), { imageHostUrl: hostUrl });
-    const svg = draw.svg();
+    const svg = render("1m", { imageHostUrl: hostUrl }).svg.svg();
 
     expect(XMLValidator.validate(svg)).toBe(true);
 
@@ -60,18 +58,12 @@ describe("svg serialization", () => {
       .readFileSync("src/lib/__tests__/__fixtures__/table.common.yaml")
       .toString();
     const cases = [
-      () => {
-        const d = SVG();
-        drawBlocks(d, new Parser("-123s,1234m, d2s, t3s").parse(), {
+      () =>
+        render("-123s,1234m, d2s, t3s", {
           imageHostUrl: "https://cdn/?v=1&s=2/",
-        });
-        return d.svg();
-      },
-      () => {
-        const d = SVG();
-        drawTable(d, yaml, { scale: 1.6, fontFamily: 'My "Font" & Co' });
-        return d.svg();
-      },
+        }).svg.svg(),
+      () =>
+        render(yaml, { scale: 1.6, fontFamily: 'My "Font" & Co' }).svg.svg(),
     ];
     for (const build of cases) {
       expect(XMLValidator.validate(build())).toBe(true);
@@ -83,9 +75,7 @@ describe("svg serialization", () => {
     const yaml = fs
       .readFileSync("src/lib/__tests__/__fixtures__/table.common.yaml")
       .toString();
-    const draw = SVG();
-    drawTable(draw, yaml, { scale: 1.6 });
-    const svg = draw.svg();
+    const svg = render(yaml, { scale: 1.6 }).svg.svg();
     expect(svg.match(/-?\d+\.\d{7,}/g)).toBeNull();
     expect(svg.match(/\d[eE][-+]?\d+/g)).toBeNull();
     // 直角回転の行列は 0 と ±1 で表される
@@ -104,6 +94,25 @@ describe("svg serialization", () => {
   test("imports a sprite that contains no symbol", () => {
     const none = '<svg xmlns="http://www.w3.org/2000/svg"></svg>';
     expect(() => SVG().importSymbol(none)).not.toThrow();
+  });
+
+  // ルートの svg は自前で開始タグを組み立てるため、css() を取りこぼしやすい。
+  // レスポンシブな埋め込みでは、大きさを CSS の単位で与えるのがここになる。
+  test("css() reaches the root svg", () => {
+    const draw = render("123s").svg;
+    draw.css({
+      width: "calc(var(--mj-tile) * 2.2)",
+      height: "calc(var(--mj-tile) * 1)",
+    });
+    const svg = draw.svg();
+
+    expect(svg).toContain(
+      'style="width: calc(var(--mj-tile) * 2.2); height: calc(var(--mj-tile) * 1);"',
+    );
+    // viewBox は残り、絶対値の width/height は付かない
+    expect(svg).toContain('viewBox="0 0 198 90"');
+    expect(svg).not.toMatch(/<svg[^>]*\swidth="/);
+    expect(XMLValidator.validate(svg)).toBe(true);
   });
 });
 

@@ -1,7 +1,8 @@
 import { optimizeSVG } from "../image/image";
 import fs from "fs";
 
-import { loadTestData, SVG, Use } from "./utils/helper";
+import { Svg, Use } from "../svgjs/svg";
+import { loadTestData } from "./utils/helper";
 
 const update = false;
 const spritePath = "public/svg/tiles.svg";
@@ -9,7 +10,7 @@ const spritePath = "public/svg/tiles.svg";
 describe("use", () => {
   test("import existing", () => {
     const img = fs.readFileSync(spritePath).toString();
-    const draw = SVG().importSymbol(img);
+    const draw = new Svg().importSymbol(img);
     const use = new Use().use("m1");
     draw.add(use);
     const got = draw.svg();
@@ -18,7 +19,7 @@ describe("use", () => {
   });
   test("remove unused tile", () => {
     const img = fs.readFileSync(spritePath).toString();
-    const draw = SVG().importSymbol(img);
+    const draw = new Svg().importSymbol(img);
     const use = new Use().use("m1");
     draw.add(use);
     optimizeSVG(draw);

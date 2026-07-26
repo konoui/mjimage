@@ -1,4 +1,8 @@
-import { parse, parseYamlStringInput, TableInput } from "../image/table-parser";
+import {
+  parseTableInput,
+  parseYamlStringInput,
+  ValidatedTableInput,
+} from "../image/table-parser";
 import { ROUND, WIND } from "../core";
 describe("parse-table", () => {
   test("simple", () => {
@@ -27,7 +31,7 @@ describe("parse-table", () => {
         dead: 3
       round: 1z1
     `;
-    const want: TableInput = {
+    const want: ValidatedTableInput = {
       [WIND.E]: {
         discard: "1m",
         hand: "1m",
@@ -76,7 +80,7 @@ describe("parse-table", () => {
       ["1m2p3s4z0m", ["1m", "2p", "3s", "4z", "r5m"]],
       ["1m, 2p, 3s", ["1m", "2p", "3s"]],
     ] as const) {
-      const got = parse(board(input));
+      const got = parseTableInput(board(input));
       expect(got.scoreBoard.doraIndicators.map((t) => t.toString())).toEqual(
         want,
       );
@@ -85,7 +89,7 @@ describe("parse-table", () => {
 
   // 表示牌の省略時は既定の 2z が使われる。
   test("dora indicators default", () => {
-    const got = parse(`
+    const got = parseTableInput(`
   table:
     1z:
       hand: 1m

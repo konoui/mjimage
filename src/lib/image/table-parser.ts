@@ -88,25 +88,25 @@ export type RawWindInputs = InferInput<typeof windInputsSchema>;
 export type RawBoardInput = InferInput<typeof boardInputSchema>;
 export type RawTableInput = InferInput<typeof tableInputSchema>;
 
-export type TableInput = InferOutput<typeof tableInputSchema>;
+export type ValidatedTableInput = InferOutput<typeof tableInputSchema>;
 
 // 変換後の型
-// TableInput => {DiscardsInput, HandsInput, ScoreBoardInput}
-export interface DiscardsInput {
+// ValidatedTableInput => {Discards, Hands, ScoreBoard}
+export interface Discards {
   front: readonly Tile[];
   right: readonly Tile[];
   opposite: readonly Tile[];
   left: readonly Tile[];
 }
 
-export interface HandsInput {
+export interface Hands {
   front: readonly Block[];
   right: readonly Block[];
   opposite: readonly Block[];
   left: readonly Block[];
 }
 
-export interface ScoreBoardInput {
+export interface ScoreBoard {
   doraIndicators: readonly Tile[];
   round: BoardRound;
   sticks: { reach: number; dead: number };
@@ -119,13 +119,22 @@ export interface ScoreBoardInput {
   frontPlace: BoardWind;
 }
 
+/**
+ * 卓を描くのに必要な内容。createTable の入力。
+ */
+export interface TableInput {
+  discards: Discards;
+  hands: Hands;
+  scoreBoard: ScoreBoard;
+}
+
 type BoardRound = (typeof ROUND_MAP)[keyof typeof ROUND_MAP];
 type BoardWind = (typeof WIND_MAP)[keyof typeof WIND_MAP];
 
 /**
  * 麻雀卓の文字列をパースし、内部表現に変換する
  */
-export const parse = (yamlString: string) => {
+export const parseTableInput = (yamlString: string): TableInput => {
   const d = parseYamlStringInput(yamlString);
   return convertTableInput(d);
 };
@@ -134,15 +143,15 @@ export const parse = (yamlString: string) => {
  * 麻雀卓の YAML 形式の文字列をパースする。
  * パース後さらに内部表現に変換する必要がある。
  */
-export const parseYamlStringInput = (yamlString: string): TableInput => {
+export const parseYamlStringInput = (yamlString: string): ValidatedTableInput => {
   const rawInput = parseYamlLikeStringInput(yamlString);
   return parseRawTableInput(rawInput);
 };
 
 /**
- * Raw 形式の入力を TableInput に変換する
+ * Raw 形式の入力を ValidatedTableInput に変換する
  */
-export function parseRawTableInput(rawInput: RawTableInput): TableInput {
+export function parseRawTableInput(rawInput: RawTableInput): ValidatedTableInput {
   const ret = safeParse(tableInputSchema, rawInput);
   if (!ret.success) {
     throw ret.issues;
@@ -257,27 +266,27 @@ const parseBoardSection = (lines: readonly string[]) => {
 /**
  * パースした入力を内部表現へ変換する。
  */
-export const convertTableInput = (i: TableInput) => {
+export const convertTableInput = (i: ValidatedTableInput): TableInput => {
   const frontPlace = i.board.front;
   const m = createPlaceMap(frontPlace);
   const f = (w: Wind) => {
     return i[w].discard.replace(/\r?\n/g, "");
   };
-  const discards: DiscardsInput = {
+  const discards: Discards = {
     front: new Parser(f(m.front)).tiles(),
     right: new Parser(f(m.right)).tiles(),
     opposite: new Parser(f(m.opposite)).tiles(),
     left: new Parser(f(m.left)).tiles(),
   };
 
-  const hands: HandsInput = {
+  const hands: Hands = {
     front: new Parser(i[m.front].hand).parse(),
     right: new Parser(i[m.right].hand).parse(),
     opposite: new Parser(i[m.opposite].hand).parse(),
     left: new Parser(i[m.left].hand).parse(),
   };
 
-  const scoreBoard: ScoreBoardInput = {
+  const scoreBoard: ScoreBoard = {
     round: ROUND_MAP[i.board.round],
     frontPlace: WIND_MAP[frontPlace],
     sticks: i.board.sticks,

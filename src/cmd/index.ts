@@ -1,11 +1,4 @@
-import {
-  Parser,
-  createBlockHand,
-  ImageHelper,
-  optimizeSVG,
-  SVG,
-  drawTable,
-} from "../index";
+import { render, optimizeSVG } from "../index";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import fs from "fs";
@@ -45,35 +38,18 @@ const output = args.outputFile;
 const input =
   args.input != "" ? args.input : fs.readFileSync(args.inputFile).toString();
 
-const tableRegex = /^\s*table/;
 // カレントディレクトリではなくこのスクリプトの位置を基準に解決する。
 const spritePath = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../../public/svg/tiles.svg"
 );
-const imgConfig = { svgSprite: true };
-const imgHelper = new ImageHelper(imgConfig);
 
-function loadImgTiles() {
-  const img = fs.readFileSync(spritePath).toString();
-  return img;
-}
-
-const tiles = loadImgTiles();
-const draw = SVG().importSymbol(tiles);
-if (tableRegex.test(input)) {
-  drawTable(draw, input, imgConfig);
-} else {
-  const blocks = new Parser(input).parse();
-  const hand = createBlockHand(imgHelper, blocks, {
-    enableDoraText: true,
-    enableTsumoText: true,
-  });
-  draw.add(hand.e);
-  draw.viewbox(0, 0, hand.width, hand.height);
-  optimizeSVG(draw);
-}
+// 牌はスプライトを埋め込んで参照し、使わなかった symbol は落とす。
+const { svg, width, height } = render(input, { svgSprite: true });
+svg.importSymbol(fs.readFileSync(spritePath).toString());
+optimizeSVG(svg);
+svg.size(width, height);
 
 if (output != "") {
-  fs.writeFileSync(output, draw.svg());
-} else console.log(draw.svg());
+  fs.writeFileSync(output, svg.svg());
+} else console.log(svg.svg());

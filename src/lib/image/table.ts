@@ -1,20 +1,15 @@
-import {
-  Tile,
-  BLOCK,
-  BlockOther,
-  WIND_MAP,
-  STICK_CONTEXT,
-  TABLE_CONTEXT,
-  OP,
-} from "../core/";
+import { Tile, BLOCK, BlockOther, WIND_MAP, OP } from "../core/";
+import { STICK_CONTEXT, TABLE_CONTEXT } from "./constants";
 import {
   ImageHelper,
-  createBlockHand,
-  ImageHelperConfig,
-  MySVGElement,
+  buildHand,
+  RenderOptions,
+  SVGFragment,
+  BuiltFragment,
+  roundSize,
 } from "../image/image";
-import { Svg, Text, G, Rect, Mark } from "../svgjs/svg";
-import { parse, ScoreBoardInput, DiscardsInput, HandsInput } from "./";
+import { Text, G, Rect, Mark } from "../svgjs/svg";
+import { ScoreBoard, TableInput } from "./table-parser";
 
 const chunkTilesForDisplay = (input: readonly Tile[], chunkSize = 6) => {
   return Array.from({ length: Math.ceil(input.length / chunkSize) }, (_, i) =>
@@ -80,7 +75,7 @@ const riverRowWidth = (tiles: readonly Tile[], helper: ImageHelper) =>
 const createDiscardArea = (
   tiles: readonly Tile[],
   helper: ImageHelper,
-): MySVGElement => {
+): BuiltFragment => {
   const g = new G();
   const chunks = chunkTilesForDisplay(tiles);
 
@@ -95,7 +90,7 @@ const createDiscardArea = (
     g.add(e);
   }
   return {
-    e: g,
+    element: g,
     width: width,
     height: helper.tileHeight * chunks.length,
   };
@@ -104,7 +99,7 @@ const createDiscardArea = (
 /**
  * ドラ表示牌の枠数。入力が空でも中央のボードの大きさが変わらないよう最低 1 枠は確保する。
  */
-const doraSlotCount = (scoreBoard: ScoreBoardInput) =>
+const doraSlotCount = (scoreBoard: ScoreBoard) =>
   Math.max(1, scoreBoard.doraIndicators.length);
 
 /**
@@ -114,7 +109,7 @@ const doraSlotCount = (scoreBoard: ScoreBoardInput) =>
 const stickAndDoraWidth = (
   helper: ImageHelper,
   tf: TableFont,
-  scoreBoard: ScoreBoardInput,
+  scoreBoard: ScoreBoard,
 ) =>
   STICK_CONTEXT.WIDTH * helper.scale +
   tf.em +
@@ -123,8 +118,8 @@ const stickAndDoraWidth = (
 const createStickAndDora = (
   helper: ImageHelper,
   tf: TableFont,
-  scoreBoard: ScoreBoardInput,
-): MySVGElement => {
+  scoreBoard: ScoreBoard,
+): BuiltFragment => {
   const font = tf.font;
   const em = tf.em;
 
@@ -194,7 +189,7 @@ const createStickAndDora = (
   g.add(stickGroup);
 
   return {
-    e: g,
+    element: g,
     width: width,
     height: roundHeight + helper.tileHeight,
   };
@@ -222,26 +217,26 @@ const maxOfSeats = <T>(seats: Seats<T>, f: (v: T) => number) =>
  * 各要素は自分自身の実寸で配置するので、他家の大きさに引きずられない。
  */
 const layoutSeats = (
-  areas: Seats<MySVGElement>,
+  areas: Seats<BuiltFragment>,
   sizeWidth: number,
   offset: number,
 ): G => {
   const { front: fe, right: re, opposite: oe, left: le } = areas;
   const along = (width: number) => (sizeWidth - width) / 2;
 
-  const front = simpleRotate(fe.e, fe.width, fe.height, 0).translate(
+  const front = simpleRotate(fe.element, fe.width, fe.height, 0).translate(
     along(fe.width),
     sizeWidth - offset - fe.height,
   );
-  const right = simpleRotate(re.e, re.width, re.height, 270).translate(
+  const right = simpleRotate(re.element, re.width, re.height, 270).translate(
     sizeWidth - offset - re.height,
     along(re.width),
   );
-  const opposite = simpleRotate(oe.e, oe.width, oe.height, 180).translate(
+  const opposite = simpleRotate(oe.element, oe.width, oe.height, 180).translate(
     along(oe.width),
     offset,
   );
-  const left = simpleRotate(le.e, le.width, le.height, 90).translate(
+  const left = simpleRotate(le.element, le.width, le.height, 90).translate(
     offset,
     along(le.width),
   );
@@ -263,12 +258,12 @@ const getPlaces = (front: "東" | "南" | "西" | "北") => {
 const createScoreBoard = (
   helper: ImageHelper,
   tf: TableFont,
-  scoreBoard: ScoreBoardInput,
+  scoreBoard: ScoreBoard,
   sizeWidth: number,
-): MySVGElement => {
+): BuiltFragment => {
   const font = tf.font;
   const boardRect = createStickAndDora(helper, tf, scoreBoard);
-  boardRect.e.translate(
+  boardRect.element.translate(
     sizeWidth / 2 - boardRect.width / 2,
     sizeWidth / 2 - boardRect.height / 2,
   );
@@ -311,13 +306,13 @@ const createScoreBoard = (
     .fill("none")
     .stroke("#000000");
   g.add(rect);
-  g.add(boardRect.e);
+  g.add(boardRect.element);
   g.add(createScore(frontPlace, scores.front, 0, half, sizeWidth));
   g.add(createScore(rightPlace, scores.right, 270, sizeWidth, half));
   g.add(createScore(oppositePlace, scores.opposite, 180, half, 0));
   g.add(createScore(leftPlace, scores.left, 90, 0, half));
 
-  return { e: g, width: sizeWidth, height: sizeWidth };
+  return { element: g, width: sizeWidth, height: sizeWidth };
 };
 
 /**
@@ -332,7 +327,7 @@ const createScoreBoard = (
 const minCenterWidth = (
   helper: ImageHelper,
   tf: TableFont,
-  discardAreas: Seats<MySVGElement>,
+  discardAreas: Seats<BuiltFragment>,
   boardWidth: number,
 ) => {
   const nominal = helper.tileWidth * 5 + helper.tileHeight * 1; // 11111-1
@@ -351,18 +346,22 @@ const minCenterWidth = (
  * 外周に配ると河が手牌から離れて中央へ浮いてしまうため。
  */
 export const createTable = (
+  table: TableInput,
+  options: RenderOptions = {},
+): SVGFragment => roundSize(buildTable(new ImageHelper(options), table));
+
+/**
+ * 卓を組み立てる。ヘルパを共有したい内部の合成から使う。
+ */
+export const buildTable = (
   helper: ImageHelper,
-  handsProps: HandsInput,
-  discardsProps: DiscardsInput,
-  scoreBoardProps: ScoreBoardInput,
-): MySVGElement => {
+  { hands: handsProps, discards: discardsProps, scoreBoard: scoreBoardProps }: TableInput,
+): BuiltFragment => {
   const g = new G();
   // 文字の寸法は牌のスケールから導く。呼び出し側が牌と文字で別々の値を渡せないようにする。
   const ctx = tableFont(helper);
 
-  const handAreas = mapSeats(handsProps, (blocks) =>
-    createBlockHand(helper, blocks),
-  );
+  const handAreas = mapSeats(handsProps, (blocks) => buildHand(helper, blocks));
   const discardAreas = mapSeats(discardsProps, (tiles) =>
     createDiscardArea(tiles, helper),
   );
@@ -390,30 +389,10 @@ export const createTable = (
   const sizeWidth = centerWidth + ringWidth * 2;
 
   const scoreBoard = createScoreBoard(helper, ctx, scoreBoardProps, centerWidth);
-  scoreBoard.e.translate(ringWidth, ringWidth);
+  scoreBoard.element.translate(ringWidth, ringWidth);
 
   g.add(layoutSeats(handAreas, sizeWidth, 0));
   g.add(layoutSeats(discardAreas, sizeWidth, discardOffset));
-  g.add(scoreBoard.e);
-  return { e: g, width: sizeWidth, height: sizeWidth };
-};
-
-/**
- * 麻雀卓から SVG 要素を作成し、SVG に描画する。
- * レスポンシブが false の場合、SVG の width/height として絶対値で指定される。
- * viewBox はレスポンシブに関わらず設定される。
- */
-export const drawTable = (
-  svg: Svg,
-  tableInput: string,
-  config: ImageHelperConfig = {},
-  params: { responsive: boolean } = { responsive: false },
-) => {
-  const helper = new ImageHelper(config);
-
-  const { discards, hands, scoreBoard } = parse(tableInput);
-  const table = createTable(helper, hands, discards, scoreBoard);
-  if (!params.responsive) svg.size(table.width, table.height);
-  svg.viewbox(0, 0, table.width, table.height);
-  svg.add(table.e);
+  g.add(scoreBoard.element);
+  return { element: g, width: sizeWidth, height: sizeWidth };
 };

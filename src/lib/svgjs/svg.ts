@@ -257,11 +257,14 @@ export class Svg extends Container {
   private viewBox:
     | { x: number; y: number; width: number; height: number }
     | undefined;
+  // Mark.left() を使わず自前で組み立てるため、属性の種類を増やしたらここにも足す。
+  // css() で与えたスタイルは、ルートの svg を CSS の大きさで置くために使われる。
   protected left(): string {
     return `<${[
       this.type,
       ...svgHeaders,
       serializeAttrs(this.attrs),
+      serializeStyles(this.styles),
       serializeViewBox(this.viewBox),
     ]
       .filter((v) => v != "")
@@ -291,16 +294,50 @@ export class Svg extends Container {
   }
 }
 
-// aliases
 export function SVG() {
   return new Svg();
 }
-export const MySVG = SVG;
-export const MyG = G;
-export const MyImage = Image;
-export const MyUse = Use;
-export const MyRect = Rect;
-export const MyText = Text;
+
+/**
+ * 組み立てた Svg を公開面へ絞る。
+ * add の引数だけ実装（Mark）と公開面（Placeable）で食い違うため、
+ * 型の付け替えをこの関数に閉じ込める。
+ */
+export const asRenderedSvg = (svg: Svg): RenderedSvg =>
+  svg as unknown as RenderedSvg;
+
+/** asRenderedSvg の逆。公開面で受け取った SVG を内部の走査に回すときだけ使う。 */
+export const asSvg = (svg: RenderedSvg): Svg => svg as unknown as Svg;
+
+/**
+ * 配置できる要素。中抽象が返す element の公開面。
+ * 置き場所を決める操作だけを見せ、内部表現には触らせない。
+ */
+export interface Placeable {
+  translate(x: number, y: number): this;
+  rotate(angle: number, cx: number, cy: number): this;
+}
+
+/**
+ * 利用者に見せる SVG の面。
+ *
+ * 具象クラスをそのまま返すと、基底クラス経由で内部表現（attrs / styles /
+ * parent / type）の書き換えや、Svg では未実装の x/y/dx/dy まで公開されてしまう。
+ * 返す型をこのインターフェースに絞ることでそれらを隠す。
+ */
+export interface RenderedSvg {
+  /** 表示領域。render が設定済みなので、合成するときだけ触る。 */
+  viewbox(x: number, y: number, width: number, height: number): this;
+  /** 絶対値の大きさ。width/height 属性になり、ページ側の CSS で上書きできる。 */
+  size(width: number, height: number): this;
+  /** CSS の単位での大きさ。style になり、ページ側の CSS では上書きされない。 */
+  css(style: Record<string, string>): this;
+  attr(attrs: Record<string, string>): this;
+  add(element: Placeable): this;
+  /** スプライトの symbol を読み込む。svgSprite を使う場合に必要。 */
+  importSymbol(sprite: string): this;
+  svg(): string;
+}
 
 /**
  * 出力する小数の桁数。
@@ -309,7 +346,11 @@ export const MyText = Text;
  */
 const PRECISION = 6;
 
-const round = (v: number) => {
+/**
+ * SVG に出力する値の丸め。
+ * 呼び出し側へ返す寸法も同じ丸めを通し、viewBox の値と一致させる。
+ */
+export const round = (v: number) => {
   if (!Number.isFinite(v)) return v;
   const r = Number(v.toFixed(PRECISION));
   // -0 を 0 に正規化する

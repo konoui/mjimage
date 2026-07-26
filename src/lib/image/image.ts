@@ -9,32 +9,43 @@ import {
   BlockDaiKan,
   BlockOther,
 } from "../core/parser";
-import { Svg, G, Image, Text, Use, Symbol } from "../svgjs/svg";
 import {
-  FONT_FAMILY,
-  TILE_CONTEXT,
-  TILE_NUMBERS,
-  TYPE,
-  OP,
-  BLOCK,
-} from "../core";
+  Svg,
+  G,
+  Image,
+  Text,
+  Use,
+  Symbol,
+  round,
+  Placeable,
+} from "../svgjs/svg";
+import { TILE_NUMBERS, TYPE, OP, BLOCK } from "../core";
+import { FONT_FAMILY, TILE_CONTEXT } from "./constants";
 
-export interface ImageHelperConfig {
+/**
+ * 描画の設定。画像の出所・寸法・書体と、注記の有無をまとめて受け取る。
+ * 層（render / createHand / createTable）によらず同じ形にする。
+ */
+export interface RenderOptions {
   scale?: number;
   /**
    * svg/webp 形式の画像をホストしているパスを含む URL
    * e.g.) example.com/svg/
+   * 空の場合はファイル名だけの相対パスになる。
+   * svgSprite が true の場合は使われない。
    */
   imageHostUrl?: string;
   /**
    * 牌の画像の拡張子
    * デフォルトは svg
+   * svgSprite が true の場合は使われない。
    */
   imageExt?: "svg" | "webp";
   /**
    * svg スプライトの有効化・無効化オプション
    * デフォルトは false
-   * 有効化する場合、手動で牌の svg を読み込み参照する必要がある。
+   * 有効化する場合、牌の svg を Svg.importSymbol() で読み込んでおく必要がある。
+   * 有効な場合、imageHostUrl と imageExt は参照されない。
    */
   svgSprite?: boolean;
   /**
@@ -43,15 +54,14 @@ export interface ImageHelperConfig {
    * 全角 1 文字が 1em で描かれる前提でレイアウトするため、日本語を含むフォントを指定する。
    */
   fontFamily?: string;
-}
-
-export interface DrawOptions {
   /**
-   * ドラ牌の文字表示の有効化・無効化オプション
+   * ドラ牌の文字表示の有効化・無効化オプション。
+   * デフォルトは有効。
    */
   enableDoraText?: boolean;
   /**
-   * ツモ牌の文字表示の有効化・無効化オプション
+   * ツモ牌の文字表示の有効化・無効化オプション。
+   * デフォルトは有効。
    */
   enableTsumoText?: boolean;
 }
@@ -77,9 +87,9 @@ const blockImageSize = (b: Block, scale: number) => {
  * 牌の実寸。ブロック内部の座標計算とコンテナの寸法計算で同じ値を使うため、
  * 丸めを含めてここに一本化する。
  */
-export const scaledTileWidth = (scale: number) =>
+const scaledTileWidth = (scale: number) =>
   parseFloat((TILE_CONTEXT.WIDTH * scale).toPrecision(5));
-export const scaledTileHeight = (scale: number) =>
+const scaledTileHeight = (scale: number) =>
   parseFloat((TILE_CONTEXT.HEIGHT * scale).toPrecision(5));
 
 const tileImageSize = (
@@ -117,7 +127,7 @@ class BaseHelper {
   readonly scale: number;
   readonly svgSprite: boolean;
   readonly fontFamily: string;
-  constructor(props: ImageHelperConfig = {}) {
+  constructor(props: RenderOptions = {}) {
     this.scale = props.scale ?? 1;
     this.imageHostUrl = props.imageHostUrl ?? "";
     this.imageExt = props.imageExt ?? "svg";
@@ -369,8 +379,8 @@ export class ImageHelper extends BaseHelper {
 function createBlock(
   b: Block,
   h: ImageHelper,
-  options: DrawOptions
-): MySVGElement {
+  options: RenderOptions
+): BuiltFragment {
   const { enableDoraText, enableTsumoText } = options;
   let size = blockImageSize(b, h.scale);
   let g: G;
@@ -418,24 +428,55 @@ function createBlock(
       `unsupported block type. type: ${b.type}, block: ${b}, instance ${b.constructor.name}`
     );
   }
-  return { ...size, e: g };
+  return { ...size, element: g };
 }
 
-export interface MySVGElement {
-  e: G;
+/**
+ * 配置できる SVG の断片と、その寸法。
+ * 呼び出し側が element を自分の SVG に置いて合成できるようにするため、
+ * 寸法（＝縦横比・牌の枚数）を一緒に返す。
+ */
+export interface SVGFragment {
+  element: Placeable;
   width: number;
   height: number;
 }
 
 /**
+ * 組み立て中の断片。内部の合成では具象の G を扱う必要があるため、
+ * 公開する SVGFragment とは別に持つ（G は Placeable を満たす）。
+ */
+export interface BuiltFragment {
+  element: G;
+  width: number;
+  height: number;
+}
+
+/**
+ * 返す寸法を SVG に出力される値（viewBox）と一致させる。
+ * 内部の座標計算は生の値で行い、公開する境界だけで丸める。
+ */
+export const roundSize = <T extends { width: number; height: number }>(
+  size: T
+): T => ({ ...size, width: round(size.width), height: round(size.height) });
+
+/**
  * 晒した牌やツモ・ドラを含む手牌など様々なブロックから SVG 要素を作成する。
  * 一般的には、晒した牌を含む手牌に使用する。
  */
-export const createBlockHand = (
+export const createHand = (
+  blocks: readonly Block[],
+  options: RenderOptions = {}
+): SVGFragment => roundSize(buildHand(new ImageHelper(options), blocks, options));
+
+/**
+ * 手牌を組み立てる。ヘルパを共有したい内部の合成（卓など）から使う。
+ */
+export const buildHand = (
   helper: ImageHelper,
   blocks: readonly Block[],
-  options: DrawOptions = defaultDrawOptions
-): MySVGElement => {
+  options: RenderOptions = {}
+): BuiltFragment => {
   const elms = blocks.map((block) => createBlock(block, helper, options));
   const sumWidth = elms.reduce((sum, elm) => sum + elm.width, 0);
   const maxHeight = elms.reduce((max, elm) => Math.max(max, elm.height), 0);
@@ -450,41 +491,23 @@ export const createBlockHand = (
   for (const elm of elms) {
     const diff = viewBoxHeight - elm.height;
     const g = new G().translate(pos, diff);
-    g.add(elm.e);
+    g.add(elm.element);
     hand.add(g);
     pos += elm.width + helper.blockMargin;
   }
-  return { e: hand, width: viewBoxWidth, height: viewBoxHeight };
-};
-
-const defaultDrawOptions: DrawOptions = {
-  enableDoraText: true,
-  enableTsumoText: true,
+  return { element: hand, width: viewBoxWidth, height: viewBoxHeight };
 };
 
 /**
- * 晒した牌やツモ・ドラを含む手牌の様々なブロックから SVG 要素を作成し、SVG に描画する。
- * レスポンシブが false の場合、SVG の width/height として絶対値で指定される。
- * viewBox はレスポンシブに関わらず設定される。
+ * 画像として存在しうる ID の一覧。入力の検証と同じ値域定義を使う。
+ * 牌のほかに供託棒も symbol として参照されるので、両方を含める。
+ * 落ちると卓から供託棒だけが消えるため、optimizeSVG の対象と揃える。
  */
-export const drawBlocks = (
-  svg: Svg,
-  blocks: readonly Block[],
-  config: ImageHelperConfig = {},
-  options: { responsive?: boolean } & DrawOptions = defaultDrawOptions
-) => {
-  const helper = new ImageHelper(config);
-  const hand = createBlockHand(helper, blocks, options);
-  if (!options.responsive) svg.size(hand.width, hand.height);
-  svg.viewbox(0, 0, hand.width, hand.height);
-  svg.add(hand.e);
-};
-
-/** 牌画像として存在しうる ID の一覧。入力の検証と同じ値域定義を使う。 */
 const getValidIDs = () => {
-  return Object.values(TYPE).flatMap((t) =>
+  const tiles = Object.values(TYPE).flatMap((t) =>
     TILE_NUMBERS[t].map((v) => BaseHelper.buildID(new Tile(t, v)))
   );
+  return [...tiles, BaseHelper.buildID(100), BaseHelper.buildID(1000)];
 };
 
 const findUsedIDs = (draw: Svg) => {

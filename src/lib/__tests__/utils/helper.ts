@@ -1,13 +1,9 @@
 import fs from "fs";
 import path from "path";
 import { Block } from "../../core/parser";
-import { MySVG, MyUse } from "../../svgjs/svg";
 
-export function SVG() {
-  return MySVG();
-}
-
-export const Use = MyUse;
+export { SVG } from "../../../index";
+export { Use } from "../../svgjs/svg";
 
 export const loadInputData = (filename: string) => {
   return loadTestData(filename, "", false, "__fixtures__").toString();

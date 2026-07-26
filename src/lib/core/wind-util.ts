@@ -58,24 +58,3 @@ export const prevWind = (w: Wind): Wind => {
   const prev = cycle[(index + 1) % cycle.length];
   return `${prev}${TYPE.Z}` as Wind;
 };
-
-/**
- * 鳴いた人と捨てた人からブロック作成時の鳴いた牌を示すインデックスを返す。
- */
-export const getCallBlockIndex = (
-  caller: Wind,
-  discardedBy: Wind,
-  type: typeof BLOCK.PON | typeof BLOCK.DAI_KAN
-) => {
-  const distance = Math.abs(Number(caller[0]) - Number(discardedBy[0]));
-  assert(1 == distance || distance == 2 || distance == 3);
-  if (type == BLOCK.PON) {
-    if (distance == 3) return 0;
-    else if (distance == 2) return 1;
-    return 2;
-  } else {
-    if (distance == 3) return 0;
-    else if (distance == 1) return 3;
-    return 2;
-  }
-};

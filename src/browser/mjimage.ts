@@ -1,13 +1,7 @@
-import {
-  Parser,
-  TILE_CONTEXT,
-  drawTable,
-  drawBlocks,
-  ImageHelperConfig,
-  SVG,
-} from "../index";
+import { render, isTableInput, RenderOptions } from "../index";
+import { TILE_CONTEXT } from "../lib/image/constants";
 
-interface InitializeConfig extends Omit<ImageHelperConfig, "scale"> {
+interface InitializeConfig extends Omit<RenderOptions, "scale"> {
   querySelector?: string | string[];
   scale?: number;
   tableScale?: number;
@@ -18,7 +12,6 @@ const defaultQuerySelector = ".mjimage";
 const defaultScale = 1.6;
 const defaultResponsive = false;
 const defaultSvgSprite = false;
-const tableRegex = /^\s*table/;
 const minPaiHeight = /*#__PURE__*/ Math.min(
   TILE_CONTEXT.WIDTH,
   TILE_CONTEXT.HEIGHT
@@ -57,35 +50,21 @@ export class mjimage {
         const fontSize = parseFloat(style.getPropertyValue("font-size"));
         const textHeight = fontSize;
 
-        const svg = SVG();
         const dparser = new DOMParser();
         try {
-          if (tableRegex.test(input)) {
-            const scale = calculateScale(tableScale, textHeight);
-            drawTable(
-              svg,
-              input,
-              {
-                ...props,
-                svgSprite,
-                scale: scale,
-              },
-              { responsive: responsive }
-            );
-          } else {
-            const scale = calculateScale(handScale, textHeight);
-            const blocks = new Parser(input).parse();
-            drawBlocks(
-              svg,
-              blocks,
-              {
-                ...props,
-                svgSprite,
-                scale: scale,
-              },
-              { responsive: responsive }
-            );
-          }
+          // 牌の大きさは要素の文字の大きさに合わせる。卓と手牌で倍率が違う。
+          const scale = calculateScale(
+            isTableInput(input) ? tableScale : handScale,
+            textHeight
+          );
+          const { svg, width, height } = render(input, {
+            ...props,
+            svgSprite,
+            scale: scale,
+          });
+          // レスポンシブでない場合だけ絶対値の大きさを与える。
+          if (!responsive) svg.size(width, height);
+
           const doc = dparser.parseFromString(svg.svg(), "image/svg+xml");
           const svgImg = doc.querySelector("svg");
           if (svgImg == null) console.warn(`querySelector("svg") is null`);

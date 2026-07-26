@@ -1,20 +1,17 @@
 import { Tile, Parser } from "../core/";
+import { ImageHelper, RenderOptions, render, buildTable } from "../image";
 import {
-  ImageHelper,
-  ImageHelperConfig,
-  drawTable,
-  createTable,
-} from "../image";
-import {
-  DiscardsInput,
-  ScoreBoardInput,
-  HandsInput,
+  Discards,
+  ScoreBoard,
+  Hands,
+  TableInput,
 } from "../image/table-parser";
-import { TABLE_CONTEXT, TYPE, ROUND_MAP, WIND_MAP } from "../core/constants";
+import { TYPE, ROUND_MAP, WIND_MAP } from "../core/constants";
+import { TABLE_CONTEXT } from "../image/constants";
 
 import { loadTestData, loadInputData, SVG } from "./utils/helper";
 
-const helperConfig: ImageHelperConfig = {
+const helperConfig: RenderOptions = {
   imageHostUrl: "https://static.konoui.dev/mjimage/svg/",
   scale: 0.4,
 };
@@ -45,14 +42,21 @@ describe("table yaml to svg", () => {
     test(t.name, () => {
       const input = loadInputData(t.inputFilename);
 
-      const draw = SVG();
-      drawTable(draw, input, helperConfig, { responsive: true });
-
-      const got = draw.svg();
+      const got = render(input, helperConfig).svg.svg();
       const want = loadTestData(t.gotFilename, got, update);
       expect(want.toString()).toBe(got);
     });
   }
+
+  // 戻り値の寸法は、レスポンシブ時に呼び出し側が大きさを決めるための唯一の手掛かり。
+  // 卓を組み立て直さずに済むよう、viewBox と同じ値を返す。
+  test("render returns the drawn size", () => {
+    const input = loadInputData("table.common.yaml");
+    const { svg, width, height } = render(input, helperConfig);
+
+    expect(width).toBeGreaterThan(0);
+    expect(svg.svg()).toContain(`viewBox="0 0 ${width} ${height}"`);
+  });
 });
 
 describe("createTable", () => {
@@ -63,19 +67,19 @@ describe("createTable", () => {
     const sampleHand = "2s, -1111p, -1111s, -1111m, -2222m, t3s";
     const blocks = new Parser(sampleHand).parse();
 
-    const hands: HandsInput = {
+    const hands: Hands = {
       front: blocks,
       right: blocks,
       opposite: blocks,
       left: blocks,
     };
-    const discards: DiscardsInput = {
+    const discards: Discards = {
       front: p,
       right: p,
       opposite: p,
       left: p,
     };
-    const scoreBoard: ScoreBoardInput = {
+    const scoreBoard: ScoreBoard = {
       round: "南４局",
       scores: {
         front: 100,
@@ -92,10 +96,10 @@ describe("createTable", () => {
     };
 
     const helper = new ImageHelper(helperConfig);
-    const g = createTable(helper, hands, discards, scoreBoard);
+    const g = buildTable(helper, { hands, discards, scoreBoard });
 
     const draw = SVG();
-    draw.add(g.e);
+    draw.add(g.element);
     const got = draw.svg();
     const want = loadTestData("table.max-size.svg", got, update);
     expect(want.toString()).toBe(got);
@@ -107,19 +111,19 @@ describe("createTable", () => {
 
     const sampleHand = "123456789s1234m";
     const blocks = new Parser(sampleHand).parse();
-    const hands: HandsInput = {
+    const hands: Hands = {
       front: new Parser("123456789s1234m, t3s").parse(),
       right: blocks,
       opposite: blocks,
       left: blocks,
     };
-    const discards: DiscardsInput = {
+    const discards: Discards = {
       front: p,
       right: p,
       opposite: p,
       left: p,
     };
-    const scoreBoard: ScoreBoardInput = {
+    const scoreBoard: ScoreBoard = {
       round: "南４局",
       scores: {
         front: 100,
@@ -136,10 +140,10 @@ describe("createTable", () => {
     };
 
     const helper = new ImageHelper(helperConfig);
-    const g = createTable(helper, hands, discards, scoreBoard);
+    const g = buildTable(helper, { hands, discards, scoreBoard });
 
     const draw = SVG();
-    draw.add(g.e);
+    draw.add(g.element);
     const got = draw.svg();
     const want = loadTestData("table.dynamic-size.svg", got, update);
     expect(want.toString()).toBe(got);
@@ -149,19 +153,19 @@ describe("createTable", () => {
   // 他家の枚数につられて中央へ浮かないことを固定する。
   test("uneven-discards", () => {
     const blocks = new Parser("123456789s1234m").parse();
-    const hands: HandsInput = {
+    const hands: Hands = {
       front: blocks,
       right: blocks,
       opposite: blocks,
       left: blocks,
     };
-    const discards: DiscardsInput = {
+    const discards: Discards = {
       front: new Parser("1p").tiles(),
       right: new Parser("123456789s123456789m123456p").tiles(),
       opposite: new Parser("123456789s12-3456m").tiles(),
       left: new Parser("").tiles(),
     };
-    const scoreBoard: ScoreBoardInput = {
+    const scoreBoard: ScoreBoard = {
       round: "西１局",
       scores: { front: 100, right: 200, opposite: 25000, left: 9000 },
       frontPlace: "北",
@@ -170,10 +174,10 @@ describe("createTable", () => {
     };
 
     const helper = new ImageHelper(helperConfig);
-    const g = createTable(helper, hands, discards, scoreBoard);
+    const g = buildTable(helper, { hands, discards, scoreBoard });
 
     const draw = SVG();
-    draw.add(g.e);
+    draw.add(g.element);
     const got = draw.svg();
     const want = loadTestData("table.uneven-discards.svg", got, update);
     expect(want.toString()).toBe(got);
@@ -182,19 +186,19 @@ describe("createTable", () => {
 
 describe("createTable layout invariants", () => {
   const blocks = new Parser("123456789s1234m").parse();
-  const hands: HandsInput = {
+  const hands: Hands = {
     front: blocks,
     right: blocks,
     opposite: blocks,
     left: blocks,
   };
-  const discards: DiscardsInput = {
+  const discards: Discards = {
     front: new Parser("123456m").tiles(),
     right: new Parser("123456m").tiles(),
     opposite: new Parser("123456m").tiles(),
     left: new Parser("123456m").tiles(),
   };
-  const baseScoreBoard: ScoreBoardInput = {
+  const baseScoreBoard: ScoreBoard = {
     round: "東１局",
     scores: { front: 25000, right: 25000, opposite: 25000, left: 25000 },
     frontPlace: "東",
@@ -202,10 +206,11 @@ describe("createTable layout invariants", () => {
     doraIndicators: [new Tile(TYPE.M, 3)],
   };
 
-  const render = (scoreBoard: ScoreBoardInput, config = helperConfig) => {
+  const renderBoard = (scoreBoard: ScoreBoard, config = helperConfig) => {
     const draw = SVG();
     draw.add(
-      createTable(new ImageHelper(config), hands, discards, scoreBoard).e,
+      buildTable(new ImageHelper(config), { hands, discards, scoreBoard })
+        .element,
     );
     return draw.svg();
   };
@@ -213,12 +218,12 @@ describe("createTable layout invariants", () => {
   // 点数の桁数は文字の中身にしか出てはいけない。座標に出るなら寄せがずれている。
   test("score digits do not move anything", () => {
     const mask = (svg: string) => svg.replace(/([東南西北]) -?\d+</g, "$1 N<");
-    const base = mask(render(baseScoreBoard));
+    const base = mask(renderBoard(baseScoreBoard));
     for (const scores of [
       { front: 1, right: 22, opposite: 333, left: 4444 },
       { front: 100000, right: 0, opposite: 8, left: 96000 },
     ]) {
-      expect(mask(render({ ...baseScoreBoard, scores }))).toBe(base);
+      expect(mask(renderBoard({ ...baseScoreBoard, scores }))).toBe(base);
     }
   });
 
@@ -233,18 +238,18 @@ describe("createTable layout invariants", () => {
   // 局は風や数字が変わっても同じ位置に置かれる。
   test("round label does not move anything", () => {
     const mask = (svg: string) => svg.replace(/>[東南西北][０-９1-9]局</g, ">R<");
-    const base = mask(render(baseScoreBoard));
+    const base = mask(renderBoard(baseScoreBoard));
     for (const round of Object.values(ROUND_MAP)) {
-      expect(mask(render({ ...baseScoreBoard, round }))).toBe(base);
+      expect(mask(renderBoard({ ...baseScoreBoard, round }))).toBe(base);
     }
   });
 
   // 起家が変わっても風の並びが回るだけで、配置は変わらない。
   test("front place does not move anything", () => {
     const mask = (svg: string) => svg.replace(/>[東南西北] /g, ">W ");
-    const base = mask(render(baseScoreBoard));
+    const base = mask(renderBoard(baseScoreBoard));
     for (const frontPlace of Object.values(WIND_MAP)) {
-      expect(mask(render({ ...baseScoreBoard, frontPlace }))).toBe(base);
+      expect(mask(renderBoard({ ...baseScoreBoard, frontPlace }))).toBe(base);
     }
   });
 
@@ -252,7 +257,7 @@ describe("createTable layout invariants", () => {
   // 値を渡せる余地がないことを、出力の font-size で確認する。
   test("font size follows the tile scale", () => {
     for (const scale of [0.2, 0.4, 0.8, 1.6]) {
-      const svg = render(baseScoreBoard, { ...helperConfig, scale });
+      const svg = renderBoard(baseScoreBoard, { ...helperConfig, scale });
       const sizes = [...svg.matchAll(/font-size="([\d.]+)"/g)].map((m) =>
         Number(m[1]),
       );
@@ -264,7 +269,7 @@ describe("createTable layout invariants", () => {
 
   // フォントは ImageHelperConfig で差し替えられる。
   test("font family comes from the helper config", () => {
-    const svg = render(baseScoreBoard, {
+    const svg = renderBoard(baseScoreBoard, {
       ...helperConfig,
       fontFamily: "Noto Sans JP",
     });
@@ -289,12 +294,12 @@ describe("createTable layout invariants", () => {
       return nums;
     };
     const base = normalize(
-      render(baseScoreBoard, { ...helperConfig, scale: 0.4 }),
+      renderBoard(baseScoreBoard, { ...helperConfig, scale: 0.4 }),
       0.4,
     );
     for (const scale of [0.2, 0.8, 1.6]) {
       const got = normalize(
-        render(baseScoreBoard, { ...helperConfig, scale }),
+        renderBoard(baseScoreBoard, { ...helperConfig, scale }),
         scale,
       );
       expect(got).toEqual(base);
@@ -346,13 +351,12 @@ describe("createTable layout invariants", () => {
     const inset = (hand: string) => {
       const blocks = new Parser(hand).parse();
       const draw = SVG();
-      const table = createTable(
-        helper,
-        { front: blocks, right: blocks, opposite: blocks, left: blocks },
-        { front: river, right: river, opposite: river, left: river },
-        baseScoreBoard,
-      );
-      draw.add(table.e);
+      const table = buildTable(helper, {
+        hands: { front: blocks, right: blocks, opposite: blocks, left: blocks },
+        discards: { front: river, right: river, opposite: river, left: river },
+        scoreBoard: baseScoreBoard,
+      });
+      draw.add(table.element);
       // 卓の下辺から下家の河の下端まで（= 手牌の高さ + 余白）
       return table.height - boundsOf(draw.svg(), (h) => h.endsWith("z1.svg")).maxY;
     };
@@ -371,13 +375,15 @@ describe("createTable layout invariants", () => {
     const count = (svg: string) => (svg.match(/<image/g) ?? []).length;
     const none = { ...baseScoreBoard, doraIndicators: [] };
     // 空でも落ちない
-    expect(() => render(none)).not.toThrow();
+    expect(() => renderBoard(none)).not.toThrow();
 
-    const base = count(render(none));
+    const base = count(renderBoard(none));
     // 指定した表示牌はすべて描かれる
     for (const n of [1, 2, 3, 4, 5]) {
       const doraIndicators = Array.from({ length: n }, () => new Tile(TYPE.M, 3));
-      expect(count(render({ ...baseScoreBoard, doraIndicators }))).toBe(base + n);
+      expect(count(renderBoard({ ...baseScoreBoard, doraIndicators }))).toBe(
+        base + n,
+      );
     }
   });
 
@@ -401,11 +407,12 @@ describe("createTable layout invariants", () => {
     for (const n of [1, 2, 3, 4, 5]) {
       const doraIndicators = Array.from({ length: n }, () => indicator);
       const draw = SVG();
-      const table = createTable(helper, seats(narrowHand), seats(narrowRiver), {
-        ...baseScoreBoard,
-        doraIndicators,
+      const table = buildTable(helper, {
+        hands: seats(narrowHand),
+        discards: seats(narrowRiver),
+        scoreBoard: { ...baseScoreBoard, doraIndicators },
       });
-      draw.add(table.e);
+      draw.add(table.element);
       const svg = draw.svg();
 
       // 中央の正方形は卓の中心に置かれる。
