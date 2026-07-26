@@ -20,6 +20,8 @@ export const STICK_CONTEXT = {
 
 export const TABLE_CONTEXT = {
   BASE: 40,
+  /** 河 1 行に並べる牌の枚数。 */
+  RIVER_ROW_SIZE: 6,
   /**
    * 局表示の下に空ける余白。文字の高さに対する比率で持つ。
    * 牌のスケールではなくフォントに追従させるための係数。

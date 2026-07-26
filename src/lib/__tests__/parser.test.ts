@@ -1,6 +1,5 @@
 import {
   Tile,
-  Block,
   compareTiles,
   Parser,
   BlockAnKan,

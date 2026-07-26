@@ -7,6 +7,7 @@ import {
   BoardContext,
   WinResult,
   Yaku,
+  Efficiency,
 } from "../calculator";
 import { TYPE, OP, Wind, WIND, ROUND } from "../core/constants";
 import { Block, Parser, Tile } from "../core/parser";
@@ -106,6 +107,41 @@ describe("Hand/基本操作", () => {
     expect(() => {
       new Hand(input);
     }).toThrow(/invalid hand: tile 2s exists more than 4 times in /);
+  });
+
+  // 計算器は探索の過程で手牌を破壊的に変更する。その影響が呼び出し側へ漏れないこと。
+  test("calculators leave the hand untouched", () => {
+    const h = new Hand("123456789m1p123s");
+    const want = h.toString();
+
+    new ShantenCalculator(h).calc();
+    new BlockCalculator(h).calc(new Tile(TYPE.P, 1, [OP.TSUMO]));
+    Efficiency.calcEffectiveTiles(h, h.hands);
+
+    expect(h.toString()).toBe(want);
+  });
+
+  // 計算の途中で例外が飛んでも、途中まで抜いた牌が消えたまま残らない。
+  test("a failure during the search does not break the hand", () => {
+    const h = new Hand("123456789m1p123s");
+    const want = h.toString();
+
+    const proto = ShantenCalculator.prototype as unknown as {
+      standardType: () => number;
+    };
+    const original = proto.standardType;
+    let count = 0;
+    proto.standardType = function (this: ShantenCalculator) {
+      if (++count == 5) throw new Error("boom");
+      return original.call(this);
+    };
+    try {
+      expect(() => Efficiency.getEffectiveTiles(h)).toThrow("boom");
+    } finally {
+      proto.standardType = original;
+    }
+
+    expect(h.toString()).toBe(want);
   });
 });
 
@@ -445,7 +481,7 @@ describe("PointCalculator/yaku and fu", () => {
             { name: "門前清自摸和", han: 1 },
             { name: "平和", han: 1 },
             { name: "一盃口", han: 1 },
-            { name: "純全帯么九色", han: 3 },
+            { name: "純全帯么九", han: 3 },
           ],
           fu: 20,
         },
@@ -494,7 +530,7 @@ describe("PointCalculator/yaku and fu", () => {
         {
           yakus: [
             { name: "平和", han: 1 },
-            { name: "ニ盃口", han: 3 },
+            { name: "二盃口", han: 3 },
           ],
           fu: 30,
         },

@@ -1,11 +1,6 @@
 import { Tile, Parser } from "../core/";
 import { ImageHelper, RenderOptions, render, buildTable } from "../image";
-import {
-  Discards,
-  ScoreBoard,
-  Hands,
-  TableInput,
-} from "../image/table-parser";
+import { Discards, ScoreBoard, Hands } from "../input";
 import { TYPE, ROUND_MAP, WIND_MAP } from "../core/constants";
 import { TABLE_CONTEXT } from "../image/constants";
 
@@ -47,6 +42,24 @@ describe("table yaml to svg", () => {
       expect(want.toString()).toBe(got);
     });
   }
+
+  // 注記のオプションは手牌と卓のどちらの入力でも効く。
+  // 設定はヘルパが解決済みで持ち、卓の中の手牌も同じヘルパで組み立てられる。
+  test("annotation options apply to the table as well as to a hand", () => {
+    const input = "table:\n  1z:\n    hand: d2s,t3s\n";
+
+    const enabled = render(input, helperConfig).svg.svg();
+    expect(enabled).toContain("(ドラ)");
+    expect(enabled).toContain("(ツモ)");
+
+    const disabled = render(input, {
+      ...helperConfig,
+      enableDoraText: false,
+      enableTsumoText: false,
+    }).svg.svg();
+    expect(disabled).not.toContain("(ドラ)");
+    expect(disabled).not.toContain("(ツモ)");
+  });
 
   // 戻り値の寸法は、レスポンシブ時に呼び出し側が大きさを決めるための唯一の手掛かり。
   // 卓を組み立て直さずに済むよう、viewBox と同じ値を返す。

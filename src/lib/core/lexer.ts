@@ -24,23 +24,10 @@ export class Lexer {
     return this.char;
   }
 
-  public peekChar(): string {
-    if (this.nextPosition >= this.input.length) return this.eof;
-    return this.input[this.nextPosition];
-  }
-
   public peekCharN(n: number): string {
     if (n < 0) throw new Error("arg must be positive value");
     if (this.position + n >= this.input.length) return this.eof;
     return this.input[this.position + n];
-  }
-
-  public prevChar(): string {
-    if (this.position >= this.input.length) return this.eof;
-
-    if (this.position > 0) return this.input[this.position - 1];
-    // unexpected case
-    return this.eof;
   }
 
   public skipWhitespace(): void {

@@ -119,6 +119,10 @@ const tileImageSize = (
 const textEmWidth = (text: string) =>
   [...text].reduce((w, c) => w + (c.charCodeAt(0) < 0x100 ? 0.5 : 1), 0);
 
+/**
+ * 解決済みの描画設定。RenderOptions の全項目をここに集約し、
+ * 組み立ての各層へはヘルパだけを引き回す（設定の受け渡し経路を 1 本にする）。
+ */
 class BaseHelper {
   readonly tileWidth: number;
   readonly tileHeight: number;
@@ -127,6 +131,8 @@ class BaseHelper {
   readonly scale: number;
   readonly svgSprite: boolean;
   readonly fontFamily: string;
+  readonly enableDoraText: boolean;
+  readonly enableTsumoText: boolean;
   constructor(props: RenderOptions = {}) {
     this.scale = props.scale ?? 1;
     this.imageHostUrl = props.imageHostUrl ?? "";
@@ -135,6 +141,8 @@ class BaseHelper {
     this.tileHeight = scaledTileHeight(this.scale);
     this.svgSprite = props.svgSprite ?? false;
     this.fontFamily = props.fontFamily ?? FONT_FAMILY;
+    this.enableDoraText = props.enableDoraText ?? true;
+    this.enableTsumoText = props.enableTsumoText ?? true;
   }
 
   // 横向き牌を縦向き牌と水平に揃えるためのY座標オフセットを計算
@@ -376,12 +384,8 @@ export class ImageHelper extends BaseHelper {
 /**
  * ブロックのタイプに応じて SVG の要素を作成する。
  */
-function createBlock(
-  b: Block,
-  h: ImageHelper,
-  options: RenderOptions
-): BuiltFragment {
-  const { enableDoraText, enableTsumoText } = options;
+function createBlock(b: Block, h: ImageHelper): BuiltFragment {
+  const { enableDoraText, enableTsumoText } = h;
   let size = blockImageSize(b, h.scale);
   let g: G;
   if (b instanceof BlockPon) g = h.createBlockPon(b);
@@ -397,19 +401,17 @@ function createBlock(
         break;
       case BLOCK.IMAGE_DORA: {
         // Operator を削除したサイズを計算する
-        const mBlock =
-          enableDoraText == false
-            ? new BlockHand([b.tiles[0].clone({ remove: OP.IMAGE_DORA })])
-            : b;
+        const mBlock = enableDoraText
+          ? b
+          : new BlockHand([b.tiles[0].clone({ remove: OP.IMAGE_DORA })]);
         size = blockImageSize(mBlock, h.scale);
         g = h.createBlockDora(mBlock, enableDoraText);
         break;
       }
       case BLOCK.TSUMO: {
-        const mBlock =
-          enableTsumoText == false
-            ? new BlockHand([b.tiles[0].clone({ remove: OP.TSUMO })])
-            : b;
+        const mBlock = enableTsumoText
+          ? b
+          : new BlockHand([b.tiles[0].clone({ remove: OP.TSUMO })]);
         size = blockImageSize(mBlock, h.scale);
         g = h.createBlockTsumo(mBlock, enableTsumoText);
         break;
@@ -467,17 +469,17 @@ export const roundSize = <T extends { width: number; height: number }>(
 export const createHand = (
   blocks: readonly Block[],
   options: RenderOptions = {}
-): SVGFragment => roundSize(buildHand(new ImageHelper(options), blocks, options));
+): SVGFragment => roundSize(buildHand(new ImageHelper(options), blocks));
 
 /**
  * 手牌を組み立てる。ヘルパを共有したい内部の合成（卓など）から使う。
+ * 描画の設定はヘルパが解決済みで持つため、ここでは受け取らない。
  */
 export const buildHand = (
   helper: ImageHelper,
-  blocks: readonly Block[],
-  options: RenderOptions = {}
+  blocks: readonly Block[]
 ): BuiltFragment => {
-  const elms = blocks.map((block) => createBlock(block, helper, options));
+  const elms = blocks.map((block) => createBlock(block, helper));
   const sumWidth = elms.reduce((sum, elm) => sum + elm.width, 0);
   const maxHeight = elms.reduce((max, elm) => Math.max(max, elm.height), 0);
 

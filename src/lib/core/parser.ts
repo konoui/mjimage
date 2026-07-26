@@ -1,4 +1,5 @@
 import { Lexer } from "./lexer";
+// barrel（./index.ts）は外向きの公開面。兄弟モジュールは実体を直接参照する。
 import {
   BLOCK,
   OP,
@@ -7,9 +8,20 @@ import {
   INPUT_SEPARATOR,
   Type,
   Operator,
-} from "./";
-import { assert } from "./../myassert";
+} from "./constants";
+import { assert } from "../assert";
 type Separator = typeof INPUT_SEPARATOR;
+
+/**
+ * 入力の記法では区別できず、あがり計算の過程でだけ現れるブロック種別。
+ * パーサはこれらを手牌として読むため、デシリアライズ時に種別を照合しない。
+ */
+const CALCULATED_BLOCK_TYPES: ReadonlySet<string> = new Set([
+  BLOCK.PAIR,
+  BLOCK.ISOLATED,
+  BLOCK.THREE,
+  BLOCK.RUN,
+]);
 
 /**
  * 各種牌と数字を比較する。
@@ -202,20 +214,11 @@ export abstract class Block {
    */
   static deserialize(v: SerializedBlock) {
     const b = Block.from(v.tiles);
-    const gotType = b.type;
-    // TODO parse detect followings as hand
-    if (
-      !(
-        v.type == BLOCK.PAIR ||
-        v.type == BLOCK.ISOLATED ||
-        v.type == BLOCK.THREE ||
-        v.type == BLOCK.RUN
-      )
-    )
-      if (gotType != v.type)
-        throw new Error(
-          `"expected type ${v.type} but got ${gotType}: ${v.tiles}`
-        );
+    // 計算の過程でだけ現れる種別は、パーサが手牌として読むため型を照合しない。
+    if (!CALCULATED_BLOCK_TYPES.has(v.type) && b.type != v.type)
+      throw new Error(
+        `"expected type ${v.type} but got ${b.type}: ${v.tiles}`
+      );
     return blockWrapper(b.tiles, v.type);
   }
 
@@ -273,6 +276,52 @@ export abstract class Block {
       default:
         return false;
     }
+  }
+
+  /**
+   * 刻子もしくは槓子の場合 true を返す。
+   * ポン・暗刻・暗槓・小明槓・大明槓が該当する。
+   */
+  isTriplet(): boolean {
+    switch (this._type) {
+      case BLOCK.PON:
+      case BLOCK.THREE:
+      case BLOCK.AN_KAN:
+      case BLOCK.SHO_KAN:
+      case BLOCK.DAI_KAN:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * 槓子の場合 true を返す。
+   */
+  isQuad(): boolean {
+    switch (this._type) {
+      case BLOCK.AN_KAN:
+      case BLOCK.SHO_KAN:
+      case BLOCK.DAI_KAN:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * 順子の場合 true を返す。手牌の順子とチーが該当する。
+   */
+  isSequence(): boolean {
+    return this._type == BLOCK.RUN || this._type == BLOCK.CHI;
+  }
+
+  /**
+   * 暗刻の場合 true を返す。暗槓を含み、ロン牌を含むものは除く。
+   */
+  isConcealedTriplet(): boolean {
+    if (this._type != BLOCK.AN_KAN && this._type != BLOCK.THREE) return false;
+    return !this.tiles.some((t) => t.has(OP.RON));
   }
 
   /**
@@ -571,6 +620,9 @@ const blockWrapper = (
 
 type TileBase = { n: number; ops?: readonly Operator[] };
 
+/** パーサが受け付ける入力の最大長。 */
+const MAX_INPUT_LENGTH = 600;
+
 /**
  * 文字列をパースし、牌やブロックを返すクラス
  * @param {boolean} options.enableImplicitTsumoBlock 手牌の中にツモオペレータがある場合、その牌をツモブロックとして扱う。
@@ -578,7 +630,6 @@ type TileBase = { n: number; ops?: readonly Operator[] };
  * ツモブロックは、手牌の次のブロックとなる（晒した牌の前となる）。
  */
 export class Parser {
-  readonly maxInputLength = 600;
   constructor(
     readonly input: string,
     readonly options: { enableImplicitTsumoBlock?: boolean } = {
@@ -724,7 +775,7 @@ export class Parser {
 
   private validate(input: string) {
     if (input.length == 0) return;
-    if (input.length > this.maxInputLength)
+    if (input.length > MAX_INPUT_LENGTH)
       throw new Error(`exceeded maximum input length (${input.length})`);
     const lastChar = input.charAt(input.length - 1);
     // Note: dummy tile for validation

@@ -97,7 +97,7 @@ describe("controller", () => {
     c.next(true);
     c.next(true);
     // p2 の捨て牌はロンできる
-    mp1.mDiscardHandlers.unshift((e, p) => {
+    mp1.mDiscardHandlers.unshift((e) => {
       console.debug("check can ron");
       expect(!!e.choices.RON).toBe(true);
       return false;
@@ -106,7 +106,7 @@ describe("controller", () => {
     c.next(true);
     // p3 の捨て牌はロンできない
     mp1.mDiscardHandlers.shift(); // remove pre check
-    mp1.mDiscardHandlers.unshift((e, p) => {
+    mp1.mDiscardHandlers.unshift((e) => {
       console.debug("check cannot ron");
       expect(!!e.choices.RON).toBe(false);
       return false;

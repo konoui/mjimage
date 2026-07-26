@@ -1,9 +1,6 @@
-import {
-  Controller,
-  createEventPipe,
-  Player,
-  EventHandler,
-} from "../controller";
+import { Controller } from "./controller";
+import { createEventPipe, EventHandler } from "./events";
+import { Player } from "./player";
 
 export const createLocalGame = (params?: {
   debug?: boolean;

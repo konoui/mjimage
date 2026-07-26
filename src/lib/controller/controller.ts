@@ -1,5 +1,5 @@
 import { createActor } from "xstate";
-import { assert } from "../myassert";
+import { assert } from "../assert";
 import {
   TYPE,
   OP,
@@ -50,17 +50,9 @@ import {
   DistributeEvent,
   ChoiceForReachAcceptance,
 } from "./events";
-import {
-  Wall,
-  IWall,
-  WallProps,
-  River,
-  PlaceManager,
-  ScoreManager,
-  shuffle,
-  Counter,
-  IRiver,
-} from ".";
+import { Wall, IWall, WallProps } from "./wall";
+import { River, IRiver } from "./river";
+import { PlaceManager, ScoreManager, shuffle, Counter } from "./managers";
 import { nextWind } from "../core/";
 
 /**
