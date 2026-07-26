@@ -1,0 +1,24 @@
+table:
+  1z:
+    hand: 123456789m1234s
+    discard: 12345m12345s12345p1234w
+    score: 0
+  2z:
+    hand: 123456789m1234s,t1p
+    discard: 12345m12345s12345p1234w
+    score: 3000
+  3z:
+    hand: 123456789m1234s
+    discard: 12345m12345s12345p1234w
+    score: 25000
+  4z:
+    hand: 123456789m1234s
+    discard: 12345m12345s12345p1234w
+    score: 12000
+  board:
+    dora_indicators: 1m2p3s4z
+    sticks:
+      reach: 1
+      dead: 3
+    round: 1z1
+    front: 2z

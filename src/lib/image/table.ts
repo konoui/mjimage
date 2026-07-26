@@ -324,16 +324,21 @@ const createScoreBoard = (
  * 卓の中央（点数表示）の一辺の長さの下限。
  * 河の一行と中央のボードはこの幅に収まる必要がある。
  * 素の下限は「11111-1」（縦 5 枚 + 横 1 枚）。
+ *
+ * 上家・下家の点数は中央の左右の辺から 1 行分内側へ垂れるので、
+ * ボードにはその分の余白を左右に足した幅を要求する。
+ * ドラ表示牌が増えてボードが素の下限より広くなったときにここが効く。
  */
 const minCenterWidth = (
   helper: ImageHelper,
+  tf: TableFont,
   discardAreas: Seats<MySVGElement>,
   boardWidth: number,
 ) => {
   const nominal = helper.tileWidth * 5 + helper.tileHeight * 1; // 11111-1
   return Math.max(
     nominal,
-    boardWidth,
+    boardWidth + tf.em * 2,
     maxOfSeats(discardAreas, (a) => a.width),
   );
 };
@@ -376,6 +381,7 @@ export const createTable = (
   const centerWidth = Math.max(
     minCenterWidth(
       helper,
+      ctx,
       discardAreas,
       stickAndDoraWidth(helper, ctx, scoreBoardProps),
     ),

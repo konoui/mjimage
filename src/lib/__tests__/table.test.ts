@@ -33,6 +33,12 @@ describe("table yaml to svg", () => {
       gotFilename: "yaml-to-svg.omit.svg",
       inputFilename: "table.omit.yaml",
     },
+    // カンドラを含む複数のドラ表示牌。中央の広さが表示牌の枚数に追随する。
+    {
+      name: "multiple dora indicators",
+      gotFilename: "yaml-to-svg.dora-indicators.svg",
+      inputFilename: "table.dora-indicators.yaml",
+    },
   ];
 
   for (const t of tests) {
@@ -372,6 +378,42 @@ describe("createTable layout invariants", () => {
     for (const n of [1, 2, 3, 4, 5]) {
       const doraIndicators = Array.from({ length: n }, () => new Tile(TYPE.M, 3));
       expect(count(render({ ...baseScoreBoard, doraIndicators }))).toBe(base + n);
+    }
+  });
+
+  // ドラ表示牌が増えるとボードは横に伸びるが、中央の左右の辺から 1 行分内側へ
+  // 垂れる点数には重ならない。伸びた分は中央の正方形が引き受ける。
+  test("dora indicators do not run into the scores", () => {
+    const helper = new ImageHelper(helperConfig);
+    const em = TABLE_CONTEXT.BASE * helper.scale;
+    // 手牌にも河にも現れない牌を使い、表示牌だけを拾えるようにする。
+    const indicator = new Tile(TYPE.Z, 7);
+    // 中央の広さがボードだけで決まるよう、手牌と河は最小にする。
+    const narrowHand = new Parser("1m").parse();
+    const narrowRiver = new Parser("1p").tiles();
+    const seats = <T,>(v: T) => ({
+      front: v,
+      right: v,
+      opposite: v,
+      left: v,
+    });
+
+    for (const n of [1, 2, 3, 4, 5]) {
+      const doraIndicators = Array.from({ length: n }, () => indicator);
+      const draw = SVG();
+      const table = createTable(helper, seats(narrowHand), seats(narrowRiver), {
+        ...baseScoreBoard,
+        doraIndicators,
+      });
+      draw.add(table.e);
+      const svg = draw.svg();
+
+      // 中央の正方形は卓の中心に置かれる。
+      const centerWidth = Number(svg.match(/<rect width="([\d.]+)"/)![1]);
+      const centerRight = (table.width + centerWidth) / 2;
+      const dora = boundsOf(svg, (h) => h.endsWith("z7.svg"));
+
+      expect(centerRight - dora.maxX).toBeGreaterThanOrEqual(em - 1e-6);
     }
   });
 });

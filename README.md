@@ -75,7 +75,7 @@ table:
     discard: 12345m12345s12345p1234w
     score: 12000
   board:
-    doras: 1m
+    dora_indicators: 1m
     sticks:
       reach: 1
       dead: 3
@@ -84,6 +84,12 @@ table:
 ```
 
 ![table](./example/output/table-example1.svg)
+
+`dora_indicators` は牌の記述をそのまま受け取るので、槓ドラのように複数のドラ表示牌を並べられます。指定した枚数だけ卓の中央に描かれ、中央の広さもそれに合わせて広がります。
+
+```yaml
+    dora_indicators: 1m2p3s4z0m
+```
 
 ## 牌画像
 
