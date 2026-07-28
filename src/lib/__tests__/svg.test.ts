@@ -2,11 +2,11 @@ import { XMLValidator, XMLParser } from "fast-xml-parser";
 import fs from "fs";
 import { Parser } from "../core/parser";
 import { ImageHelper, render } from "../image";
-import { SVG } from "./utils/helper";
+import { SVG, assetPath, loadInputData } from "./utils/helper";
 import { TYPE, TILE_NUMBERS } from "../core/constants";
 import { G as MyG, Rect as MyRect } from "../svgjs/svg";
 
-const spritePath = "public/svg/tiles.svg";
+const spritePath = assetPath("svg", "tiles.svg");
 
 describe("svg serialization", () => {
   // symbol の viewBox はキャメルケースが正。属性名を一律に変換すると view-box に
@@ -54,9 +54,7 @@ describe("svg serialization", () => {
 
   // 出力が XML として妥当であること。エスケープ漏れがあれば壊れる。
   test("produces valid XML for inputs with special characters", () => {
-    const yaml = fs
-      .readFileSync("src/lib/__tests__/__fixtures__/table.common.yaml")
-      .toString();
+    const yaml = loadInputData("table.common.yaml");
     const cases = [
       () =>
         render("-123s,1234m, d2s, t3s", {
@@ -72,9 +70,7 @@ describe("svg serialization", () => {
 
   // 座標計算で出る 403.91999999999996 や回転行列の 6.12e-17 を残さない。
   test("rounds away floating point noise", () => {
-    const yaml = fs
-      .readFileSync("src/lib/__tests__/__fixtures__/table.common.yaml")
-      .toString();
+    const yaml = loadInputData("table.common.yaml");
     const svg = render(yaml, { scale: 1.6 }).svg.svg();
     expect(svg.match(/-?\d+\.\d{7,}/g)).toBeNull();
     expect(svg.match(/\d[eE][-+]?\d+/g)).toBeNull();
@@ -176,7 +172,7 @@ describe("svg tree manipulation", () => {
 test("valid tile ids match the shipped tile images", () => {
   const onDisk = new Set(
     fs
-      .readdirSync("public/svg")
+      .readdirSync(assetPath("svg"))
       .filter((f) => f.endsWith(".svg"))
       .map((f) => f.replace(".svg", ""))
       .filter((id) => id !== "tiles" && !id.startsWith("stick")),
