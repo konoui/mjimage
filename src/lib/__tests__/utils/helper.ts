@@ -1,26 +1,34 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import { Block } from "../../core/parser";
 
 export { SVG } from "../../../index";
 export { Use } from "../../svgjs/svg";
 
-export const loadInputData = (filename: string) => {
-  return loadTestData(filename, "", false, "__fixtures__").toString();
-};
+// パスはすべてこのファイルの位置から解決する。
+// 起動ディレクトリ（cwd）に依存すると、リポジトリルート以外から
+// vitest を動かしたとき（IDE のテストランナーなど）に落ちる。
+const testsDir = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  ".."
+);
+const repoRoot = path.resolve(testsDir, "../../..");
 
-export const loadTestData = (
-  filename: string,
-  data: string = "",
-  update: boolean = false,
-  dir: "__snapshots__" | "__fixtures__" = "__snapshots__"
-) => {
-  const current_dir = path.resolve("");
-  const gotPath = `${current_dir}/src/lib/__tests__/${dir}/${filename}`;
-  if (update) fs.writeFileSync(gotPath, data);
-  const want = fs.readFileSync(gotPath);
-  return want;
-};
+/** 入力データ（__fixtures__）の絶対パス */
+export const fixturePath = (filename: string) =>
+  path.join(testsDir, "__fixtures__", filename);
+
+/** 期待値（__snapshots__）の絶対パス。toMatchFileSnapshot に渡す。 */
+export const snapshotPath = (filename: string) =>
+  path.join(testsDir, "__snapshots__", filename);
+
+/** リポジトリに同梱している素材（牌の SVG など）の絶対パス */
+export const assetPath = (...names: string[]) =>
+  path.join(repoRoot, "public", ...names);
+
+export const loadInputData = (filename: string) =>
+  fs.readFileSync(fixturePath(filename), "utf8");
 
 export const handsToString = (hands: readonly (readonly Block[])[]) => {
   return hands.map((hand) => hand.map((block) => block.toString()));
@@ -42,6 +50,5 @@ export const storeArrayData = (filename: string, v: any) => {
   let objs = [];
   if (a != "") objs = JSON.parse(a) as any[];
   objs.push(v);
-  const updated = JSON.stringify(objs, null, 2);
-  loadTestData(filename, updated, true, "__fixtures__");
+  fs.writeFileSync(fixturePath(filename), JSON.stringify(objs, null, 2));
 };

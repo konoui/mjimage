@@ -1,47 +1,47 @@
 import { Tile, Parser } from "../core/";
-import { ImageHelper, RenderOptions, render, buildTable } from "../image";
-import { Discards, ScoreBoard, Hands } from "../input";
+import {
+  ImageHelper,
+  RenderOptions,
+  render,
+  buildHand,
+  buildTable,
+} from "../image";
+import { Discards, ScoreBoard, Hands, TableInput } from "../input";
 import { TYPE, ROUND_MAP, WIND_MAP } from "../core/constants";
 import { TABLE_CONTEXT } from "../image/constants";
 
-import { loadTestData, loadInputData, SVG } from "./utils/helper";
+import { loadInputData, snapshotPath, SVG } from "./utils/helper";
+import { placedTiles, boundsOf } from "./utils/geometry";
 
 const helperConfig: RenderOptions = {
   imageHostUrl: "https://static.konoui.dev/mjimage/svg/",
   scale: 0.4,
 };
 
-const update = false;
-
 describe("table yaml to svg", () => {
-  const tests = [
-    {
-      name: "specify all params",
-      gotFilename: "yaml-to-svg.common.svg",
-      inputFilename: "table.common.yaml",
-    },
-    {
-      name: "omit params",
-      gotFilename: "yaml-to-svg.omit.svg",
-      inputFilename: "table.omit.yaml",
-    },
-    // カンドラを含む複数のドラ表示牌。中央の広さが表示牌の枚数に追随する。
-    {
-      name: "multiple dora indicators",
-      gotFilename: "yaml-to-svg.dora-indicators.svg",
-      inputFilename: "table.dora-indicators.yaml",
-    },
-  ];
+  // 代表として全項目を指定した 1 件だけ全文を比較する。
+  // 個々の性質は下の不変条件テストが見る。
+  test("specify all params", async () => {
+    const input = loadInputData("table.common.yaml");
+    const got = render(input, helperConfig).svg.svg();
+    await expect(got).toMatchFileSnapshot(
+      snapshotPath("yaml-to-svg.common.svg"),
+    );
+  });
 
-  for (const t of tests) {
-    test(t.name, () => {
-      const input = loadInputData(t.inputFilename);
+  // 省略した家・項目には既定値が入り、4 家ぶんが揃って描かれる。
+  test("omitted seats and params fall back to defaults", () => {
+    const svg = render(loadInputData("table.omit.yaml"), helperConfig).svg.svg();
 
-      const got = render(input, helperConfig).svg.svg();
-      const want = loadTestData(t.gotFilename, got, update);
-      expect(want.toString()).toBe(got);
-    });
-  }
+    // 起家は 2z（南）。そこから時計回りに 4 家ぶんの点数が並ぶ。
+    for (const place of ["南", "西", "北", "東"])
+      expect(svg).toContain(`>${place} 25000<`);
+    // 局・供託棒の既定値
+    expect(svg).toContain(">東１局<");
+    expect(svg.match(/>0</g)).toHaveLength(2);
+    // 手牌も河も無い家があっても落ちない
+    expect(() => render("table:\n  board:\n", helperConfig)).not.toThrow();
+  });
 
   // 注記のオプションは手牌と卓のどちらの入力でも効く。
   // 設定はヘルパが解決済みで持ち、卓の中の手牌も同じヘルパで組み立てられる。
@@ -72,161 +72,140 @@ describe("table yaml to svg", () => {
   });
 });
 
-describe("createTable", () => {
-  test("max-table-size", () => {
-    const sampleDiscard = "123456789s12-3456789m1234p";
-    const p = new Parser(sampleDiscard).tiles();
+// 4 家に同じものを配る。卓のレイアウトを見るテストでは家ごとの違いは要らない。
+const seats = <T,>(v: T): Seats<T> => ({
+  front: v,
+  right: v,
+  opposite: v,
+  left: v,
+});
+type Seats<T> = { front: T; right: T; opposite: T; left: T };
 
-    const sampleHand = "2s, -1111p, -1111s, -1111m, -2222m, t3s";
-    const blocks = new Parser(sampleHand).parse();
+const baseScoreBoard: ScoreBoard = {
+  round: "東１局",
+  scores: { front: 25000, right: 25000, opposite: 25000, left: 25000 },
+  frontPlace: "東",
+  sticks: { reach: 1, dead: 3 },
+  doraIndicators: [new Tile(TYPE.M, 3)],
+};
 
-    const hands: Hands = {
-      front: blocks,
-      right: blocks,
-      opposite: blocks,
-      left: blocks,
-    };
-    const discards: Discards = {
-      front: p,
-      right: p,
-      opposite: p,
-      left: p,
-    };
-    const scoreBoard: ScoreBoard = {
-      round: "南４局",
-      scores: {
-        front: 100,
-        right: 200,
-        opposite: 25000,
-        left: 9000,
-      },
-      frontPlace: "西",
-      sticks: {
-        reach: 1,
-        dead: 3,
-      },
-      doraIndicators: [new Tile(TYPE.M, 3)],
-    };
+const drawTable = (helper: ImageHelper, table: TableInput) => {
+  const t = buildTable(helper, table);
+  const draw = SVG();
+  draw.add(t.element);
+  return { svg: draw.svg(), width: t.width, height: t.height };
+};
 
+// 卓の骨格。全文スナップショットが暗黙に守っていた性質を、性質のまま確かめる。
+describe("createTable layout", () => {
+  // 卓は正方形で、描かれるものはすべてその内側に収まる。
+  // 手牌の左右には牌 1 枚分以上が残り、辺に垂れる点数と重ならない。
+  test("nothing is drawn outside the table", () => {
     const helper = new ImageHelper(helperConfig);
-    const g = buildTable(helper, { hands, discards, scoreBoard });
+    // 鳴きと裏牌とツモ牌を含む、一番広くなる形。
+    const hand = new Parser("2s, -1111p, -1111s, -1111m, -2222m, t3s").parse();
+    const river = new Parser("123456789s12-3456789m1234p").tiles();
 
-    const draw = SVG();
-    draw.add(g.element);
-    const got = draw.svg();
-    const want = loadTestData("table.max-size.svg", got, update);
-    expect(want.toString()).toBe(got);
+    const { svg, width, height } = drawTable(helper, {
+      hands: seats(hand),
+      discards: seats(river),
+      scoreBoard: baseScoreBoard,
+    });
+
+    expect(width).toBe(height);
+    for (const t of placedTiles(svg)) {
+      expect(t.x).toBeGreaterThanOrEqual(0);
+      expect(t.y).toBeGreaterThanOrEqual(0);
+      expect(t.x + t.width).toBeLessThanOrEqual(width + 1e-6);
+      expect(t.y + t.height).toBeLessThanOrEqual(height + 1e-6);
+    }
+
+    const handWidth = buildHand(helper, hand).width;
+    expect((width - handWidth) / 2).toBeGreaterThanOrEqual(helper.tileWidth);
   });
 
-  test("dynamic-hands-size", () => {
-    const sampleDiscard = "1p";
-    const p = new Parser(sampleDiscard).tiles();
-
-    const sampleHand = "123456789s1234m";
-    const blocks = new Parser(sampleHand).parse();
-    const hands: Hands = {
-      front: new Parser("123456789s1234m, t3s").parse(),
-      right: blocks,
-      opposite: blocks,
-      left: blocks,
-    };
-    const discards: Discards = {
-      front: p,
-      right: p,
-      opposite: p,
-      left: p,
-    };
-    const scoreBoard: ScoreBoard = {
-      round: "南４局",
-      scores: {
-        front: 100,
-        right: 200,
-        opposite: 25000,
-        left: 9000,
-      },
-      frontPlace: "西",
-      sticks: {
-        reach: 1,
-        dead: 3,
-      },
-      doraIndicators: [new Tile(TYPE.M, 3)],
-    };
-
+  // 手牌が広い家があると卓も広がる。広がった分は中央の正方形が引き受ける
+  // （外周の厚みが変わらないことは "rivers stay next to the hands" が見る）。
+  test("the table grows with the widest hand", () => {
     const helper = new ImageHelper(helperConfig);
-    const g = buildTable(helper, { hands, discards, scoreBoard });
+    const river = new Parser("1p").tiles();
+    const widthOf = (hand: string) =>
+      drawTable(helper, {
+        hands: { ...seats(new Parser("1m").parse()), front: new Parser(hand).parse() },
+        discards: seats(river),
+        scoreBoard: baseScoreBoard,
+      }).width;
 
-    const draw = SVG();
-    draw.add(g.element);
-    const got = draw.svg();
-    const want = loadTestData("table.dynamic-size.svg", got, update);
-    expect(want.toString()).toBe(got);
+    const widths = [
+      "1m",
+      "123456789m1234m",
+      "123456789m1234m, t3m",
+      "2m, -1111m, -2222m, -3333m, -4444m",
+    ].map(widthOf);
+    for (let i = 1; i < widths.length; i++)
+      expect(widths[i]).toBeGreaterThan(widths[i - 1]);
   });
 
-  // 4 家の捨て牌の枚数が揃っていない場合。河がそれぞれの家の辺に接し、
-  // 他家の枚数につられて中央へ浮かないことを固定する。
-  test("uneven-discards", () => {
-    const blocks = new Parser("123456789s1234m").parse();
-    const hands: Hands = {
-      front: blocks,
-      right: blocks,
-      opposite: blocks,
-      left: blocks,
-    };
-    const discards: Discards = {
-      front: new Parser("1p").tiles(),
-      right: new Parser("123456789s123456789m123456p").tiles(),
-      opposite: new Parser("123456789s12-3456m").tiles(),
-      left: new Parser("").tiles(),
-    };
-    const scoreBoard: ScoreBoard = {
-      round: "西１局",
-      scores: { front: 100, right: 200, opposite: 25000, left: 9000 },
-      frontPlace: "北",
-      sticks: { reach: 1, dead: 3 },
-      doraIndicators: [new Tile(TYPE.M, 3)],
-    };
-
+  // 河はそれぞれ自分の辺に貼り付く。枚数が家ごとに違っても、
+  // 一番深い河につられて中央へ浮いたりしない。
+  test("each river sticks to its own side even when the counts differ", () => {
     const helper = new ImageHelper(helperConfig);
-    const g = buildTable(helper, { hands, discards, scoreBoard });
+    const hand = new Parser("123456789m1234m").parse();
+    // 家ごとに違う字牌を捨てて、河を出力から拾い分けられるようにする。
+    const river = (n: number, t: number) =>
+      new Parser(`${`${t}z`.repeat(n)}`).tiles();
 
-    const draw = SVG();
-    draw.add(g.element);
-    const got = draw.svg();
-    const want = loadTestData("table.uneven-discards.svg", got, update);
-    expect(want.toString()).toBe(got);
+    const { svg, width, height } = drawTable(helper, {
+      hands: seats(hand),
+      discards: {
+        front: river(13, 1),
+        right: river(1, 2),
+        opposite: river(7, 3),
+        left: river(3, 4),
+      },
+      scoreBoard: baseScoreBoard,
+    });
+
+    // 河と自分の辺との距離は、手牌の高さ + 余白。四方で等しい。
+    const inset = helper.tileHeight + helper.blockMargin;
+    const at = (id: string) => boundsOf(svg, (h) => h.endsWith(`${id}.svg`));
+    expect(height - at("z1").maxY).toBeCloseTo(inset, 6);
+    expect(width - at("z2").maxX).toBeCloseTo(inset, 6);
+    expect(at("z3").minY).toBeCloseTo(inset, 6);
+    expect(at("z4").minX).toBeCloseTo(inset, 6);
+  });
+
+  // 河は RIVER_ROW_SIZE 枚ごとに折り返し、行は牌の高さぶんずつ下へ伸びる。
+  test("a river wraps every RIVER_ROW_SIZE tiles", () => {
+    const helper = new ImageHelper(helperConfig);
+    const size = TABLE_CONTEXT.RIVER_ROW_SIZE;
+    const { svg } = drawTable(helper, {
+      hands: seats(new Parser("1m").parse()),
+      discards: {
+        ...seats(new Parser("").tiles()),
+        // 2 行と半端 1 枚。
+        opposite: new Parser("1z".repeat(size * 2 + 1)).tiles(),
+      },
+      scoreBoard: baseScoreBoard,
+    });
+
+    // 対面の河は 180 度回るので、行は上から数えて下へ伸びる向きが反転する。
+    const rows = new Map<number, number>();
+    for (const t of placedTiles(svg).filter((t) => t.href.endsWith("z1.svg")))
+      rows.set(t.y, (rows.get(t.y) ?? 0) + 1);
+    expect([...rows.values()].sort((a, b) => b - a)).toEqual([size, size, 1]);
+    const ys = [...rows.keys()].sort((a, b) => a - b);
+    for (let i = 1; i < ys.length; i++)
+      expect(ys[i] - ys[i - 1]).toBeCloseTo(helper.tileHeight, 6);
   });
 });
 
 describe("createTable layout invariants", () => {
-  const blocks = new Parser("123456789s1234m").parse();
-  const hands: Hands = {
-    front: blocks,
-    right: blocks,
-    opposite: blocks,
-    left: blocks,
-  };
-  const discards: Discards = {
-    front: new Parser("123456m").tiles(),
-    right: new Parser("123456m").tiles(),
-    opposite: new Parser("123456m").tiles(),
-    left: new Parser("123456m").tiles(),
-  };
-  const baseScoreBoard: ScoreBoard = {
-    round: "東１局",
-    scores: { front: 25000, right: 25000, opposite: 25000, left: 25000 },
-    frontPlace: "東",
-    sticks: { reach: 1, dead: 3 },
-    doraIndicators: [new Tile(TYPE.M, 3)],
-  };
+  const hands: Hands = seats(new Parser("123456789s1234m").parse());
+  const discards: Discards = seats(new Parser("123456m").tiles());
 
-  const renderBoard = (scoreBoard: ScoreBoard, config = helperConfig) => {
-    const draw = SVG();
-    draw.add(
-      buildTable(new ImageHelper(config), { hands, discards, scoreBoard })
-        .element,
-    );
-    return draw.svg();
-  };
+  const renderBoard = (scoreBoard: ScoreBoard, config = helperConfig) =>
+    drawTable(new ImageHelper(config), { hands, discards, scoreBoard }).svg;
 
   // 点数の桁数は文字の中身にしか出てはいけない。座標に出るなら寄せがずれている。
   test("score digits do not move anything", () => {
@@ -319,59 +298,19 @@ describe("createTable layout invariants", () => {
     }
   });
 
-  // SVG を走査して、条件に合う牌画像の外接矩形を求める。g の transform を合成する。
-  const boundsOf = (svg: string, match: (href: string) => boolean) => {
-    type M = [number, number, number, number, number, number];
-    const compose = (a: M, b: M): M => [
-      a[0] * b[0] + a[2] * b[1], a[1] * b[0] + a[3] * b[1],
-      a[0] * b[2] + a[2] * b[3], a[1] * b[2] + a[3] * b[3],
-      a[0] * b[4] + a[2] * b[5] + a[4], a[1] * b[4] + a[3] * b[5] + a[5],
-    ];
-    const stack: M[] = [[1, 0, 0, 1, 0, 0]];
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    for (const m of svg.matchAll(/<(\/?)(g|image)([^>]*)>/g)) {
-      const [, close, tag, attrs] = m;
-      if (tag === "g") {
-        if (close) stack.pop();
-        else {
-          const t = attrs.match(/matrix\(([^)]*)\)/);
-          const mm = (t ? t[1].split(",").map(Number) : [1, 0, 0, 1, 0, 0]) as M;
-          stack.push(compose(stack[stack.length - 1], mm));
-        }
-        continue;
-      }
-      if (close) continue;
-      const href = attrs.match(/href="([^"]*)"/)?.[1] ?? "";
-      if (!match(href)) continue;
-      const num = (k: string) => Number(attrs.match(new RegExp(`\\s${k}="([-\\d.]+)"`))?.[1] ?? 0);
-      const [x, y, w, h] = [num("x"), num("y"), num("width"), num("height")];
-      const cm = stack[stack.length - 1];
-      for (const [px, py] of [[x, y], [x + w, y], [x, y + h], [x + w, y + h]]) {
-        const gx = cm[0] * px + cm[2] * py + cm[4];
-        const gy = cm[1] * px + cm[3] * py + cm[5];
-        minX = Math.min(minX, gx); maxX = Math.max(maxX, gx);
-        minY = Math.min(minY, gy); maxY = Math.max(maxY, gy);
-      }
-    }
-    return { minX, maxX, minY, maxY };
-  };
-
   // 河は手牌のすぐ内側に置かれる。手牌の広さで卓が大きくなっても、
   // その差分は中央の正方形が吸収するので河は手牌から離れない。
   test("rivers stay next to the hands regardless of hand width", () => {
     const helper = new ImageHelper(helperConfig);
     const river = new Parser("1z1z1z1z1z1z").tiles();
     const inset = (hand: string) => {
-      const blocks = new Parser(hand).parse();
-      const draw = SVG();
-      const table = buildTable(helper, {
-        hands: { front: blocks, right: blocks, opposite: blocks, left: blocks },
-        discards: { front: river, right: river, opposite: river, left: river },
+      const table = drawTable(helper, {
+        hands: seats(new Parser(hand).parse()),
+        discards: seats(river),
         scoreBoard: baseScoreBoard,
       });
-      draw.add(table.element);
       // 卓の下辺から下家の河の下端まで（= 手牌の高さ + 余白）
-      return table.height - boundsOf(draw.svg(), (h) => h.endsWith("z1.svg")).maxY;
+      return table.height - boundsOf(table.svg, (h) => h.endsWith("z1.svg")).maxY;
     };
     // 手牌はいずれも高さ 1 枚分。幅だけが違う。
     for (const hand of [
@@ -410,28 +349,19 @@ describe("createTable layout invariants", () => {
     // 中央の広さがボードだけで決まるよう、手牌と河は最小にする。
     const narrowHand = new Parser("1m").parse();
     const narrowRiver = new Parser("1p").tiles();
-    const seats = <T,>(v: T) => ({
-      front: v,
-      right: v,
-      opposite: v,
-      left: v,
-    });
 
     for (const n of [1, 2, 3, 4, 5]) {
       const doraIndicators = Array.from({ length: n }, () => indicator);
-      const draw = SVG();
-      const table = buildTable(helper, {
+      const table = drawTable(helper, {
         hands: seats(narrowHand),
         discards: seats(narrowRiver),
         scoreBoard: { ...baseScoreBoard, doraIndicators },
       });
-      draw.add(table.element);
-      const svg = draw.svg();
 
       // 中央の正方形は卓の中心に置かれる。
-      const centerWidth = Number(svg.match(/<rect width="([\d.]+)"/)![1]);
+      const centerWidth = Number(table.svg.match(/<rect width="([\d.]+)"/)![1]);
       const centerRight = (table.width + centerWidth) / 2;
-      const dora = boundsOf(svg, (h) => h.endsWith("z7.svg"));
+      const dora = boundsOf(table.svg, (h) => h.endsWith("z7.svg"));
 
       expect(centerRight - dora.maxX).toBeGreaterThanOrEqual(em - 1e-6);
     }
