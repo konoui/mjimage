@@ -1,6 +1,6 @@
 import { Tile, Parser, Block } from "../core/parser";
-import { WIND_MAP, ROUND_MAP, Wind } from "../core/constants";
-import { nextWind, prevWind } from "../core/wind-util";
+import { ROUND_MAP, Wind } from "../core/constants";
+import { Seats, mapSeats, seatWinds } from "./seats";
 import { parseYamlLikeStringInput } from "./table-yaml";
 import {
   parseRawTableInput,
@@ -9,31 +9,20 @@ import {
 
 // 変換後の型
 // ValidatedTableInput => {Discards, Hands, ScoreBoard}
-export interface Discards {
-  front: readonly Tile[];
-  right: readonly Tile[];
-  opposite: readonly Tile[];
-  left: readonly Tile[];
-}
+export type Discards = Seats<readonly Tile[]>;
 
-export interface Hands {
-  front: readonly Block[];
-  right: readonly Block[];
-  opposite: readonly Block[];
-  left: readonly Block[];
-}
+export type Hands = Seats<readonly Block[]>;
 
 export interface ScoreBoard {
   doraIndicators: readonly Tile[];
   round: BoardRound;
   sticks: { reach: number; dead: number };
-  scores: {
-    front: number;
-    right: number;
-    opposite: number;
-    left: number;
-  };
-  frontPlace: BoardWind;
+  scores: Seats<number>;
+  /**
+   * 手前の家の風。表示は描画側が WIND_MAP で行う。
+   * 席順の計算に使うので、内部表現（Wind）のまま持つ。
+   */
+  frontPlace: Wind;
 }
 
 /**
@@ -46,7 +35,6 @@ export interface TableInput {
 }
 
 type BoardRound = (typeof ROUND_MAP)[keyof typeof ROUND_MAP];
-type BoardWind = (typeof WIND_MAP)[keyof typeof WIND_MAP];
 
 /**
  * 麻雀卓の文字列をパースし、内部表現に変換する
@@ -72,44 +60,21 @@ export const parseYamlStringInput = (
  */
 export const convertTableInput = (i: ValidatedTableInput): TableInput => {
   const frontPlace = i.board.front;
-  const m = createPlaceMap(frontPlace);
-  const f = (w: Wind) => {
-    return i[w].discard.replace(/\r?\n/g, "");
-  };
-  const discards: Discards = {
-    front: new Parser(f(m.front)).tiles(),
-    right: new Parser(f(m.right)).tiles(),
-    opposite: new Parser(f(m.opposite)).tiles(),
-    left: new Parser(f(m.left)).tiles(),
-  };
+  // 席（front/right/…）から風（1z/2z/…）への対応。以降は各家の入力をこれで引く。
+  const m = seatWinds(frontPlace);
 
-  const hands: Hands = {
-    front: new Parser(i[m.front].hand).parse(),
-    right: new Parser(i[m.right].hand).parse(),
-    opposite: new Parser(i[m.opposite].hand).parse(),
-    left: new Parser(i[m.left].hand).parse(),
-  };
+  const discards: Discards = mapSeats(m, (w) =>
+    new Parser(i[w].discard.replace(/\r?\n/g, "")).tiles(),
+  );
+
+  const hands: Hands = mapSeats(m, (w) => new Parser(i[w].hand).parse());
 
   const scoreBoard: ScoreBoard = {
     round: ROUND_MAP[i.board.round],
-    frontPlace: WIND_MAP[frontPlace],
+    frontPlace: frontPlace,
     sticks: i.board.sticks,
     doraIndicators: new Parser(i.board.doraIndicators).tiles(),
-    scores: {
-      front: i[m.front].score,
-      right: i[m.right].score,
-      opposite: i[m.opposite].score,
-      left: i[m.left].score,
-    },
+    scores: mapSeats(m, (w) => i[w].score),
   };
   return { discards, hands, scoreBoard };
-};
-
-const createPlaceMap = (front: Wind) => {
-  return {
-    front: front,
-    right: nextWind(front),
-    opposite: nextWind(nextWind(front)),
-    left: prevWind(front),
-  };
 };

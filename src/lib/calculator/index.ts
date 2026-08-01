@@ -1,5 +1,6 @@
 // calculator の外向きの公開面。calculator 内部のモジュール同士はここを経由しない。
 export * from "./tile";
+export * from "./counts";
 export * from "./hand";
 export * from "./shanten";
 export * from "./block-calculator";
@@ -7,6 +8,7 @@ export * from "./block-util";
 export * from "./types";
 export * from "./score";
 export * from "./fu";
+export * from "./yaku";
 export * from "./serialize";
 export * from "./point-calculator";
 export * from "./efficiency";

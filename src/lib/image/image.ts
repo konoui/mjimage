@@ -1,14 +1,5 @@
-import {
-  Tile,
-  Block,
-  BlockAnKan,
-  BlockHand,
-  BlockPon,
-  BlockChi,
-  BlockShoKan,
-  BlockDaiKan,
-  BlockOther,
-} from "../core/parser";
+import { Tile, Block, BlockAnKan, BlockHand, BlockType } from "../core/parser";
+import { assert } from "../assert";
 import {
   Svg,
   G,
@@ -19,7 +10,7 @@ import {
   round,
   Placeable,
 } from "../svgjs/svg";
-import { TILE_NUMBERS, TYPE, OP, BLOCK } from "../core";
+import { TILE_NUMBERS, TYPE, OP, BLOCK, Operator } from "../core";
 import { FONT_FAMILY, TILE_CONTEXT } from "./constants";
 
 /**
@@ -66,51 +57,14 @@ export interface RenderOptions {
   enableTsumoText?: boolean;
 }
 
-const blockImageSize = (b: Block, scale: number) => {
-  const size = tileImageSize(b.tiles[0], scale);
-  const bh = size.baseHeight;
-  const bw = size.baseWidth;
-  if (b.is(BLOCK.SHO_KAN))
-    return { width: bw * 2 + bh, height: Math.max(bw * 2, bh) };
-
-  const maxHeight = b.tiles.reduce((max: number, t: Tile) => {
-    const h = tileImageSize(t, scale).height;
-    return h > max ? h : max;
-  }, 0);
-  const sumWidth = b.tiles.reduce((sum: number, t: Tile) => {
-    return sum + tileImageSize(t, scale).width;
-  }, 0);
-  return { width: sumWidth, height: maxHeight };
-};
-
 /**
  * 牌の実寸。ブロック内部の座標計算とコンテナの寸法計算で同じ値を使うため、
- * 丸めを含めてここに一本化する。
+ * 丸めを含めてここに一本化する。実寸を使う側は helper の tileSize / blockSize を通す。
  */
 const scaledTileWidth = (scale: number) =>
   parseFloat((TILE_CONTEXT.WIDTH * scale).toPrecision(5));
 const scaledTileHeight = (scale: number) =>
   parseFloat((TILE_CONTEXT.HEIGHT * scale).toPrecision(5));
-
-const tileImageSize = (
-  tile: Tile,
-  scale: number
-): {
-  width: number;
-  height: number;
-  baseWidth: number;
-  baseHeight: number;
-} => {
-  const h = scaledTileHeight(scale);
-  const w = scaledTileWidth(scale);
-  const size = tile.has(OP.HORIZONTAL)
-    ? { width: h, height: w, baseWidth: w, baseHeight: h }
-    : { width: w, height: h, w, baseWidth: w, baseHeight: h };
-  // 牌の右に注記（(ドラ)/(ツモ)）を置く分。文字はこの幅に収まるよう縮められる。
-  if (tile.has(OP.TSUMO) || tile.has(OP.IMAGE_DORA))
-    size.width += w * TILE_CONTEXT.TEXT_SCALE;
-  return size;
-};
 
 /**
  * 文字列の幅を em 単位で見積もる。半角は 0.5em、全角は 1em として数える。
@@ -145,9 +99,49 @@ class BaseHelper {
     this.enableTsumoText = props.enableTsumoText ?? true;
   }
 
+  /**
+   * 牌 1 枚の実寸。base* は向きに関係ない牌そのものの寸法で、
+   * width/height は横向き・注記を反映した占有寸法となる。
+   */
+  tileSize(tile: Tile): {
+    width: number;
+    height: number;
+    baseWidth: number;
+    baseHeight: number;
+  } {
+    const w = this.tileWidth;
+    const h = this.tileHeight;
+    const size = tile.has(OP.HORIZONTAL)
+      ? { width: h, height: w, baseWidth: w, baseHeight: h }
+      : { width: w, height: h, baseWidth: w, baseHeight: h };
+    // 牌の右に注記（(ドラ)/(ツモ)）を置く分。文字はこの幅に収まるよう縮められる。
+    if (tile.has(OP.TSUMO) || tile.has(OP.IMAGE_DORA))
+      size.width += w * TILE_CONTEXT.TEXT_SCALE;
+    return size;
+  }
+
+  /**
+   * ブロック 1 つの実寸。牌を横に並べた大きさで、小明槓だけは 2 段に積む。
+   */
+  blockSize(block: Block): { width: number; height: number } {
+    const { baseWidth: bw, baseHeight: bh } = this.tileSize(block.tiles[0]);
+    if (block.is(BLOCK.SHO_KAN))
+      return { width: bw * 2 + bh, height: Math.max(bw * 2, bh) };
+
+    const maxHeight = block.tiles.reduce(
+      (max, t) => Math.max(max, this.tileSize(t).height),
+      0,
+    );
+    const sumWidth = block.tiles.reduce(
+      (sum, t) => sum + this.tileSize(t).width,
+      0,
+    );
+    return { width: sumWidth, height: maxHeight };
+  }
+
   // 横向き牌を縦向き牌と水平に揃えるためのY座標オフセットを計算
   protected getHorizontalTileYOffset(t: Tile) {
-    const size = tileImageSize(t, this.scale);
+    const size = this.tileSize(t);
     return (size.baseHeight - size.baseWidth) / 2;
   }
 
@@ -164,7 +158,7 @@ class BaseHelper {
   }
 
   createImage(tile: Tile, x: number, y: number) {
-    const size = tileImageSize(tile, this.scale);
+    const size = this.tileSize(tile);
     const image = this.image(tile)
       .dx(x)
       .dy(y)
@@ -173,8 +167,8 @@ class BaseHelper {
   }
 
   createTextImage(tile: Tile, x: number, y: number, t: string) {
-    const size = tileImageSize(tile, this.scale);
-    // tileImageSize が牌の右に足している幅にちょうど収まる大きさにする。
+    const size = this.tileSize(tile);
+    // tileSize が牌の右に足している幅にちょうど収まる大きさにする。
     const reservedWidth = size.baseWidth * TILE_CONTEXT.TEXT_SCALE;
     const fontSize = reservedWidth / textEmWidth(t);
 
@@ -201,7 +195,7 @@ class BaseHelper {
   ) {
     const img = this.createImage(tile, 0, 0);
 
-    const size = tileImageSize(tile, this.scale);
+    const size = this.tileSize(tile);
     const centerX = size.baseWidth / 2;
     const centerY = size.baseHeight / 2;
     const translatedX = x + this.getHorizontalTileYOffset(tile);
@@ -241,38 +235,37 @@ export class ImageHelper extends BaseHelper {
    * 捨て牌のブロックから SVG 要素を作る。
    * よくわからな場合（Unknown）も使用する。
    */
-  createBlockDiscard(block: BlockOther) {
+  createBlockDiscard(block: Block) {
     return this.createHorizontalBlock(block.tiles);
   }
 
   /**
    * 手牌のブロックから SVG 要素を作る。
    */
-  createBlockHand(block: BlockHand) {
+  createBlockHand(block: Block) {
     return this.createHorizontalBlock(block.tiles);
   }
 
   /**
    * チーブロックから SVG 要素を作る
    */
-  createBlockChi(block: BlockChi) {
-    this.findHorizontalIndex(block);
-    // 先頭が Horizontal であることは BlockChi が保証する。
+  createBlockChi(block: Block) {
+    this.assertHasHorizontal(block);
     return this.createHorizontalBlock(block.tiles);
   }
 
   /**
    * ポンのブロックから SVG 要素を作る
    */
-  createBlockPon(block: BlockPon) {
-    this.findHorizontalIndex(block);
+  createBlockPon(block: Block) {
+    this.assertHasHorizontal(block);
     return this.createHorizontalBlock(block.tiles);
   }
 
   /**
    * 小明槓ブロックから SVG 要素を作る
    */
-  createBlockShoKan(block: BlockShoKan) {
+  createBlockShoKan(block: Block) {
     const firstIdx = this.findHorizontalIndex(block);
     let pos = 0;
     const g = new G();
@@ -284,13 +277,13 @@ export class ImageHelper extends BaseHelper {
     );
 
     for (let i = 0; i < block.tiles.length; i++) {
-      const size = tileImageSize(block.tiles[i], this.scale);
+      const size = this.tileSize(block.tiles[i]);
       if (i == lastIdx) continue;
       if (i == firstIdx) {
         const baseTile = block.tiles[firstIdx];
         const upperTile = block.tiles[lastIdx];
 
-        const size = tileImageSize(baseTile, this.scale);
+        const size = this.tileSize(baseTile);
         const baseImg = this.createRotate90Image(baseTile, 0, 0, true);
         const upImg = this.createRotate90Image(upperTile, 0, size.height, true);
         g.add(new G().translate(pos, 0).add(baseImg).add(upImg));
@@ -309,8 +302,8 @@ export class ImageHelper extends BaseHelper {
   /**
    * 大明槓のブロックから SVG 要素を作る
    */
-  createBlockDaiKan(block: BlockDaiKan) {
-    this.findHorizontalIndex(block);
+  createBlockDaiKan(block: Block) {
+    this.assertHasHorizontal(block);
     return this.createHorizontalBlock(block.tiles);
   }
 
@@ -325,7 +318,7 @@ export class ImageHelper extends BaseHelper {
    * ドラのブロックを作成する。
    * enableText が true の場合、オペレータは削除された状態で渡す必要がある。
    */
-  createBlockDora(block: BlockOther, enableText = true) {
+  createBlockDora(block: Block, enableText = true) {
     return this.createBlockSingleText(block, "(ドラ)", enableText);
   }
 
@@ -333,7 +326,7 @@ export class ImageHelper extends BaseHelper {
    * ツモのブロックを作成する。
    * enableText が true の場合、オペレータは削除された状態で渡す必要がある。
    */
-  createBlockTsumo(block: BlockOther, enableText = true) {
+  createBlockTsumo(block: Block, enableText = true) {
     return this.createBlockSingleText(block, "(ツモ)", enableText);
   }
 
@@ -360,7 +353,7 @@ export class ImageHelper extends BaseHelper {
     const g = new G();
 
     for (const t of tiles) {
-      const size = tileImageSize(t, this.scale);
+      const size = this.tileSize(t);
       let img;
       if (t.has(OP.HORIZONTAL)) {
         const y = this.getHorizontalTileYOffset(t);
@@ -372,6 +365,9 @@ export class ImageHelper extends BaseHelper {
     return g;
   }
 
+  /**
+   * 横向きの牌の位置を返す。無ければ例外を投げる。
+   */
   protected findHorizontalIndex(block: Block) {
     const idx = block.tiles.findIndex((d) => d.has(OP.HORIZONTAL));
     if (idx < 0) {
@@ -379,58 +375,95 @@ export class ImageHelper extends BaseHelper {
     }
     return idx;
   }
+
+  /**
+   * 鳴いたブロックに横向きの牌があることを確かめる。
+   * 位置は使わないが、無い入力は描かずに弾く（BlockPon などの構築時には検証されない）。
+   */
+  protected assertHasHorizontal(block: Block) {
+    this.findHorizontalIndex(block);
+  }
 }
+
+/**
+ * 組み上げた要素に、そのブロックの実寸を添えて返す。
+ */
+const sized = (h: ImageHelper, b: Block, element: G): BuiltFragment => ({
+  ...h.blockSize(b),
+  element,
+});
+
+/**
+ * 注記（(ドラ)/(ツモ)）付きの 1 枚のブロックを組む。
+ * 注記を描かない場合はオペレータを外した牌で寸法を取り直すので、
+ * tileSize が注記のために確保する幅が空いたままにならない。
+ */
+const buildAnnotated = (
+  b: Block,
+  h: ImageHelper,
+  enabled: boolean,
+  op: Operator,
+  create: (block: Block, enabled: boolean) => G
+): BuiltFragment => {
+  const block = enabled ? b : new BlockHand([b.tiles[0].clone({ remove: op })]);
+  return sized(h, block, create(block, enabled));
+};
+
+/**
+ * 描き方の無いブロック種別。あがり計算の過程でだけ現れるものがここに来る。
+ */
+const unsupported: BlockRenderer = (b) => {
+  throw new Error(`unsupported block type. type: ${b.type}, block: ${b}`);
+};
+
+type BlockRenderer = (b: Block, h: ImageHelper) => BuiltFragment;
+
+/**
+ * ブロック種別ごとの描き方。
+ * 種別を足したときに直すのはこの表だけで済むよう、全種別を必ず埋める
+ * （Record なので、BLOCK に値を足すとここが型エラーになる）。
+ */
+const BLOCK_RENDERERS: Record<BlockType, BlockRenderer> = {
+  [BLOCK.PON]: (b, h) => sized(h, b, h.createBlockPon(b)),
+  [BLOCK.CHI]: (b, h) => sized(h, b, h.createBlockChi(b)),
+  [BLOCK.AN_KAN]: (b, h) => {
+    // 裏返しの牌を含む並びは BlockAnKan だけが知っている。
+    assert(b instanceof BlockAnKan, `an-kan block is not a BlockAnKan: ${b}`);
+    return sized(h, b, h.createBlockAnKan(b));
+  },
+  [BLOCK.SHO_KAN]: (b, h) => sized(h, b, h.createBlockShoKan(b)),
+  [BLOCK.DAI_KAN]: (b, h) => sized(h, b, h.createBlockDaiKan(b)),
+  [BLOCK.HAND]: (b, h) => sized(h, b, h.createBlockHand(b)),
+  [BLOCK.IMAGE_DISCARD]: (b, h) => sized(h, b, h.createBlockDiscard(b)),
+  [BLOCK.IMAGE_DORA]: (b, h) =>
+    buildAnnotated(b, h, h.enableDoraText, OP.IMAGE_DORA, (block, enabled) =>
+      h.createBlockDora(block, enabled)
+    ),
+  [BLOCK.TSUMO]: (b, h) =>
+    buildAnnotated(b, h, h.enableTsumoText, OP.TSUMO, (block, enabled) =>
+      h.createBlockTsumo(block, enabled)
+    ),
+  // 計算の過程でだけ現れる種別。入力の記法では書けないので描き方も無い。
+  [BLOCK.PAIR]: unsupported,
+  [BLOCK.ISOLATED]: unsupported,
+  [BLOCK.THREE]: unsupported,
+  [BLOCK.RUN]: unsupported,
+  // 記法から種別を決められなかったブロック。捨て牌と同じ並べ方にする。
+  [BLOCK.UNKNOWN]: (b, h) => {
+    // 注記は置き場所（牌の右）が種別で決まるので、種別が不明なままでは描けない。
+    if (b.tiles.some((t) => t.has(OP.TSUMO) || t.has(OP.IMAGE_DORA)))
+      throw new Error(
+        `found an unknown block with operator tiles. block: ${b}, type: ${b.type}`
+      );
+    return sized(h, b, h.createBlockDiscard(b));
+  },
+};
 
 /**
  * ブロックのタイプに応じて SVG の要素を作成する。
  */
 function createBlock(b: Block, h: ImageHelper): BuiltFragment {
-  const { enableDoraText, enableTsumoText } = h;
-  let size = blockImageSize(b, h.scale);
-  let g: G;
-  if (b instanceof BlockPon) g = h.createBlockPon(b);
-  else if (b instanceof BlockChi) g = h.createBlockChi(b);
-  else if (b instanceof BlockAnKan) g = h.createBlockAnKan(b);
-  else if (b instanceof BlockShoKan) g = h.createBlockShoKan(b);
-  else if (b instanceof BlockDaiKan) g = h.createBlockDaiKan(b);
-  else if (b instanceof BlockHand) g = h.createBlockHand(b);
-  else if (b instanceof BlockOther) {
-    switch (b.type) {
-      case BLOCK.IMAGE_DISCARD:
-        g = h.createBlockDiscard(b);
-        break;
-      case BLOCK.IMAGE_DORA: {
-        // Operator を削除したサイズを計算する
-        const mBlock = enableDoraText
-          ? b
-          : new BlockHand([b.tiles[0].clone({ remove: OP.IMAGE_DORA })]);
-        size = blockImageSize(mBlock, h.scale);
-        g = h.createBlockDora(mBlock, enableDoraText);
-        break;
-      }
-      case BLOCK.TSUMO: {
-        const mBlock = enableTsumoText
-          ? b
-          : new BlockHand([b.tiles[0].clone({ remove: OP.TSUMO })]);
-        size = blockImageSize(mBlock, h.scale);
-        g = h.createBlockTsumo(mBlock, enableTsumoText);
-        break;
-      }
-      default:
-        // unknown case
-        // unable to draw tsumo/dora
-        if (b.tiles.some((t) => t.has(OP.TSUMO) || t.has(OP.IMAGE_DORA)))
-          throw new Error(
-            `found an unknown block with operator tiles. block: ${b}, type: ${b.type}`
-          );
-        g = h.createBlockDiscard(b);
-    }
-  } else {
-    throw new Error(
-      `unsupported block type. type: ${b.type}, block: ${b}, instance ${b.constructor.name}`
-    );
-  }
-  return { ...size, element: g };
+  return BLOCK_RENDERERS[b.type](b, h);
 }
 
 /**

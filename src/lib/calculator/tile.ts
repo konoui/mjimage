@@ -1,14 +1,8 @@
-import { TYPE, Type } from "../core";
+import { TILE_NUMBERS, TYPE, Type } from "../core";
 import { Tile } from "../core/parser";
 
 /**
- * 么九牌の数字。字牌は 1z-7z、数牌は 1 と 9。
- */
-export const NZ: readonly number[] = [1, 2, 3, 4, 5, 6, 7];
-export const N19: readonly number[] = [1, 9];
-
-/**
- * 全ての牌を順番に返すジェネレーター
+ * 全ての牌を順番に返すジェネレーター。値域は TILE_NUMBERS から導く。
  */
 export function* forHand(options?: {
   skipBack?: boolean;
@@ -20,9 +14,9 @@ export function* forHand(options?: {
       : Object.values(TYPE);
   for (const t of types) {
     if (options?.skipBack && t == TYPE.BACK) continue;
-    // Note: the value is related to data length of hand(data[type].length -1)
-    const upper = t == TYPE.Z ? 7 : t == TYPE.BACK ? 1 : 9;
-    for (let n = 1; n <= upper; n++) {
+    for (const n of TILE_NUMBERS[t]) {
+      // 数牌の 0 は赤 5 の別名なので、数字としては回さない
+      if (n == 0 && t != TYPE.BACK) continue;
       yield [t, n] as const;
     }
   }

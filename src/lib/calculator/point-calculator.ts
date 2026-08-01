@@ -1,25 +1,18 @@
-import {
-  BLOCK,
-  TYPE,
-  OP,
-  Wind,
-  WIND,
-  createWindMap,
-  roundWind,
-} from "../core";
+import { BLOCK, OP, Wind, WIND, createWindMap, roundWind } from "../core";
 import { Tile, Block } from "../core/parser";
 import { assert } from "../assert";
 import { Hand } from "./hand";
-import { countSameBlocks, minTile } from "./block-util";
 import { calcFu } from "./fu";
 import {
   HAN_SCORING_TABLE,
-  POINT_COEFFICIENT,
   SCORING,
   getPointDescription,
   myCeil,
+  ronPoints,
+  tsumoPoints,
 } from "./score";
-import { N19, NZ, toDora } from "./tile";
+import { toDora } from "./tile";
+import { YakuContext, detectDora, detectYaku, detectYakuman } from "./yaku";
 import {
   BoardContext,
   WINNING_TILE_BLOCK_TYPE,
@@ -119,23 +112,9 @@ export class PointCalculator {
   getWinningHands(hands: readonly (readonly Block[])[]) {
     const ret: WinningHand[] = [];
     if (hands.length == 0) return ret;
+    const ctx = this.yakuContext();
     for (const hand of hands) {
-      const v = [
-        ...this.dA13(hand),
-        ...this.dB13(hand),
-        ...this.dC13(hand),
-        ...this.dD13(hand),
-        ...this.dE13(hand),
-        ...this.dF13(hand),
-        ...this.dG13(hand),
-        ...this.dH13(hand),
-        ...this.dI13(hand),
-        ...this.dJ13(hand),
-        ...this.dK13(hand),
-      ].map((y) => {
-        if (this.cfg.disableDoubleYakuman && y.han > 13) y.han = 13;
-        return y;
-      });
+      const v = detectYakuman(hand, ctx);
       if (v.length == 0) continue;
       ret.push({
         yakus: v,
@@ -153,39 +132,10 @@ export class PointCalculator {
 
     for (const hand of hands) {
       const fu = this.calcFu(hand);
-      const v = [
-        ...this.dA1(hand),
-        ...this.dB1(hand),
-        ...this.dC1(hand),
-        ...this.dD1(hand),
-        ...this.dE1(hand),
-        ...this.dF1(hand),
-        ...this.dG1(hand),
-        ...this.dH1(hand),
-        ...this.dI1(hand),
-        ...this.dJ1(hand),
-        ...this.dK1(hand),
-
-        ...this.dA2(hand),
-        ...this.dB2(hand),
-        ...this.dC2(hand),
-        ...this.dD2(hand),
-        ...this.dE2(hand),
-        ...this.dF2(hand),
-        ...this.dG2(hand),
-        ...this.dH2(hand),
-        ...this.dI2(hand),
-        ...this.dJ2(hand),
-
-        ...this.dA3(hand),
-        ...this.dB3(hand),
-        ...this.dC3(hand),
-
-        ...this.dA6(hand),
-      ];
+      const v = detectYaku(hand, ctx);
       if (v.length == 0) continue;
       // doras are evaluated when other yaku exists
-      v.push(...this.dX1(hand));
+      v.push(...detectDora(hand, ctx));
       ret.push({
         yakus: v,
         han: v.reduce((sum, yaku) => sum + yaku.han, 0),
@@ -286,10 +236,7 @@ export class PointCalculator {
     myWind: Wind,
     ronWind: Wind,
   ) {
-    const coefficient = isParent
-      ? POINT_COEFFICIENT.PARENT_RON
-      : POINT_COEFFICIENT.CHILD_RON;
-    const points = myCeil(base * coefficient);
+    const points = ronPoints(base, isParent);
 
     deltas[myWind] += points;
     deltas[ronWind] -= points;
@@ -301,21 +248,18 @@ export class PointCalculator {
     isParent: boolean,
     myWind: Wind,
   ) {
+    const { fromParent, fromChild } = tsumoPoints(base, isParent);
+
     if (isParent) {
-      const basePoints = myCeil(base * POINT_COEFFICIENT.PARENT_TSUMO);
-      deltas[WIND.E] += basePoints * 3;
-      deltas[WIND.S] -= basePoints;
-      deltas[WIND.W] -= basePoints;
-      deltas[WIND.N] -= basePoints;
+      deltas[WIND.E] += fromChild * 3;
+      deltas[WIND.S] -= fromChild;
+      deltas[WIND.W] -= fromChild;
+      deltas[WIND.N] -= fromChild;
       return;
     }
     for (const key of Object.values(WIND)) {
       if (key == myWind) continue;
-      const coefficient =
-        key == WIND.E
-          ? POINT_COEFFICIENT.CHILD_TUMO_FROM_PARENT
-          : POINT_COEFFICIENT.CHILD_TUMO_FROM_CHILD;
-      const basePoints = myCeil(base * coefficient);
+      const basePoints = key == WIND.E ? fromParent : fromChild;
       deltas[key] -= basePoints;
       deltas[myWind] += basePoints;
     }
@@ -351,323 +295,26 @@ export class PointCalculator {
     return this.hand.menzen ? 0 : 1;
   }
 
-  dA1(_h: readonly Block[]): readonly Yaku[] {
-    if (this.cfg.reached == 1) return [{ name: "立直", han: 1 }];
-    if (this.cfg.reached == 2) return [{ name: "ダブル立直", han: 2 }];
-    return [];
-  }
-  dB1(h: readonly Block[]): readonly Yaku[] {
-    if (this.hand.drawn == null) [];
-    if (this.getCalledPenalty() != 0) return [];
-    const cond = h.some((b) => b.tiles.some((t) => t.has(OP.TSUMO)));
-    return cond ? [{ name: "門前清自摸和", han: 1 }] : [];
-  }
-  dC1(h: readonly Block[]): readonly Yaku[] {
-    if (this.getCalledPenalty() != 0) return [];
-    const name = "平和";
-    const fu = this.calcFu(h);
-    if (fu == 20) return [{ name: name, han: 1 }];
-    if (!h.some((b) => b.tiles.some((t) => t.has(OP.TSUMO)))) {
-      if (fu == 30) return [{ name: name, han: 1 }];
-    }
-    return [];
-  }
-  dD1(h: readonly Block[]): readonly Yaku[] {
-    const cond = h.some((block) =>
-      block.tiles.some((t) => t.t == TYPE.Z || N19.includes(t.n)),
-    );
-    return cond ? [] : [{ name: "断么九", han: 1 }];
-  }
-  dE1(h: readonly Block[]): readonly Yaku[] {
-    if (this.getCalledPenalty() != 0) return [];
-
-    const count = countSameBlocks(h);
-    return count == 1 ? [{ name: "一盃口", han: 1 }] : [];
-  }
-  dF1(h: readonly Block[]): readonly Yaku[] {
-    const ret: Yaku[] = [];
-    h.forEach((block) => {
-      if (block.is(BLOCK.PAIR)) return;
-      const tile = block.tiles[0];
-      if (tile.t == TYPE.Z) {
-        if (tile.equals(this.cfg.myWind)) ret.push({ name: "自風", han: 1 });
-        if (tile.equals(this.cfg.roundWind)) ret.push({ name: "場風", han: 1 });
-        else if (tile.n == 5) ret.push({ name: "白", han: 1 });
-        else if (tile.n == 6) ret.push({ name: "發", han: 1 });
-        else if (tile.n == 7) ret.push({ name: "中", han: 1 });
-      }
-    });
-    return ret;
-  }
-  dG1(_h: readonly Block[]): readonly Yaku[] {
-    return this.cfg.oneShotWin ? [{ name: "一発", han: 1 }] : [];
-  }
-  dH1(_h: readonly Block[]): readonly Yaku[] {
-    return this.cfg.replacementWin ? [{ name: "嶺上開花", han: 1 }] : [];
-  }
-  dI1(_h: readonly Block[]): readonly Yaku[] {
-    return this.cfg.quadWin ? [{ name: "搶槓", han: 1 }] : [];
-  }
-  dJ1(_h: readonly Block[]): readonly Yaku[] {
-    return this.cfg.finalWallWin ? [{ name: "海底摸月", han: 1 }] : [];
-  }
-  dK1(_h: readonly Block[]): readonly Yaku[] {
-    return this.cfg.finalDiscardWin ? [{ name: "河底撈魚", han: 1 }] : [];
-  }
-  dX1(h: readonly Block[]): readonly Yaku[] {
-    const allTiles = h.flatMap((b) => b.tiles);
-    const dcount = allTiles.reduce(
-      (count, t) => count + this.cfg.doras.filter((d) => t.equals(d)).length,
-      0,
-    );
-    const bcount = allTiles.reduce(
-      (count, t) =>
-        count + this.cfg.hiddenDoras.filter((d) => t.equals(d)).length,
-      0,
-    );
-    const rcount = allTiles.filter((t) => t.has(OP.RED)).length;
-
-    const ret: Yaku[] = [];
-    if (dcount > 0) ret.push({ name: "ドラ", han: dcount });
-    if (rcount > 0) ret.push({ name: "赤ドラ", han: rcount });
-    if (this.hand.reached && bcount > 0)
-      ret.push({ name: "裏ドラ", han: bcount });
-    return ret;
-  }
-
-  dA2(h: readonly Block[]): readonly Yaku[] {
-    return h.length == 7 ? [{ name: "七対子", han: 2 }] : [];
-  }
-  dB2(h: readonly Block[]): readonly Yaku[] {
-    for (const block of h) {
-      if (!block.isSequence()) continue;
-      if (block.tiles[0].t == TYPE.Z) continue;
-      const tile = minTile(block);
-      const excludedTypes = [TYPE.M, TYPE.P, TYPE.S].filter((v) => v != tile.t);
-      const cond1 = h.some((b) => {
-        const newTile = new Tile(excludedTypes[0], tile.n);
-        return b.isSequence() && newTile.equals(minTile(b));
-      });
-      const cond2 = h.some((b) => {
-        const newTile = new Tile(excludedTypes[1], tile.n);
-        return b.isSequence() && newTile.equals(minTile(b));
-      });
-      if (cond1 && cond2)
-        return [{ name: "三色同順", han: 2 - this.getCalledPenalty() }];
-    }
-    return [];
-  }
-  dC2(h: readonly Block[]): readonly Yaku[] {
-    if (h.length == 7) return [];
-    const cond = h.every((b) => b.isTriplet() || b.is(BLOCK.PAIR));
-    return cond ? [{ name: "対々和", han: 2 }] : [];
-  }
-  dD2(h: readonly Block[]): readonly Yaku[] {
-    const l = h.filter((b) => b.isConcealedTriplet()).length;
-    return l >= 3 ? [{ name: "三暗刻", han: 2 }] : [];
-  }
-  dE2(h: readonly Block[]): readonly Yaku[] {
-    const l = h.filter((b) => b.isQuad()).length;
-    return l >= 3 ? [{ name: "三槓子", han: 2 }] : [];
-  }
-  dF2(h: readonly Block[]): readonly Yaku[] {
-    for (const block of h) {
-      if (!block.isTriplet()) continue;
-      const tile = minTile(block);
-      if (tile.t == TYPE.Z) continue;
-      const excludedTypes = [TYPE.M, TYPE.P, TYPE.S].filter((v) => v != tile.t);
-      const cond1 = h.some((b) => {
-        const newTile = new Tile(excludedTypes[0], tile.n);
-        return b.isTriplet() && newTile.equals(minTile(b));
-      });
-      const cond2 = h.some((b) => {
-        const newTile = new Tile(excludedTypes[1], tile.n);
-        return b.isTriplet() && newTile.equals(minTile(b));
-      });
-      if (cond1 && cond2) return [{ name: "三色同刻", han: 2 }];
-    }
-    return [];
-  }
-  dG2(h: readonly Block[]): readonly Yaku[] {
-    if (h.length == 7) return [];
-    const l = h.filter((b) => {
-      const t = b.tiles[0];
-      return t.t == TYPE.Z && [5, 6, 7].includes(t.n);
-    }).length;
-    return l == 3 ? [{ name: "小三元", han: 2 }] : [];
-  }
-  dH2(h: readonly Block[]): readonly Yaku[] {
-    const cond = h.every((b) => {
-      const s = b.tiles[0];
-      const values = s.t == TYPE.Z ? NZ : N19;
-      return (b.isTriplet() || b.is(BLOCK.PAIR)) && values.includes(s.n);
-    });
-    return cond ? [{ name: "混老頭", han: 2 }] : [];
-  }
-  dI2(h: readonly Block[]): readonly Yaku[] {
-    if (h.length == 7) return [];
-    // 一つは順子がある。なければ、老頭に該当するため
-    if (!h.some((b) => b.isSequence())) return [];
-    if (!h.some((b) => b.tiles[0].t == TYPE.Z)) return [];
-
-    const cond = h.every((block) => {
-      const values = block.tiles[0].t == TYPE.Z ? NZ : N19;
-      return block.tiles.some((t) => values.includes(t.n));
-    });
-    return cond
-      ? [{ name: "混全帯么九", han: 2 - this.getCalledPenalty() }]
-      : [];
-  }
-  dJ2(h: readonly Block[]): readonly Yaku[] {
-    const m = {
-      // 123m, 456m, 789m
-      [TYPE.M]: [0, 0, 0],
-      [TYPE.S]: [0, 0, 0],
-      [TYPE.P]: [0, 0, 0],
+  /**
+   * 役の判定に必要な情報を組み立てる。
+   */
+  private yakuContext(): YakuContext {
+    return {
+      isCalled: this.getCalledPenalty() == 1,
+      reached: this.cfg.reached,
+      isHandReached: this.hand.reached,
+      myWind: this.cfg.myWind,
+      roundWind: this.cfg.roundWind,
+      doras: this.cfg.doras,
+      hiddenDoras: this.cfg.hiddenDoras,
+      oneShotWin: this.cfg.oneShotWin,
+      replacementWin: this.cfg.replacementWin,
+      quadWin: this.cfg.quadWin,
+      finalWallWin: this.cfg.finalWallWin,
+      finalDiscardWin: this.cfg.finalDiscardWin,
+      disableDoubleYakuman: this.cfg.disableDoubleYakuman,
+      calcFu: (h) => this.calcFu(h),
     };
-
-    for (const block of h) {
-      const tile = minTile(block);
-      if (tile.t == TYPE.BACK) continue;
-      if (tile.t == TYPE.Z) continue;
-      if (!block.isSequence()) continue;
-      if (tile.n == 1) m[tile.t][0]++;
-      else if (tile.n == 4) m[tile.t][1]++;
-      else if (tile.n == 7) m[tile.t][2]++;
-    }
-
-    for (const arr of Object.values(m)) {
-      if (arr[0] > 0 && arr[1] > 0 && arr[2] > 0)
-        return [{ name: "一気通貫", han: 2 - this.getCalledPenalty() }];
-    }
-    return [];
-  }
-
-  dA3(h: readonly Block[]): readonly Yaku[] {
-    const cond = !h.some((block) => block.tiles[0].t == TYPE.Z);
-    if (cond) return [];
-    for (const t of Object.values(TYPE)) {
-      const ok = h.every((b) => b.tiles[0].t == TYPE.Z || b.tiles[0].t == t);
-      if (ok) return [{ name: "混一色", han: 3 - this.getCalledPenalty() }];
-    }
-    return [];
-  }
-  dB3(h: readonly Block[]): readonly Yaku[] {
-    if (h.length == 7) return [];
-    if (!h.some((b) => b.isSequence())) return [];
-    if (h.some((b) => b.tiles[0].t == TYPE.Z)) return [];
-
-    const cond = h.every((b) => {
-      return b.tiles.some((t) => N19.includes(t.n));
-    });
-    return cond
-      ? [{ name: "純全帯么九", han: 3 - this.getCalledPenalty() }]
-      : [];
-  }
-  dC3(h: readonly Block[]): readonly Yaku[] {
-    if (this.getCalledPenalty() != 0) return [];
-
-    const count = countSameBlocks(h);
-    return count == 2 ? [{ name: "二盃口", han: 3 }] : [];
-  }
-  dA6(h: readonly Block[]): readonly Yaku[] {
-    if (h.some((block) => block.tiles[0].t == TYPE.Z)) return [];
-    for (const t of Object.values(TYPE)) {
-      if (t == TYPE.Z) continue;
-      const ok = h.every((v) => v.tiles[0].t == t);
-      if (ok) return [{ name: "清一色", han: 6 - this.getCalledPenalty() }];
-    }
-    return [];
-  }
-
-  dA13(h: readonly Block[]): readonly Yaku[] {
-    if (h.length != 13) return [];
-    const double = h.some(
-      (b) =>
-        b.is(BLOCK.PAIR) &&
-        b.tiles.some((t) => t.has(OP.TSUMO) || t.has(OP.RON)),
-    );
-    return double && this.cfg.disableDoubleYakuman !== true
-      ? [{ name: "国士無双13面待ち", han: 26, isYakuman: true }]
-      : [{ name: "国士無双", han: 13, isYakuman: true }];
-  }
-  dB13(h: readonly Block[]): readonly Yaku[] {
-    return h.length == 1
-      ? [{ name: "九蓮宝燈", han: 13, isYakuman: true }]
-      : [];
-  }
-  dC13(h: readonly Block[]): readonly Yaku[] {
-    if (h.length == 7) return [];
-    const cond1 = h.every((b) => b.isConcealedTriplet() || b.is(BLOCK.PAIR));
-    if (!cond1) return [];
-    const cond2 = h.some(
-      (b) =>
-        b.is(BLOCK.PAIR) &&
-        b.tiles.some((t) => t.has(OP.TSUMO) || t.has(OP.RON)),
-    );
-    return cond2 && this.cfg.disableDoubleYakuman !== true
-      ? [{ name: "四暗刻単騎待ち", han: 26, isYakuman: true }]
-      : [{ name: "四暗刻", han: 13, isYakuman: true }];
-  }
-  dD13(h: readonly Block[]): readonly Yaku[] {
-    if (h.length == 13) return [];
-    const z = [5, 6, 7];
-    const cond =
-      h.filter(
-        (b) =>
-          !b.is(BLOCK.PAIR) &&
-          b.tiles.some((t) => t.t == TYPE.Z && z.includes(t.n)),
-      ).length == 3;
-    return cond ? [{ name: "大三元", han: 13, isYakuman: true }] : [];
-  }
-  dE13(h: readonly Block[]): readonly Yaku[] {
-    const cond = h.every((b) => b.tiles[0].t == TYPE.Z);
-    return cond ? [{ name: "字一色", han: 13, isYakuman: true }] : [];
-  }
-  dF13(h: readonly Block[]): readonly Yaku[] {
-    const cond = h.every(
-      (b) => (b.isTriplet() || b.is(BLOCK.PAIR)) && N19.includes(b.tiles[0].n),
-    );
-    return cond ? [{ name: "清老頭", han: 13, isYakuman: true }] : [];
-  }
-  dG13(h: readonly Block[]): readonly Yaku[] {
-    if (h.length == 7) return [];
-    const cond = h.every((b) => b.isQuad() || b.is(BLOCK.PAIR));
-    return cond ? [{ name: "四槓子", han: 13, isYakuman: true }] : [];
-  }
-  dH13(h: readonly Block[]): readonly Yaku[] {
-    if (h.length == 13) return [];
-    if (h.length == 7) return [];
-    const zn = [1, 2, 3, 4];
-    const cond1 =
-      h.filter((b) => {
-        const s = b.tiles[0];
-        return s.t == TYPE.Z && zn.includes(s.n);
-      }).length == 4;
-    if (!cond1) return [];
-    const cond2 = h
-      .find((b) => b.is(BLOCK.PAIR))!
-      .tiles.some((t) => t.t == TYPE.Z && zn.includes(t.n));
-    return cond2
-      ? [{ name: "小四喜", han: 13, isYakuman: true }]
-      : [{ name: "大四喜", han: 13, isYakuman: true }];
-  }
-  dI13(h: readonly Block[]): readonly Yaku[] {
-    const check = (t: Tile) => {
-      if (t.equals(new Tile(TYPE.Z, 6))) return true;
-      if (t.t == TYPE.S && [2, 3, 4, 6, 8].includes(t.n)) return true;
-      return false;
-    };
-    return h.every((b) => b.tiles.every((t) => check(t)))
-      ? [{ name: "緑一色", han: 13, isYakuman: true }]
-      : [];
-  }
-  // TODO 天和・地和
-  dJ13(_h: readonly Block[]): readonly Yaku[] {
-    return [];
-  }
-  dK13(_h: readonly Block[]): readonly Yaku[] {
-    return [];
   }
 
   /**
@@ -703,13 +350,14 @@ function getWinningTileBlockType(hand: readonly Block[]) {
       (idx == 0 && lastBlock.tiles[2].n == 9);
     if (isPenchan) return WINNING_TILE_BLOCK_TYPE.PENCHAN;
     return WINNING_TILE_BLOCK_TYPE.RYANMEN;
-  } else if (lastBlock.is(BLOCK.PAIR)) return WINNING_TILE_BLOCK_TYPE.TANKI;
-  else if (lastBlock.is(BLOCK.THREE)) return WINNING_TILE_BLOCK_TYPE.SHANPON;
-  // 国士無双
-  // TODO 13面待ちの場合は、thriteen にしても良いかも
+  }
+  if (lastBlock.is(BLOCK.PAIR)) return WINNING_TILE_BLOCK_TYPE.TANKI;
+  if (lastBlock.is(BLOCK.THREE)) return WINNING_TILE_BLOCK_TYPE.SHANPON;
+  // 国士無双。13 面待ちも含め、あがり牌はブロック 1 つを単独で埋める。
   if (lastBlock.is(BLOCK.ISOLATED)) return WINNING_TILE_BLOCK_TYPE.TANKI;
-  else
-    throw new Error(
-      `unexpected agari type ${lastBlock}, ${hand.join("").toString()}`,
-    );
+  // 九蓮宝燈。手牌 14 枚が 1 ブロックのまま（分解しない）なので、待ちの形を取り出せない。
+  if (lastBlock.is(BLOCK.HAND)) return WINNING_TILE_BLOCK_TYPE.NINE_GATES;
+  throw new Error(
+    `unexpected agari type ${lastBlock}, ${hand.join("").toString()}`,
+  );
 }

@@ -10,6 +10,8 @@ import {
   createWindMap,
   BLOCK,
   prevWind,
+  HONOR_NUMBERS,
+  TERMINAL_NUMBERS,
 } from "../core/";
 import {
   BoardContext,
@@ -18,11 +20,10 @@ import {
   BlockCalculator,
   PointCalculator,
   WinResult,
-  Efficiency,
+  calcEffectiveTiles,
+  getEffectiveTiles,
   TileAnalysis,
   deserializeWinResult,
-  NZ,
-  N19,
   SerializedWinResult,
   forHand,
 } from "../calculator";
@@ -511,7 +512,7 @@ export class Controller {
     let num = 0;
     for (const t of Object.values(TYPE)) {
       if (t == TYPE.BACK) continue;
-      const arr = t == TYPE.Z ? NZ : N19;
+      const arr = t == TYPE.Z ? HONOR_NUMBERS : TERMINAL_NUMBERS;
       for (const n of arr) {
         if (h.get(t, n) > 0) num++;
       }
@@ -542,7 +543,7 @@ export class ActionLogic {
 
     // 自分捨てた牌へのフリテン対応
     if (isRon) {
-      const c = Efficiency.getEffectiveTiles(hand).effectiveTiles;
+      const c = getEffectiveTiles(hand).effectiveTiles;
       if (riverDiscarded.some((v) => c.some((ct) => ct.equals(v.t))))
         return false;
     }
@@ -698,7 +699,7 @@ export class ActionLogic {
     if (!hand.menzen) return false;
     const s = new ShantenCalculator(hand).calc();
     if (s > 0) return false;
-    const r = Efficiency.calcEffectiveTiles(hand, hand.hands);
+    const r = calcEffectiveTiles(hand, hand.hands);
     return r;
   }
   static doDiscard(hand: Hand, called?: BlockChi | BlockPon): readonly Tile[] {
@@ -852,12 +853,6 @@ export class ActorHand extends Hand {
       if (this.sum(t) > 0) return false;
     }
     return this.sum(TYPE.BACK) > 0;
-  }
-
-  override clone() {
-    const c = new ActorHand(this.toString());
-    c.data.reached = this.data.reached;
-    return c;
   }
 
   override dec(tiles: readonly Tile[]) {

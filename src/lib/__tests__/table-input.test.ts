@@ -98,4 +98,70 @@ describe("parse-table", () => {
       "2z",
     ]);
   });
+
+  // 階層はインデントで決まる。sticks の外にある reach/dead は sticks の値にしない。
+  test("nested keys belong to the section they are indented under", () => {
+    expect(() =>
+      parseYamlStringInput(`
+  table:
+    board:
+      sticks:
+      reach: 1
+    `),
+    ).toThrow(/unexpected key: reach/);
+  });
+
+  // sticks の子は 2 つとも省略でき、順序にも依存しない。
+  test("sticks children are optional and order independent", () => {
+    const sticks = (children: string) =>
+      parseYamlStringInput(`
+  table:
+    board:
+      sticks:
+${children}
+      round: 1z1
+    `).board.sticks;
+
+    expect(sticks("        reach: 1\n        dead: 3")).toStrictEqual({
+      reach: 1,
+      dead: 3,
+    });
+    expect(sticks("        dead: 3\n        reach: 1")).toStrictEqual({
+      reach: 1,
+      dead: 3,
+    });
+    // 片方だけでも、残りは schema の既定値（0）で埋まる。
+    expect(sticks("        dead: 3")).toStrictEqual({ reach: 0, dead: 3 });
+    expect(sticks("")).toStrictEqual({ reach: 0, dead: 0 });
+  });
+
+  // 綴りの誤りは黙って捨てずに弾く。
+  test("unknown keys are rejected", () => {
+    expect(() =>
+      parseYamlStringInput(`
+  table:
+    1z:
+      hands: 1m
+    `),
+    ).toThrow(/unexpected key: hands/);
+    expect(() =>
+      parseYamlStringInput(`
+  table:
+    5z:
+      hand: 1m
+    `),
+    ).toThrow(/unexpected key: 5z/);
+  });
+
+  // 同じキーが 2 度現れたら、どちらを採るか決められないので弾く。
+  test("duplicated keys are rejected", () => {
+    expect(() =>
+      parseYamlStringInput(`
+  table:
+    1z:
+      hand: 1m
+      hand: 2m
+    `),
+    ).toThrow(/duplicated key: hand/);
+  });
 });

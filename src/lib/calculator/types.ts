@@ -58,7 +58,11 @@ export interface WinningHand {
 
 /**
  * あがり形におけるあがり牌の形を表す。
- * 多面待ちであってあがり形はどれかになる。
+ * 多面待ちであっても、あがり形はどれかひとつに決まる。
+ *
+ * 待ちの広さは表さない。あがり牌を含むブロックの形だけを見るため、
+ * 国士無双は 13 面待ちでも TANKI になる。
+ * 九蓮宝燈だけは手牌をブロックに分解しないので、専用の値を持つ。
  */
 export const WINNING_TILE_BLOCK_TYPE = {
   PENCHAN: "penchan",
@@ -66,5 +70,5 @@ export const WINNING_TILE_BLOCK_TYPE = {
   RYANMEN: "ryanmen",
   SHANPON: "shanpon",
   TANKI: "tanki",
-  //  THIRTEEN: "thirteen ",
+  NINE_GATES: "nineGates",
 } as const;

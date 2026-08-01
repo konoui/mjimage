@@ -191,6 +191,17 @@ export const TILE_NUMBERS = {
   [TYPE.BACK]: [0],
 } as const satisfies { [key in (typeof TYPE)[keyof typeof TYPE]]: number[] };
 
+/**
+ * 字牌の数字（1z-7z）。TILE_NUMBERS[TYPE.Z] と同じもので、
+ * 「字牌の全種類」を意味する側の名前として使う。
+ */
+export const HONOR_NUMBERS: readonly number[] = TILE_NUMBERS[TYPE.Z];
+
+/**
+ * 数牌の老頭牌の数字（1 と 9）。字牌と併せて么九牌になる。
+ */
+export const TERMINAL_NUMBERS: readonly number[] = [1, 9];
+
 export type Type = (typeof TYPE)[keyof typeof TYPE];
 export type Wind = (typeof WIND)[keyof typeof WIND];
 export type Round = (typeof ROUND)[keyof typeof ROUND];
