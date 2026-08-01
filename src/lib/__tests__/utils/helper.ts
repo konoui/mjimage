@@ -33,22 +33,3 @@ export const loadInputData = (filename: string) =>
 export const handsToString = (hands: readonly (readonly Block[])[]) => {
   return hands.map((hand) => hand.map((block) => block.toString()));
 };
-
-export const loadArrayData = (filename: string) => {
-  const a = loadInputData(filename);
-  if (a == "") return [];
-  const objs = JSON.parse(a) as any[];
-  const ret: string[] = [];
-  for (let o of objs) {
-    ret.push(JSON.stringify(o, null, 1));
-  }
-  return ret;
-};
-
-export const storeArrayData = (filename: string, v: any) => {
-  const a = loadInputData(filename);
-  let objs = [];
-  if (a != "") objs = JSON.parse(a) as any[];
-  objs.push(v);
-  fs.writeFileSync(fixturePath(filename), JSON.stringify(objs, null, 2));
-};

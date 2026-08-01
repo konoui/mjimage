@@ -38,6 +38,34 @@ export const myCeil = (v: number, p = 100) => {
 };
 
 /**
+ * ロンあがりの支払い点。放銃者が 1 人でこの全額を払う。
+ */
+export const ronPoints = (base: number, isParent: boolean): number =>
+  myCeil(
+    base *
+      (isParent ? POINT_COEFFICIENT.PARENT_RON : POINT_COEFFICIENT.CHILD_RON),
+  );
+
+/**
+ * ツモあがりの支払い点を、払う側の立場ごとに返す。
+ * 親のあがりでは親の払い手がいないため fromParent は 0 で、
+ * 子 3 人が fromChild を等しく払う。
+ */
+export const tsumoPoints = (
+  base: number,
+  isParent: boolean,
+): { fromParent: number; fromChild: number } =>
+  isParent
+    ? {
+        fromParent: 0,
+        fromChild: myCeil(base * POINT_COEFFICIENT.PARENT_TSUMO),
+      }
+    : {
+        fromParent: myCeil(base * POINT_COEFFICIENT.CHILD_TUMO_FROM_PARENT),
+        fromChild: myCeil(base * POINT_COEFFICIENT.CHILD_TUMO_FROM_CHILD),
+      };
+
+/**
  * あがりの説明を返す。
  */
 export function getPointDescription(params: {
@@ -69,19 +97,12 @@ function generatePointDescription(
   isTsumo: boolean,
   isParent: boolean,
 ): string {
-  if (!isTsumo) {
-    // RON: 単一の点数
-    const coefficient = isParent
-      ? POINT_COEFFICIENT.PARENT_RON
-      : POINT_COEFFICIENT.CHILD_RON;
-    return `${myCeil(base * coefficient)}`;
-  } else if (isParent) {
-    // 親のツモ: 単一の点数
-    return `${myCeil(base * POINT_COEFFICIENT.PARENT_TSUMO)}`;
-  } else {
-    // 子のツモ: 範囲表示
-    return `${myCeil(base * POINT_COEFFICIENT.CHILD_TUMO_FROM_CHILD)}-${myCeil(
-      base * POINT_COEFFICIENT.CHILD_TUMO_FROM_PARENT,
-    )}`;
-  }
+  // RON: 単一の点数
+  if (!isTsumo) return `${ronPoints(base, isParent)}`;
+
+  const { fromParent, fromChild } = tsumoPoints(base, isParent);
+  // 親のツモ: 子 3 人が同額なので単一の点数
+  if (isParent) return `${fromChild}`;
+  // 子のツモ: 子から-親から の範囲表示
+  return `${fromChild}-${fromParent}`;
 }

@@ -1,15 +1,18 @@
 import { Controller, createLocalGame } from "./../lib/controller";
 import { Replayer } from "../lib/controller/replay";
-import { loadArrayData, storeArrayData } from "./../lib/__tests__/utils/helper";
+import { loadGames, storeGame } from "./fixtures";
 
 const type = process.argv[2];
 if (!["test", "single", "game"].includes(type))
   throw new Error("unexpected type");
-const count = Number(process.argv[3]) ?? 1;
-const filename = "games.json";
+// Number(undefined) は NaN で ?? は発火しないため、省略時と不正値を明示的に扱う
+const countArg = process.argv[3];
+const count = countArg == null ? 1 : Number(countArg);
+if (!Number.isInteger(count) || count < 1)
+  throw new Error(`unexpected count: ${countArg}`);
 
 if (type == "test") {
-  const games = loadArrayData(filename);
+  const games = loadGames();
   for (let game of games) {
     const r = new Replayer(game);
     r.auto();
@@ -26,7 +29,7 @@ if (type == "game" || type == "single") {
       starter();
     } catch (e) {
       console.error("Error", e);
-      storeArrayData(filename, c.export());
+      storeGame(c.export());
     }
   }
 }
@@ -40,7 +43,7 @@ function subscribeError(c: Controller) {
   c.actor.subscribe({
     error: (err) => {
       console.error("Error", err);
-      storeArrayData(filename, c.export());
+      storeGame(c.export());
       process.exit(1);
     },
   });

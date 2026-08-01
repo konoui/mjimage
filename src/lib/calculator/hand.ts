@@ -12,26 +12,21 @@ import {
   is5Tile,
 } from "../core/parser";
 import { assert } from "../assert";
+import {
+  TileCounts,
+  cloneTileCounts,
+  countsOf,
+  emptyTileCounts,
+  tilesOf,
+} from "./counts";
 import { forHand } from "./tile";
 
-export type TupleOfSize<
-  T,
-  N extends number,
-  R extends unknown[] = [],
-> = R["length"] extends N ? R : TupleOfSize<T, N, [T, ...R]>;
-
 export interface HandData {
-  [TYPE.M]: TupleOfSize<number, 10>;
-  [TYPE.S]: TupleOfSize<number, 10>;
-  [TYPE.P]: TupleOfSize<number, 10>;
-  [TYPE.Z]: TupleOfSize<number, 8>;
-  [TYPE.BACK]: [string, number];
+  counts: TileCounts;
+  /** 裏牌の枚数。牌の種類が分からないので数字ごとには持たない。 */
+  backCount: number;
   called: readonly (
-    | BlockChi
-    | BlockPon
-    | BlockAnKan
-    | BlockDaiKan
-    | BlockShoKan
+    BlockChi | BlockPon | BlockAnKan | BlockDaiKan | BlockShoKan
   )[];
   tsumo: Tile | null;
   reached: boolean;
@@ -41,11 +36,8 @@ export class Hand {
   protected data: HandData;
   constructor(input: string | readonly Block[], allowBackBlock = false) {
     this.data = {
-      [TYPE.M]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [TYPE.P]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [TYPE.S]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [TYPE.Z]: [0, 0, 0, 0, 0, 0, 0, 0],
-      [TYPE.BACK]: ["untouchable", 0],
+      counts: emptyTileCounts(),
+      backCount: 0,
       called: [],
       reached: false,
       tsumo: null,
@@ -84,17 +76,7 @@ export class Hand {
    * 手の内の牌の配列を返す。晒された牌は含まれない。
    */
   get hands() {
-    const tiles: Tile[] = [];
-    for (const [t, n] of forHand()) {
-      let count = this.get(t, n);
-      if (t != TYPE.Z && n == 5 && this.get(t, 0) > 0) {
-        count -= this.get(t, 0); // for red
-        tiles.push(new Tile(t, n, [OP.RED]));
-      }
-      for (let i = 0; i < count; i++) {
-        tiles.push(new Tile(t, n));
-      }
-    }
+    const tiles = tilesOf(countsOf(this));
     if (this.drawn != null) {
       const drawn = this.drawn;
       const idx = tiles.findIndex(
@@ -164,8 +146,8 @@ export class Hand {
    * 赤のみを取得する場合は n に 0 を指定する。
    */
   get(t: Type, n: number) {
-    if (t == TYPE.BACK) return this.data[t][1];
-    return this.data[t][n];
+    if (t == TYPE.BACK) return this.data.backCount;
+    return this.data.counts[t][n];
   }
   /**
    * 指定した牌を手牌に加える。draw に比べプリミティブな操作となる。
@@ -185,10 +167,10 @@ export class Hand {
 
       backup.push(t);
 
-      if (t.t == TYPE.BACK) this.data[t.t][1] += 1;
+      if (t.t == TYPE.BACK) this.data.backCount += 1;
       else {
-        this.data[t.t][t.n] += 1;
-        if (t.has(OP.RED)) this.data[t.t][0] += 1;
+        this.data.counts[t.t][t.n] += 1;
+        if (t.has(OP.RED)) this.data.counts[t.t][0] += 1;
       }
     }
     return backup;
@@ -211,15 +193,18 @@ export class Hand {
 
       backup.push(t);
 
-      if (t.t == TYPE.BACK) this.data[t.t][1] -= 1;
-      else {
-        this.data[t.t][t.n] -= 1;
-        if (t.has(OP.RED)) this.data[t.t][0] -= 1;
+      if (t.t == TYPE.BACK) {
+        this.data.backCount -= 1;
+        continue;
       }
+
+      const counts = this.data.counts[t.t];
+      counts[t.n] -= 1;
+      if (t.has(OP.RED)) counts[0] -= 1;
 
       // r5 ではなく 5 で減算される際に最後の牌が red であれば red を 0 にする。
       if (is5Tile(t) && this.get(t.t, 5) == 0 && this.get(t.t, 0) > 0) {
-        this.data[t.t][0] = 0;
+        counts[0] = 0;
         const c = backup.pop()!.clone({ add: OP.RED });
         backup.push(c);
       }
@@ -301,74 +286,25 @@ export class Hand {
 
     throw new Error(`unexpected block type ${b}`);
   }
-  clone(): Hand {
-    const c = new Hand(this.toString());
-    c.data.reached = this.data.reached;
+  /**
+   * 手牌の写しを返す。
+   *
+   * 直列化を挟まず data をそのまま複製するので、`toString()` の再パースを通らない。
+   * 派生クラス（ActorHand など）から呼んでも自分の型が返る。
+   */
+  clone(): this {
+    const ctor = this.constructor as new (
+      input: string | readonly Block[],
+    ) => this;
+    const c = new ctor("");
+    c.data = {
+      counts: cloneTileCounts(this.data.counts),
+      backCount: this.data.backCount,
+      // ブロックと牌は作り直されるだけで書き換わらないので、参照を写せばよい。
+      called: [...this.data.called],
+      tsumo: this.data.tsumo,
+      reached: this.data.reached,
+    };
     return c;
   }
-  /**
-   * 現在の状態の写し。inc/dec が配列を直接書き換えるため、配列も複製する。
-   */
-  private snapshot(): HandData {
-    const d = this.data;
-    return {
-      ...d,
-      [TYPE.M]: [...d[TYPE.M]] as HandData[typeof TYPE.M],
-      [TYPE.P]: [...d[TYPE.P]] as HandData[typeof TYPE.P],
-      [TYPE.S]: [...d[TYPE.S]] as HandData[typeof TYPE.S],
-      [TYPE.Z]: [...d[TYPE.Z]] as HandData[typeof TYPE.Z],
-      [TYPE.BACK]: [...d[TYPE.BACK]] as HandData[typeof TYPE.BACK],
-    };
-  }
-  /**
-   * 手牌の状態を保ったまま fn を実行する。
-   *
-   * 計算器は探索の過程で手牌を破壊的に変更するため、その影響を呼び出し側へ漏らさない。
-   * 入口で写しを取り、fn が例外で終わっても写しへ戻すので、
-   * 呼び出し側から見れば計算器は手牌を読み取るだけの存在になる。
-   */
-  preserving<T>(fn: () => T): T {
-    const snapshot = this.snapshot();
-    try {
-      return fn();
-    } finally {
-      this.data = snapshot;
-    }
-  }
 }
-
-/**
- * 牌を一時的に手牌から抜いた状態で計算する。
- *
- * 探索は手牌を破壊的に変更しながら進むため、途中で例外が飛ぶと手牌が壊れたまま残る。
- * 抜き差しを対にして必ず戻すことで、計算の失敗が呼び出し側の手牌に漏れないようにする。
- * fn には dec が返した牌（赤が解決済み）を渡す。
- */
-export const withoutTiles = <T>(
-  hand: Hand,
-  tiles: readonly Tile[],
-  fn: (removed: readonly Tile[]) => T,
-): T => {
-  const removed = hand.dec(tiles);
-  try {
-    return fn(removed);
-  } finally {
-    hand.inc(removed);
-  }
-};
-
-/**
- * 牌を一時的に手牌へ加えた状態で計算する。withoutTiles の逆。
- */
-export const withTiles = <T>(
-  hand: Hand,
-  tiles: readonly Tile[],
-  fn: (added: readonly Tile[]) => T,
-): T => {
-  const added = hand.inc(tiles);
-  try {
-    return fn(added);
-  } finally {
-    hand.dec(added);
-  }
-};

@@ -1,6 +1,5 @@
-import { BLOCK, OP, TYPE } from "../core";
+import { BLOCK, OP, TERMINAL_NUMBERS, TYPE } from "../core";
 import { Block, Tile } from "../core/parser";
-import { N19 } from "./tile";
 
 /**
  * 手牌の構成から符を計算する。
@@ -26,7 +25,7 @@ export const calcFu = (
   // 刻子
   const calcTriple = (b: Block, base: number) => {
     const tile = b.tiles[0];
-    if (tile.t == TYPE.Z || N19.includes(tile.n)) return base * 2;
+    if (tile.t == TYPE.Z || TERMINAL_NUMBERS.includes(tile.n)) return base * 2;
     else return base;
   };
 

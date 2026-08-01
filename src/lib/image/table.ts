@@ -1,4 +1,4 @@
-import { Tile, BLOCK, BlockOther, WIND_MAP, OP } from "../core/";
+import { Tile, BLOCK, BlockOther, WIND_MAP, OP, Wind } from "../core/";
 import { STICK_CONTEXT, TABLE_CONTEXT } from "./constants";
 import {
   ImageHelper,
@@ -8,8 +8,9 @@ import {
   BuiltFragment,
   roundSize,
 } from "./image";
-import { Text, G, Rect, Mark } from "../svgjs/svg";
+import { Text, G, Rect, SvgNode } from "../svgjs/svg";
 import { ScoreBoard, TableInput } from "../input";
+import { Seats, mapSeats, maxOfSeats, seatWinds } from "../input/seats";
 
 const chunkTilesForDisplay = (
   input: readonly Tile[],
@@ -43,7 +44,7 @@ const tableFont = (helper: ImageHelper): TableFont => {
  * 回転後も同じ矩形を占めるよう平行移動を合わせる。
  */
 const simpleRotate = (
-  e: Mark,
+  e: SvgNode,
   width: number,
   height: number,
   degree: 0 | 90 | 180 | 270,
@@ -199,22 +200,6 @@ const createStickAndDora = (
 };
 
 /**
- * 4 家分をまとめて扱うための入れ物。
- * front を手前として時計回りに right / opposite / left が並ぶ。
- */
-type Seats<T> = { front: T; right: T; opposite: T; left: T };
-
-const mapSeats = <A, B>(seats: Seats<A>, f: (v: A) => B): Seats<B> => ({
-  front: f(seats.front),
-  right: f(seats.right),
-  opposite: f(seats.opposite),
-  left: f(seats.left),
-});
-
-const maxOfSeats = <T>(seats: Seats<T>, f: (v: T) => number) =>
-  Math.max(f(seats.front), f(seats.right), f(seats.opposite), f(seats.left));
-
-/**
  * 4 家の要素を正方形の各辺に貼り付ける。
  * 要素は自分の辺に接し（辺からの距離は offset）、辺に沿っては中央寄せする。
  * 各要素は自分自身の実寸で配置するので、他家の大きさに引きずられない。
@@ -252,12 +237,6 @@ const layoutSeats = (
   return g;
 };
 
-const getPlaces = (front: "東" | "南" | "西" | "北") => {
-  const places = Object.values(WIND_MAP);
-  const index = places.indexOf(front);
-  return [...places.slice(index), ...places.slice(0, index)];
-};
-
 const createScoreBoard = (
   helper: ImageHelper,
   tf: TableFont,
@@ -277,15 +256,16 @@ const createScoreBoard = (
    * 4 辺で同じ属性を使うので、風や桁数が変わっても位置は変わらない。
    */
   const createScore = (
-    place: string,
+    place: Wind,
     score: number,
     degree: 0 | 90 | 180 | 270,
     cx: number,
     cy: number,
   ) => {
     // http://defghi1977.html.xdomain.jp/tech/svgMemo/svgMemo_08.htm
+    // 風を表示文字列にするのはここだけ。席順は Wind のまま計算する。
     const t = new Text()
-      .plain(`${place} ${score}`)
+      .plain(`${WIND_MAP[place]} ${score}`)
       .font(font)
       .attr({
         "text-anchor": "middle",
@@ -294,10 +274,7 @@ const createScoreBoard = (
     return new G().add(t).rotate(degree, 0, 0).translate(cx, cy);
   };
 
-  const [frontPlace, rightPlace, oppositePlace, leftPlace] = getPlaces(
-    scoreBoard.frontPlace,
-  );
-
+  const places = seatWinds(scoreBoard.frontPlace);
   const scores = scoreBoard.scores;
   const half = sizeWidth / 2;
 
@@ -310,10 +287,10 @@ const createScoreBoard = (
     .stroke("#000000");
   g.add(rect);
   g.add(boardRect.element);
-  g.add(createScore(frontPlace, scores.front, 0, half, sizeWidth));
-  g.add(createScore(rightPlace, scores.right, 270, sizeWidth, half));
-  g.add(createScore(oppositePlace, scores.opposite, 180, half, 0));
-  g.add(createScore(leftPlace, scores.left, 90, 0, half));
+  g.add(createScore(places.front, scores.front, 0, half, sizeWidth));
+  g.add(createScore(places.right, scores.right, 270, sizeWidth, half));
+  g.add(createScore(places.opposite, scores.opposite, 180, half, 0));
+  g.add(createScore(places.left, scores.left, 90, 0, half));
 
   return { element: g, width: sizeWidth, height: sizeWidth };
 };

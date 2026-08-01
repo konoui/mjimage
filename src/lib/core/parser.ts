@@ -83,9 +83,11 @@ export function is5Tile(t: Tile) {
   return t.isNum() && t.n == 5;
 }
 
-function isType(v: string): [Type, boolean] {
-  const type = Object.values(TYPE).find((t) => t === v);
-  return type ? [type, true] : [TYPE.BACK, false];
+/**
+ * 文字が牌種を表す場合はその牌種を返す。エイリアス（w/d）は含まない。
+ */
+function tileTypeOf(c: string): Type | null {
+  return Object.values(TYPE).find((t) => t === c) ?? null;
 }
 
 export class Tile {
@@ -170,7 +172,7 @@ export class Tile {
   }
 }
 
-type BlockType = (typeof BLOCK)[keyof typeof BLOCK];
+export type BlockType = (typeof BLOCK)[keyof typeof BLOCK];
 
 export type SerializedBlock = ReturnType<Block["serialize"]>;
 
@@ -675,27 +677,27 @@ export class Parser {
         continue;
       }
 
-      const [type, isType] = parseTypeOrAlias(char, cluster);
-      if (isType) {
-        if (type == TYPE.BACK) {
-          res.push(new Tile(type, 0));
+      const resolved = resolveType(char, cluster);
+      if (resolved != null) {
+        if (resolved.type == TYPE.BACK) {
+          res.push(new Tile(resolved.type, 0));
           l.readChar(); // for continue
           continue;
         }
 
-        res.push(...makeTiles(cluster, type));
+        res.push(...makeTiles(resolved.cluster, resolved.type));
         cluster = []; // clear for zero length slice
         l.readChar(); // for continue
         continue;
       } else {
-        const [t, isOp] = isOperator(l);
-        if (isOp) {
+        const t = operatorTileAt(l);
+        if (t != null) {
           cluster.push(t);
           l.readChar(); // for continue
           continue;
         }
-        const [n, isNum] = isNumber(char);
-        if (!isNum) throw new Error(`expected a number but got: ${char}`);
+        const n = numberOf(char);
+        if (n == null) throw new Error(`expected a number but got: ${char}`);
         // dummy type
         cluster.push({ n });
       }
@@ -778,9 +780,7 @@ export class Parser {
     if (input.length > MAX_INPUT_LENGTH)
       throw new Error(`exceeded maximum input length (${input.length})`);
     const lastChar = input.charAt(input.length - 1);
-    // Note: dummy tile for validation
-    const [_, isKind] = parseTypeOrAlias(lastChar, [new Tile(TYPE.BACK, 1)]);
-    if (!isKind)
+    if (tileTypeOf(lastChar) == null && aliasOffset(lastChar) == null)
       throw new Error(
         `last character must be a tile type: ${lastChar} in ${input}`
       );
@@ -818,10 +818,8 @@ function detectBlockType(tiles: readonly Tile[]): BlockType {
     if (numHorizontals == 2) return BLOCK.SHO_KAN;
   }
 
-  if (numHorizontals == 1) return BLOCK.IMAGE_DISCARD;
-  if (numTsumoDora == 0) return BLOCK.IMAGE_DISCARD;
-
-  return BLOCK.UNKNOWN;
+  // ここに来る時点で numTsumoDora は 0（先頭で UNKNOWN として返している）
+  return BLOCK.IMAGE_DISCARD;
 }
 
 function isConsecutiveSequence(rtiles: readonly Tile[]): boolean {
@@ -863,33 +861,50 @@ function makeTiles(
   });
 }
 
-function parseTypeOrAlias(s: string, cluster: TileBase[]): [Type, boolean] {
-  const [k, ok] = isType(s);
-  if (ok) return [k, true];
-
-  const isAlias = s === "w" || s === "d";
-  if (isAlias && cluster.length > 0) {
-    for (let i = 0; i < cluster.length; i++) {
-      const t = cluster[i];
-      if (s === "d") {
-        cluster[i].n = t.n + 4;
-      }
-    }
-    return [TYPE.Z, true];
-  }
-  return [TYPE.BACK, false];
+/**
+ * 字牌のエイリアスが数字に足す値を返す。
+ * w は風牌（1w-4w = 1z-4z）、d は三元牌（1d-3d = 5z-7z）を表す。
+ */
+function aliasOffset(c: string): number | null {
+  if (c === "w") return 0;
+  if (c === "d") return 4;
+  return null;
 }
 
-function isNumber(v: string): [number, boolean] {
-  const n = Number(v);
-  const ok = 0 <= n && n <= 9;
-  return [n, ok];
+/**
+ * 文字が牌種（またはそのエイリアス）であれば、牌種と確定した牌の配列を返す。
+ * エイリアスの場合は数字を字牌の位置へ寄せた新しい配列を返す（入力は書き換えない）。
+ */
+function resolveType(
+  c: string,
+  cluster: readonly TileBase[]
+): { type: Type; cluster: readonly TileBase[] } | null {
+  const type = tileTypeOf(c);
+  if (type != null) return { type, cluster };
+
+  const offset = aliasOffset(c);
+  // 数字が先行していない w/d は牌種として扱わない
+  if (offset == null || cluster.length == 0) return null;
+  return {
+    type: TYPE.Z,
+    cluster: cluster.map((t) => ({ ...t, n: t.n + offset })),
+  };
 }
 
-// isOperator will consume char if the next is an operator
-function isOperator(l: Lexer): [TileBase, boolean] {
+/**
+ * 文字が牌の数字であれば返す。
+ */
+function numberOf(c: string): number | null {
+  const n = Number(c);
+  return 0 <= n && n <= 9 ? n : null;
+}
+
+/**
+ * 現在位置がオペレータであれば、それを持つ牌を返す。オペレータの分だけ読み進める。
+ */
+function operatorTileAt(l: Lexer): TileBase | null {
   const ops = Object.values(OP) as string[];
-  if (!ops.includes(l.char)) return [new Tile(TYPE.BACK, 0), false];
+  if (!ops.includes(l.char)) return null;
 
   const found: Operator[] = [];
   // 4 is temporary value
@@ -897,16 +912,16 @@ function isOperator(l: Lexer): [TileBase, boolean] {
     const c = l.peekCharN(i);
     if (ops.includes(c)) found.push(c as Operator);
     else {
-      const [n, ok] = isNumber(c);
-      if (!ok) break;
+      const n = numberOf(c);
+      if (n == null) break;
       for (const _ of found) l.readChar();
       const tile = new Tile(TYPE.BACK, n, found);
       if (tile.has(OP.RED) && tile.n != 5)
         throw new Error(`red dora operator can only be used with 5, got: ${n}`);
       if (tile.has(OP.IMAGE_DORA) && tile.has(OP.TSUMO))
         throw new Error(`cannot specify both dora and tsumo operators`);
-      return [tile, true];
+      return tile;
     }
   }
-  return [new Tile(TYPE.BACK, 0), false];
+  return null;
 }

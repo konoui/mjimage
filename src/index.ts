@@ -70,7 +70,9 @@ export {
   deserializeWinResult,
 } from "./lib/calculator/serialize";
 export type { SerializedWinResult } from "./lib/calculator/serialize";
-export { Efficiency } from "./lib/calculator/efficiency";
+// 名前空間としてまとめて公開する。static だけのクラスと違い、
+// この形なら利用者が使った関数だけが束にされる（tree-shaking が効く）。
+export * as Efficiency from "./lib/calculator/efficiency";
 export type {
   TileAnalysis,
   SerializedTileAnalysis,
@@ -130,6 +132,8 @@ export type {
   Hands,
   ScoreBoard,
 } from "./lib/input/table-input";
+// 各家を並べた入れ物。Discards / Hands / ScoreBoard.scores がこの形を取る。
+export type { Seats } from "./lib/input/seats";
 
 // 描画。高抽象（render）と中抽象（createHand / createTable）だけを公開し、
 // 牌 1 枚を組み立てるヘルパや SVG の要素クラスは内部に留める。

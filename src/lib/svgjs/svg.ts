@@ -6,6 +6,7 @@ import {
   toSVG,
 } from "transformation-matrix";
 import { XMLParser, XMLBuilder } from "fast-xml-parser";
+import { assert } from "../assert";
 
 export type Attrs = {
   /** x coord */
@@ -24,7 +25,13 @@ export type Styles = {
   [key: string]: string;
 };
 
-export abstract class Mark {
+/**
+ * SVG の要素の共通部分。
+ *
+ * 位置（x/y/dx/dy）はここには無い。ルートの svg のように置き場所を持たない要素が
+ * あるため、位置を持つものだけが Mark として持つ。
+ */
+export abstract class SvgNode {
   type: string;
   attrs: Attrs = {};
   styles: Styles = {};
@@ -32,24 +39,6 @@ export abstract class Mark {
   parent: Container | undefined;
   constructor(type: string) {
     this.type = type;
-  }
-  dx(x: number): this {
-    if (this.attrs.x == null) this.attrs.x = x;
-    else this.attrs.x += x;
-    return this;
-  }
-  dy(y: number): this {
-    if (this.attrs.y == null) this.attrs.y = y;
-    else this.attrs.y += y;
-    return this;
-  }
-  x(x: number): this {
-    this.attrs.x = x;
-    return this;
-  }
-  y(y: number): this {
-    this.attrs.y = y;
-    return this;
   }
   size(width: number, height: number): this {
     this.attrs.width = width;
@@ -103,6 +92,30 @@ export abstract class Mark {
   }
   svg() {
     return this.toString();
+  }
+}
+
+/**
+ * 置き場所を持つ要素。座標を指定できるものだけがこれを継承する。
+ */
+export abstract class Mark extends SvgNode {
+  dx(x: number): this {
+    if (this.attrs.x == null) this.attrs.x = x;
+    else this.attrs.x += x;
+    return this;
+  }
+  dy(y: number): this {
+    if (this.attrs.y == null) this.attrs.y = y;
+    else this.attrs.y += y;
+    return this;
+  }
+  x(x: number): this {
+    this.attrs.x = x;
+    return this;
+  }
+  y(y: number): this {
+    this.attrs.y = y;
+    return this;
   }
 }
 
@@ -188,15 +201,16 @@ export class Symbol extends Mark {
 
 /**
  * 子要素を持つ要素の共通部分。
+ * 自身の位置は持たないので、位置が要る G だけが translate/rotate を足す。
  */
-export abstract class Container extends Mark {
-  children: Mark[] = [];
-  add(e: Mark): this {
+export abstract class Container extends SvgNode {
+  children: SvgNode[] = [];
+  add(e: SvgNode): this {
     e.parent = this;
     this.children.push(e);
     return this;
   }
-  removeChild(e: Mark) {
+  removeChild(e: SvgNode) {
     const i = this.children.indexOf(e);
     if (i >= 0) this.children.splice(i, 1);
   }
@@ -207,7 +221,7 @@ export abstract class Container extends Mark {
    * 子要素を走査する。deep が true の場合は子孫まで辿る。
    * 走査中にコールバックが remove() を呼んでも崩れないよう、複製に対して回す。
    */
-  each(block: (idx: number, children: Mark[]) => void, deep: boolean) {
+  each(block: (idx: number, children: SvgNode[]) => void, deep: boolean) {
     const children = [...this.children];
     for (let i = 0; i < children.length; i++) {
       const child = children[i];
@@ -280,34 +294,11 @@ export class Svg extends Container {
     }
     return this;
   }
-  x(_x: number): this {
-    throw new Error("unimplemented");
-  }
-  y(_y: number): this {
-    throw new Error("unimplemented");
-  }
-  dx(_x: number): this {
-    throw new Error("unimplemented");
-  }
-  dy(_y: number): this {
-    throw new Error("unimplemented");
-  }
 }
 
 export function SVG() {
   return new Svg();
 }
-
-/**
- * 組み立てた Svg を公開面へ絞る。
- * add の引数だけ実装（Mark）と公開面（Placeable）で食い違うため、
- * 型の付け替えをこの関数に閉じ込める。
- */
-export const asRenderedSvg = (svg: Svg): RenderedSvg =>
-  svg as unknown as RenderedSvg;
-
-/** asRenderedSvg の逆。公開面で受け取った SVG を内部の走査に回すときだけ使う。 */
-export const asSvg = (svg: RenderedSvg): Svg => svg as unknown as Svg;
 
 /**
  * 配置できる要素。中抽象が返す element の公開面。
@@ -322,7 +313,7 @@ export interface Placeable {
  * 利用者に見せる SVG の面。
  *
  * 具象クラスをそのまま返すと、基底クラス経由で内部表現（attrs / styles /
- * parent / type）の書き換えや、Svg では未実装の x/y/dx/dy まで公開されてしまう。
+ * parent / type）の書き換えまで公開されてしまう。
  * 返す型をこのインターフェースに絞ることでそれらを隠す。
  */
 export interface RenderedSvg {
@@ -338,6 +329,65 @@ export interface RenderedSvg {
   importSymbol(sprite: string): this;
   svg(): string;
 }
+
+/**
+ * RenderedSvg の実体。内部の Svg を包み、見せる操作だけを転送する。
+ *
+ * 型だけ付け替える（Svg を RenderedSvg として返す）には二重キャストが要る。
+ * add の引数が実装（SvgNode）と公開面（Placeable）で食い違い、
+ * SvgNode の protected メンバのせいでどちら向きにも代入できないためで、
+ * キャストするとその一点で型検査が切れてしまう。
+ * 包んでしまえばキャストが要らず、内部表現へ手が届かないことも実際に保証される。
+ */
+class WrappedSvg implements RenderedSvg {
+  constructor(private readonly inner: Svg) {}
+  /** 内部の走査へ戻す。RenderedSvg には現れないので利用者からは呼べない。 */
+  unwrap(): Svg {
+    return this.inner;
+  }
+  viewbox(x: number, y: number, width: number, height: number): this {
+    this.inner.viewbox(x, y, width, height);
+    return this;
+  }
+  size(width: number, height: number): this {
+    this.inner.size(width, height);
+    return this;
+  }
+  css(style: Record<string, string>): this {
+    this.inner.css(style);
+    return this;
+  }
+  attr(attrs: Record<string, string>): this {
+    this.inner.attr(attrs);
+    return this;
+  }
+  add(element: Placeable): this {
+    // Placeable を満たすのは G だけで、G は SvgNode でもある。
+    // 利用者が自作の値を渡した場合はここで弾く。
+    assert(
+      element instanceof SvgNode,
+      `unexpected element: not created by this library`,
+    );
+    this.inner.add(element);
+    return this;
+  }
+  importSymbol(sprite: string): this {
+    this.inner.importSymbol(sprite);
+    return this;
+  }
+  svg(): string {
+    return this.inner.svg();
+  }
+}
+
+/** 組み立てた Svg を公開面へ絞る。 */
+export const asRenderedSvg = (svg: Svg): RenderedSvg => new WrappedSvg(svg);
+
+/** asRenderedSvg の逆。公開面で受け取った SVG を内部の走査に回すときだけ使う。 */
+export const asSvg = (svg: RenderedSvg): Svg => {
+  assert(svg instanceof WrappedSvg, `unexpected svg: not created by SVG()`);
+  return svg.unwrap();
+};
 
 /**
  * 出力する小数の桁数。

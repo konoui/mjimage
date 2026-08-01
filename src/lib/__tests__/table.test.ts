@@ -6,8 +6,8 @@ import {
   buildHand,
   buildTable,
 } from "../image";
-import { Discards, ScoreBoard, Hands, TableInput } from "../input";
-import { TYPE, ROUND_MAP, WIND_MAP } from "../core/constants";
+import { Discards, ScoreBoard, Hands, TableInput, Seats } from "../input";
+import { TYPE, ROUND_MAP, WIND } from "../core/constants";
 import { TABLE_CONTEXT } from "../image/constants";
 
 import { loadInputData, snapshotPath, SVG } from "./utils/helper";
@@ -79,12 +79,11 @@ const seats = <T,>(v: T): Seats<T> => ({
   opposite: v,
   left: v,
 });
-type Seats<T> = { front: T; right: T; opposite: T; left: T };
 
 const baseScoreBoard: ScoreBoard = {
   round: "東１局",
   scores: { front: 25000, right: 25000, opposite: 25000, left: 25000 },
-  frontPlace: "東",
+  frontPlace: WIND.E,
   sticks: { reach: 1, dead: 3 },
   doraIndicators: [new Tile(TYPE.M, 3)],
 };
@@ -240,7 +239,7 @@ describe("createTable layout invariants", () => {
   test("front place does not move anything", () => {
     const mask = (svg: string) => svg.replace(/>[東南西北] /g, ">W ");
     const base = mask(renderBoard(baseScoreBoard));
-    for (const frontPlace of Object.values(WIND_MAP)) {
+    for (const frontPlace of Object.values(WIND)) {
       expect(mask(renderBoard({ ...baseScoreBoard, frontPlace }))).toBe(base);
     }
   });

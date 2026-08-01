@@ -3,14 +3,18 @@ import {
   BlockCalculator,
   Hand,
   HandData,
+  MutableCounts,
   PointCalculator,
   BoardContext,
   WinResult,
   Yaku,
-  Efficiency,
+  allBlockCombinations,
+  calcEffectiveTiles,
+  getEffectiveTiles,
+  handleNumType,
 } from "../calculator";
 import { TYPE, OP, Wind, WIND, ROUND } from "../core/constants";
-import { Block, Parser, Tile } from "../core/parser";
+import { Parser, Tile } from "../core/parser";
 import { handsToString } from "./utils/helper";
 describe("Hand/基本操作", () => {
   const getData = (h: Hand) => {
@@ -19,25 +23,44 @@ describe("Hand/基本操作", () => {
   test("init", () => {
     const c = new Hand("12234m123w1d, -123s, t2p");
     const want: HandData = {
-      [TYPE.M]: [0, 1, 2, 1, 1, 0, 0, 0, 0, 0],
-      [TYPE.S]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [TYPE.P]: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-      [TYPE.BACK]: ["untouchable", 0],
-      [TYPE.Z]: [0, 1, 1, 1, 0, 1, 0, 0],
+      counts: {
+        [TYPE.M]: [0, 1, 2, 1, 1, 0, 0, 0, 0, 0],
+        [TYPE.S]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [TYPE.P]: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+        [TYPE.Z]: [0, 1, 1, 1, 0, 1, 0, 0],
+      },
+      backCount: 0,
       called: new Parser("-123s").parse(),
       reached: false,
       tsumo: new Tile(TYPE.P, 2, [OP.TSUMO]),
     };
     expect((c as any).data).toStrictEqual(want);
   });
+  // clone は直列化を挟まず data を複製する。晒したブロック・ツモ牌・リーチも
+  // そのまま引き継ぎ、複製を打っても元の手牌は動かない。
+  test("clone", () => {
+    const h = new Hand("12234m123w1d, -123s, t2p");
+    const c = h.clone();
+    expect(getData(c)).toStrictEqual(getData(h));
+    expect(c.toString()).toBe(h.toString());
+    expect(c.drawn?.toString()).toBe("t2p");
+    expect(c.called.map((b) => b.toString())).toStrictEqual(["-123s"]);
+
+    c.discard(new Tile(TYPE.M, 1));
+    expect(c.get(TYPE.M, 1)).toBe(0);
+    expect(h.get(TYPE.M, 1)).toBe(1);
+    expect(h.drawn?.toString()).toBe("t2p");
+  });
   test("operations", () => {
     const h = new Hand("122234m123w1d");
     const want: HandData = {
-      [TYPE.M]: [0, 1, 3, 1, 1, 0, 0, 0, 0, 0],
-      [TYPE.S]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [TYPE.P]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [TYPE.BACK]: ["untouchable", 0],
-      [TYPE.Z]: [0, 1, 1, 1, 0, 1, 0, 0],
+      counts: {
+        [TYPE.M]: [0, 1, 3, 1, 1, 0, 0, 0, 0, 0],
+        [TYPE.S]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [TYPE.P]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [TYPE.Z]: [0, 1, 1, 1, 0, 1, 0, 0],
+      },
+      backCount: 0,
       called: [],
       reached: false,
       tsumo: null,
@@ -48,21 +71,21 @@ describe("Hand/基本操作", () => {
     const tsumo = new Tile(TYPE.M, 2, [OP.TSUMO]);
     h.draw(tsumo);
     want.tsumo = tsumo;
-    want[TYPE.M][tsumo.n] += 1;
+    want.counts[TYPE.M][tsumo.n] += 1;
     expect(getData(h)).toStrictEqual(want);
 
     const chi = new Parser("-534m").parse()[0];
     h.call(chi);
     want.called = [...want.called, chi];
-    want.m[3] -= 1;
-    want.m[4] -= 1;
+    want.counts.m[3] -= 1;
+    want.counts.m[4] -= 1;
     want.tsumo = null;
     expect(getData(h)).toStrictEqual(want);
 
     const ankan = new Parser("_22_m").parse()[0];
     h.kan(ankan);
     want.called = [...want.called, ankan];
-    want.m[2] -= 4;
+    want.counts.m[2] -= 4;
     expect(getData(h)).toStrictEqual(want);
 
     expect(() => {
@@ -116,30 +139,22 @@ describe("Hand/基本操作", () => {
 
     new ShantenCalculator(h).calc();
     new BlockCalculator(h).calc(new Tile(TYPE.P, 1, [OP.TSUMO]));
-    Efficiency.calcEffectiveTiles(h, h.hands);
+    calcEffectiveTiles(h, h.hands);
+    getEffectiveTiles(h);
 
     expect(h.toString()).toBe(want);
   });
 
-  // 計算の途中で例外が飛んでも、途中まで抜いた牌が消えたまま残らない。
+  // 計算の途中で例外が飛んでも、手牌には影響しないこと。
+  // 打牌候補に手牌にない牌を混ぜると、いくつか計算した後で失敗する。
   test("a failure during the search does not break the hand", () => {
     const h = new Hand("123456789m1p123s");
     const want = h.toString();
 
-    const proto = ShantenCalculator.prototype as unknown as {
-      standardType: () => number;
-    };
-    const original = proto.standardType;
-    let count = 0;
-    proto.standardType = function (this: ShantenCalculator) {
-      if (++count == 5) throw new Error("boom");
-      return original.call(this);
-    };
-    try {
-      expect(() => Efficiency.getEffectiveTiles(h)).toThrow("boom");
-    } finally {
-      proto.standardType = original;
-    }
+    const choices = [...h.hands.slice(0, 3), new Tile(TYPE.P, 9)];
+    expect(() => calcEffectiveTiles(h, choices)).toThrow(
+      /invalid hand: tile 9p does not exist/,
+    );
 
     expect(h.toString()).toBe(want);
   });
@@ -377,11 +392,10 @@ describe("Block Calculator2", () => {
   });
 });
 
-describe("handleNumType/calcAllBlockCombinations", () => {
+describe("handleNumType/allBlockCombinations", () => {
   test("handleNumType()", () => {
     const h = new Hand("111222333456m");
-    const c = new BlockCalculator(h);
-    const got = (c as any).handleNumType(TYPE.M) as Block[][];
+    const got = handleNumType(MutableCounts.of(h), TYPE.M);
     const want = [
       ["123m", "123m", "123m", "456m"],
       ["111m", "234m"],
@@ -391,10 +405,9 @@ describe("handleNumType/calcAllBlockCombinations", () => {
     expect(handsToString(got)).toStrictEqual(want);
   });
 
-  test("calcAllBlockCombinations()", () => {
+  test("allBlockCombinations()", () => {
     const h = new Hand("111222333456m111s");
-    const c = new BlockCalculator(h);
-    const got = (c as any).calcAllBlockCombinations() as Block[][];
+    const got = allBlockCombinations(MutableCounts.of(h), h.called);
     const want = [
       ["123m", "123m", "123m", "456m", "111s"],
       ["111m", "234m", "111s"],
@@ -404,10 +417,9 @@ describe("handleNumType/calcAllBlockCombinations", () => {
     expect(handsToString(got)).toStrictEqual(want);
   });
 
-  test("calcAllBlockCombinations() with red/Block[] 内で 5s を使用したパターンが 2 つあるため r5s と入れ替えパターンが発生する", () => {
+  test("allBlockCombinations() with red/Block[] 内で 5s を使用したパターンが 2 つあるため r5s と入れ替えパターンが発生する", () => {
     const h = new Hand("4r5667s,t5s");
-    const c = new BlockCalculator(h);
-    const got = (c as any).calcAllBlockCombinations() as Block[][];
+    const got = allBlockCombinations(MutableCounts.of(h), h.called);
     const want = [
       ["456s", "r567s"],
       ["4r56s", "567s"],
@@ -415,10 +427,9 @@ describe("handleNumType/calcAllBlockCombinations", () => {
     expect(handsToString(got)).toStrictEqual(want);
   });
 
-  test("calcAllBlockCombinations() with multiple red: 2*2", () => {
+  test("allBlockCombinations() with multiple red: 2*2", () => {
     const h = new Hand("34r55677m34r5567p, t4m");
-    const c = new BlockCalculator(h);
-    const got = (c as any).calcAllBlockCombinations() as Block[][];
+    const got = allBlockCombinations(MutableCounts.of(h), h.called);
     const want = [
       ["345m", "4r56m", "345p", "r567p"],
       ["345m", "4r56m", "34r5p", "567p"],
@@ -430,8 +441,7 @@ describe("handleNumType/calcAllBlockCombinations", () => {
 
   test("Block[] 内で 5m を使用した2つのブロックパータンがないためが、r5 の入れ替えパターン（[444m, r567m])が発生しない", () => {
     const h = new Hand("44r55567m, t4m");
-    const c = new BlockCalculator(h);
-    const got = (c as any).calcAllBlockCombinations() as Block[][];
+    const got = allBlockCombinations(MutableCounts.of(h), h.called);
     const want = [["456m"], ["444m", "567m"], ["444m", "r555m"]];
     expect(handsToString(got)).toStrictEqual(want);
   });

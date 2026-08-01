@@ -7,7 +7,7 @@ import {
   ROUND,
   prevWind,
 } from "../core/";
-import { TupleOfSize } from "../calculator";
+import { TileCounts } from "../calculator";
 import { Tile } from "../core/parser";
 import { nextRound, Type } from "../core";
 export class ScoreManager {
@@ -113,12 +113,7 @@ export function shuffle<T>(array: T[]) {
  * 山を含む残りの枚数を確認することができる。
  */
 export class Counter {
-  private c: {
-    [TYPE.M]: TupleOfSize<number, 10>;
-    [TYPE.S]: TupleOfSize<number, 10>;
-    [TYPE.P]: TupleOfSize<number, 10>;
-    [TYPE.Z]: TupleOfSize<number, 8>;
-  };
+  private c: TileCounts;
   private safeTileMap = createWindMap(
     () => ({}) as { [tile: string]: boolean },
   );
@@ -163,12 +158,7 @@ export class Counter {
   reset() {
     this.c = this.initial();
   }
-  private initial(): {
-    [TYPE.M]: TupleOfSize<number, 10>;
-    [TYPE.S]: TupleOfSize<number, 10>;
-    [TYPE.P]: TupleOfSize<number, 10>;
-    [TYPE.Z]: TupleOfSize<number, 8>;
-  } {
+  private initial(): TileCounts {
     return {
       [TYPE.M]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],
       [TYPE.S]: [1, 4, 4, 4, 4, 4, 4, 4, 4, 4],

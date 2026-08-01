@@ -2,7 +2,7 @@ import { WIND, Tile } from "../core/";
 import { BaseActor, ActorHand } from "./controller";
 import { River } from "./river";
 import { PlayerEfficiency, RiskRank } from "./player-efficiency";
-import { ShantenCalculator, Efficiency } from "../calculator";
+import { ShantenCalculator, calcEffectiveTiles } from "../calculator";
 import { PlayerEvent, EventHandler, DistributeEvent } from "./events";
 
 export class Player extends BaseActor {
@@ -34,7 +34,7 @@ export class Player extends BaseActor {
     // 枚数が多いものを優先する
     // 同じ枚数の場合は価値が少ないものを選択する
     // TODO 安全牌を残す
-    const c = Efficiency.calcEffectiveTiles(this.hand(this.myWind), tiles);
+    const c = calcEffectiveTiles(this.hand(this.myWind), tiles);
     const candidates = PlayerEfficiency.analyzePlayerEfficiency(
       this.counter,
       c
