@@ -1,4 +1,15 @@
-import { Tile, Block, BlockAnKan, BlockHand, BlockType } from "../core/parser";
+import {
+  Tile,
+  Block,
+  BlockAnKan,
+  BlockHand,
+  BlockType,
+  TILE_NUMBERS,
+  TYPE,
+  OP,
+  BLOCK,
+  Operator,
+} from "../core";
 import { assert } from "../assert";
 import {
   Svg,
@@ -10,7 +21,6 @@ import {
   round,
   Placeable,
 } from "../svgjs/svg";
-import { TILE_NUMBERS, TYPE, OP, BLOCK, Operator } from "../core";
 import { FONT_FAMILY, TILE_CONTEXT } from "./constants";
 
 /**
@@ -232,33 +242,14 @@ export class ImageHelper extends BaseHelper {
   readonly blockMargin =
     TILE_CONTEXT.WIDTH * TILE_CONTEXT.BLOCK_MARGIN_SCALE * this.scale;
   /**
-   * 捨て牌のブロックから SVG 要素を作る。
-   * よくわからな場合（Unknown）も使用する。
+   * 牌を横に並べたブロックの SVG 要素を作る。
+   * 捨て牌・手牌・鳴いたブロックはどれもこの並べ方になる。
+   *
+   * 鳴いたブロックは横向きの牌を 1 枚以上持つ。ブロックの構築時には検証されないので、
+   * requireHorizontal を指定して描く前に弾く。
    */
-  createBlockDiscard(block: Block) {
-    return this.createHorizontalBlock(block.tiles);
-  }
-
-  /**
-   * 手牌のブロックから SVG 要素を作る。
-   */
-  createBlockHand(block: Block) {
-    return this.createHorizontalBlock(block.tiles);
-  }
-
-  /**
-   * チーブロックから SVG 要素を作る
-   */
-  createBlockChi(block: Block) {
-    this.assertHasHorizontal(block);
-    return this.createHorizontalBlock(block.tiles);
-  }
-
-  /**
-   * ポンのブロックから SVG 要素を作る
-   */
-  createBlockPon(block: Block) {
-    this.assertHasHorizontal(block);
+  createBlockRow(block: Block, options?: { requireHorizontal?: boolean }) {
+    if (options?.requireHorizontal) this.assertHasHorizontal(block);
     return this.createHorizontalBlock(block.tiles);
   }
 
@@ -297,14 +288,6 @@ export class ImageHelper extends BaseHelper {
       g.add(img);
     }
     return g;
-  }
-
-  /**
-   * 大明槓のブロックから SVG 要素を作る
-   */
-  createBlockDaiKan(block: Block) {
-    this.assertHasHorizontal(block);
-    return this.createHorizontalBlock(block.tiles);
   }
 
   /**
@@ -424,17 +407,21 @@ type BlockRenderer = (b: Block, h: ImageHelper) => BuiltFragment;
  * （Record なので、BLOCK に値を足すとここが型エラーになる）。
  */
 const BLOCK_RENDERERS: Record<BlockType, BlockRenderer> = {
-  [BLOCK.PON]: (b, h) => sized(h, b, h.createBlockPon(b)),
-  [BLOCK.CHI]: (b, h) => sized(h, b, h.createBlockChi(b)),
+  // 鳴いたブロックは横向きの牌を要求する。
+  [BLOCK.PON]: (b, h) =>
+    sized(h, b, h.createBlockRow(b, { requireHorizontal: true })),
+  [BLOCK.CHI]: (b, h) =>
+    sized(h, b, h.createBlockRow(b, { requireHorizontal: true })),
   [BLOCK.AN_KAN]: (b, h) => {
     // 裏返しの牌を含む並びは BlockAnKan だけが知っている。
     assert(b instanceof BlockAnKan, `an-kan block is not a BlockAnKan: ${b}`);
     return sized(h, b, h.createBlockAnKan(b));
   },
   [BLOCK.SHO_KAN]: (b, h) => sized(h, b, h.createBlockShoKan(b)),
-  [BLOCK.DAI_KAN]: (b, h) => sized(h, b, h.createBlockDaiKan(b)),
-  [BLOCK.HAND]: (b, h) => sized(h, b, h.createBlockHand(b)),
-  [BLOCK.IMAGE_DISCARD]: (b, h) => sized(h, b, h.createBlockDiscard(b)),
+  [BLOCK.DAI_KAN]: (b, h) =>
+    sized(h, b, h.createBlockRow(b, { requireHorizontal: true })),
+  [BLOCK.HAND]: (b, h) => sized(h, b, h.createBlockRow(b)),
+  [BLOCK.IMAGE_DISCARD]: (b, h) => sized(h, b, h.createBlockRow(b)),
   [BLOCK.IMAGE_DORA]: (b, h) =>
     buildAnnotated(b, h, h.enableDoraText, OP.IMAGE_DORA, (block, enabled) =>
       h.createBlockDora(block, enabled)
@@ -455,7 +442,7 @@ const BLOCK_RENDERERS: Record<BlockType, BlockRenderer> = {
       throw new Error(
         `found an unknown block with operator tiles. block: ${b}, type: ${b.type}`
       );
-    return sized(h, b, h.createBlockDiscard(b));
+    return sized(h, b, h.createBlockRow(b));
   },
 };
 

@@ -6,7 +6,7 @@ import {
 } from "../calculator/types";
 import { YAKU, YAKUMAN } from "../calculator/yaku";
 import { TYPE, OP, WIND, ROUND } from "../core/constants";
-import { Tile } from "../core/parser";
+import { Tile } from "../core";
 
 /**
  * 役ごとの判定を固定する。
@@ -20,10 +20,14 @@ const yakusOf = (
 ) => {
   const hand = new Hand(input);
   if (opts?.reach) hand.reach();
+  // あがり方は BlockCalculator が牌に印を付けるときと同じ規則で決める。
+  // getWinningHands しか呼ばないので点数移動には影響しないが、食い違いは避ける。
+  const isTsumo = lastTile.has(OP.TSUMO) || hand.drawn != null;
   const board: BoardContext = {
     doraIndicators: [],
     myWind: WIND.E,
     round: ROUND.E1,
+    winBy: isTsumo ? { type: "tsumo" } : { type: "ron", from: WIND.S },
     ...opts?.board,
   };
   const c = new BlockCalculator(hand);
@@ -133,6 +137,13 @@ describe("役ごとの判定/1飜", () => {
       board: { oneShotWin: true },
       want: [{ name: "一発", han: 1 }],
     },
+    "一発/ダブル立直でも成立する": {
+      input: "123m456m789m123s11z",
+      lastTile: new Tile(TYPE.Z, 1),
+      reach: true,
+      board: { oneShotWin: true, doubleReached: true },
+      want: [{ name: "一発", han: 1 }],
+    },
     嶺上開花: {
       input: "123m456m789m123s11z",
       lastTile: new Tile(TYPE.Z, 1, [OP.TSUMO]),
@@ -159,6 +170,32 @@ describe("役ごとの判定/1飜", () => {
     },
   };
   runCases(tests);
+
+  test("一発は立直していないときは付かない", () => {
+    // oneShotWin は呼び出し側が渡す値なので、立直していない手に渡されても成立させない。
+    const got = yakusOf("123m456m789m123s11z", new Tile(TYPE.Z, 1), {
+      board: { oneShotWin: true },
+    });
+    expect(got.map((v) => v.name)).not.toContain("一発");
+  });
+
+  test("一発だけでは役なしのままあがれない", () => {
+    // 立直していない手で一発が付くと、役なしの手があがりになってしまう。
+    // 西の単騎待ち。場風でも自風でもないので役牌にならず、ほかの役も付かない。
+    const hand = new Hand("123m456p789p567s33z");
+    const board: BoardContext = {
+      doraIndicators: [],
+      myWind: WIND.S,
+      round: ROUND.E1,
+      winBy: { type: "ron", from: WIND.E },
+      oneShotWin: true,
+    };
+    const lastTile = new Tile(TYPE.Z, 3);
+    const got = new PointCalculator(hand, board).calc(
+      ...new BlockCalculator(hand).calc(lastTile),
+    );
+    expect(got).toBe(false);
+  });
 });
 
 describe("役ごとの判定/2飜", () => {
@@ -352,6 +389,7 @@ describe("役ごとの判定/役満", () => {
       doraIndicators: [],
       myWind: WIND.E,
       round: ROUND.E1,
+      winBy: { type: "tsumo" },
     }).getWinningHands(new BlockCalculator(hand).calc(lastTile));
     expect(
       got.map((v) => v.metadata.winningTileBlockType),

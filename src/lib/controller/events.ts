@@ -1,6 +1,6 @@
 import { eventmit } from "eventmit";
 import { Wind, Round } from "../core/constants";
-import { SerializedBlock } from "../core/parser";
+import { SerializedBlock } from "../core";
 import { SerializedTileAnalysis, SerializedWinResult } from "../calculator";
 
 type Event =

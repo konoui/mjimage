@@ -8,8 +8,7 @@ import {
   prevWind,
 } from "../core/";
 import { TileCounts } from "../calculator";
-import { Tile } from "../core/parser";
-import { nextRound, Type } from "../core";
+import { Tile, nextRound, Type } from "../core";
 export class ScoreManager {
   private reachValue = 1000;
   private m: { [id: string]: number };

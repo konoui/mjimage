@@ -1,5 +1,9 @@
-import { BLOCK, TYPE, OP, Type, INPUT_SEPARATOR } from "../core";
 import {
+  BLOCK,
+  TYPE,
+  OP,
+  Type,
+  INPUT_SEPARATOR,
   Tile,
   Parser,
   BlockPon,
@@ -10,21 +14,13 @@ import {
   Block,
   BlockHand,
   is5Tile,
-} from "../core/parser";
+} from "../core";
 import { assert } from "../assert";
-import {
-  TileCounts,
-  cloneTileCounts,
-  countsOf,
-  emptyTileCounts,
-  tilesOf,
-} from "./counts";
-import { forHand } from "./tile";
+import { TileStore, tilesOf } from "./counts";
 
 export interface HandData {
-  counts: TileCounts;
-  /** 裏牌の枚数。牌の種類が分からないので数字ごとには持たない。 */
-  backCount: number;
+  /** 手の内の牌の枚数。晒した牌は含まない。 */
+  counts: TileStore;
   called: readonly (
     BlockChi | BlockPon | BlockAnKan | BlockDaiKan | BlockShoKan
   )[];
@@ -36,8 +32,7 @@ export class Hand {
   protected data: HandData;
   constructor(input: string | readonly Block[], allowBackBlock = false) {
     this.data = {
-      counts: emptyTileCounts(),
-      backCount: 0,
+      counts: new TileStore(),
       called: [],
       reached: false,
       tsumo: null,
@@ -76,7 +71,7 @@ export class Hand {
    * 手の内の牌の配列を返す。晒された牌は含まれない。
    */
   get hands() {
-    const tiles = tilesOf(countsOf(this));
+    const tiles = tilesOf(this.data.counts);
     if (this.drawn != null) {
       const drawn = this.drawn;
       const idx = tiles.findIndex(
@@ -136,81 +131,26 @@ export class Hand {
    * 手牌において、指定した牌の種類の合計枚数を返す
    */
   sum(type: Type) {
-    return Array.from(forHand({ filterBy: [type] })).reduce(
-      (sum, [t, n]) => sum + this.get(t, n),
-      0,
-    );
+    return this.data.counts.sum(type);
   }
   /**
    * 手牌において、牌の合計枚数を返す。
    * 赤のみを取得する場合は n に 0 を指定する。
    */
   get(t: Type, n: number) {
-    if (t == TYPE.BACK) return this.data.backCount;
-    return this.data.counts[t][n];
+    return this.data.counts.get(t, n);
   }
   /**
    * 指定した牌を手牌に加える。draw に比べプリミティブな操作となる。
    */
   inc(tiles: readonly Tile[]): readonly Tile[] {
-    const backup: Tile[] = [];
-    for (const t of tiles) {
-      const isInvalidCount = t.t != TYPE.BACK && this.get(t.t, t.n) >= 4;
-      const isInvalidRed = t.has(OP.RED) && this.get(t.t, 0) > 0;
-      if (isInvalidCount || isInvalidRed) {
-        this.dec(backup);
-        const msg = isInvalidCount
-          ? `tile ${t} exists more than 4 times`
-          : `red tile ${t} appears more than once`;
-        throw new Error(`invalid hand: ${msg} in hand: ${this.toString()}`);
-      }
-
-      backup.push(t);
-
-      if (t.t == TYPE.BACK) this.data.backCount += 1;
-      else {
-        this.data.counts[t.t][t.n] += 1;
-        if (t.has(OP.RED)) this.data.counts[t.t][0] += 1;
-      }
-    }
-    return backup;
+    return this.data.counts.inc(tiles);
   }
   /**
    * 指定した牌を手牌からなくす。discard に比べプリミティブな操作となる。
    */
   dec(tiles: readonly Tile[]): readonly Tile[] {
-    const backup: Tile[] = [];
-    for (const t of tiles) {
-      const isInvalidCount = this.get(t.t, t.n) < 1;
-      const isInvalidRed = t.has(OP.RED) && this.get(t.t, 0) <= 0;
-      if (isInvalidCount || isInvalidRed) {
-        this.inc(backup);
-        const msg = isInvalidCount
-          ? `tile ${t} does not exist`
-          : `red tile ${t} does not exist`;
-        throw new Error(`invalid hand: ${msg} in hand: ${this.toString()}`);
-      }
-
-      backup.push(t);
-
-      if (t.t == TYPE.BACK) {
-        this.data.backCount -= 1;
-        continue;
-      }
-
-      const counts = this.data.counts[t.t];
-      counts[t.n] -= 1;
-      if (t.has(OP.RED)) counts[0] -= 1;
-
-      // r5 ではなく 5 で減算される際に最後の牌が red であれば red を 0 にする。
-      if (is5Tile(t) && this.get(t.t, 5) == 0 && this.get(t.t, 0) > 0) {
-        counts[0] = 0;
-        const c = backup.pop()!.clone({ add: OP.RED });
-        backup.push(c);
-      }
-    }
-
-    return backup;
+    return this.data.counts.dec(tiles);
   }
   /**
    * ツモ牌として手牌に加える。
@@ -298,8 +238,7 @@ export class Hand {
     ) => this;
     const c = new ctor("");
     c.data = {
-      counts: cloneTileCounts(this.data.counts),
-      backCount: this.data.backCount,
+      counts: this.data.counts.clone(),
       // ブロックと牌は作り直されるだけで書き換わらないので、参照を写せばよい。
       called: [...this.data.called],
       tsumo: this.data.tsumo,

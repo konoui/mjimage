@@ -36,7 +36,7 @@ import {
   BlockShoKan,
   Tile,
   is5Tile,
-} from "../core/parser";
+} from "../core";
 import { createControllerMachine } from "./state-machine";
 import {
   ChoiceAfterDiscardedEvent,
@@ -455,14 +455,17 @@ export class Controller {
     const discarded = this.river.discards(w);
     let cloned = hand;
     const base = this.getBaseBoardParams(w);
-    const env: BoardContext = { ...base };
+    // あがり方はロンの場合だけ下で上書きする（放銃者が決まって初めて点数移動が決まる）。
+    const env: BoardContext = { ...base, winBy: { type: "tsumo" } };
     const isRon = cloned.drawn == null;
     if (isRon) {
       if (params == null) throw new Error("should ron but params == null");
       if (params.discardedBy == w) return false;
       if (params.missingRon) return false;
+      const from = params.discardedBy;
+      if (from == null) throw new Error("should ron but discardedBy == null");
       cloned = cloned.clone();
-      env.ronWind = params.discardedBy;
+      env.winBy = { type: "ron", from };
       env.finalDiscardWin = !this.wall.canDraw;
       env.quadWin = params.quadWin;
       cloned.inc([t]);
@@ -531,7 +534,7 @@ export class ActionLogic {
     t: Tile,
     riverDiscarded: readonly { t: Tile }[]
   ) {
-    const isRon = env.ronWind != null;
+    const isRon = env.winBy.type === "ron";
     const cloned = isRon ? hand.clone() : hand;
     // ロン牌を手牌に加える
     if (isRon) cloned.inc([t]);

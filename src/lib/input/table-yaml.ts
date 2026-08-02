@@ -114,10 +114,17 @@ const assertKnownKeys = (
 const text = (node: Section, key: string): string | undefined =>
   node.children.get(key)?.value;
 
-/** 子の値を数値で返す。無ければ undefined。 */
+/**
+ * 子の値を数値で返す。無ければ undefined（既定値は schema が入れる）。
+ * キーだけ書いて値を省いた場合（`score:`）も「無い」とみなす。
+ * Number("") は 0 なので、ここで弾かないと既定値ではなく 0 が指定されたことになる。
+ */
 const num = (node: Section, key: string): number | undefined => {
   const v = text(node, key);
-  return v == null ? undefined : Number(v);
+  if (v == null || v == "") return undefined;
+  const n = Number(v);
+  if (Number.isNaN(n)) throw new Error(`${key} must be a number: ${v}`);
+  return n;
 };
 
 // 風牌セクションをパース

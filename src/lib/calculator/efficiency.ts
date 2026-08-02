@@ -1,5 +1,4 @@
-import { OP, Type } from "../core";
-import { Tile } from "../core/parser";
+import { OP, Type, Tile } from "../core";
 import { MutableCounts } from "./counts";
 import { Hand } from "./hand";
 import { shantenOf, standardShantenOf } from "./shanten";

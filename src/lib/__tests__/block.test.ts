@@ -6,7 +6,7 @@ import {
   getEffectiveTiles,
 } from "../calculator";
 import { TYPE } from "../core/constants";
-import { Tile } from "../core/parser";
+import { Tile } from "../core";
 import { handsToString } from "./utils/helper";
 
 describe("efficiency", () => {

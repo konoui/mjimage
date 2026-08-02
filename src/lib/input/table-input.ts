@@ -1,4 +1,4 @@
-import { Tile, Parser, Block } from "../core/parser";
+import { Tile, Parser, Block } from "../core";
 import { ROUND_MAP, Wind } from "../core/constants";
 import { Seats, mapSeats, seatWinds } from "./seats";
 import { parseYamlLikeStringInput } from "./table-yaml";
@@ -63,9 +63,8 @@ export const convertTableInput = (i: ValidatedTableInput): TableInput => {
   // 席（front/right/…）から風（1z/2z/…）への対応。以降は各家の入力をこれで引く。
   const m = seatWinds(frontPlace);
 
-  const discards: Discards = mapSeats(m, (w) =>
-    new Parser(i[w].discard.replace(/\r?\n/g, "")).tiles(),
-  );
+  // 改行を含む複数行の記述も受け付ける（Parser が空白を落とす）。
+  const discards: Discards = mapSeats(m, (w) => new Parser(i[w].discard).tiles());
 
   const hands: Hands = mapSeats(m, (w) => new Parser(i[w].hand).parse());
 

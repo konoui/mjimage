@@ -153,6 +153,54 @@ ${children}
     ).toThrow(/unexpected key: 5z/);
   });
 
+  // キーだけ書いて値を省いた場合は「指定なし」として既定値で埋める。
+  // Number("") は 0 なので、素通しすると 0 点・供託 0 本を指定したことになる。
+  test("a key without a value falls back to the default", () => {
+    const got = parseYamlStringInput(`
+  table:
+    1z:
+      score:
+    `);
+    expect(got[WIND.E].score).toBe(25000);
+  });
+
+  // 入力の誤りは Error として飛ぶ。原因が message から読めること。
+  test("schema violations are thrown as Error with a readable message", () => {
+    const parse = (board: string) =>
+      parseYamlStringInput(`
+  table:
+    board:
+${board}
+    `);
+
+    // 範囲外（メッセージを空文字にしていると何も表示されない）
+    expect(() => parse("      sticks:\n        reach: 99")).toThrow(
+      /Expected <=9 but received 99/,
+    );
+    // 未知の局
+    expect(() => parse("      round: 9z9")).toThrow(/invalid table input/);
+    // 投げる値が Error であること（issue の配列をそのまま投げない）
+    try {
+      parse("      sticks:\n        reach: 99");
+      expect.unreachable();
+    } catch (e) {
+      expect(e).toBeInstanceOf(Error);
+      // 元の issue は cause から辿れる
+      expect(Array.isArray((e as Error).cause)).toBe(true);
+    }
+  });
+
+  // 数値として読めない値は、どのキーが悪いか分かる形で弾く。
+  test("a non numeric value is rejected", () => {
+    expect(() =>
+      parseYamlStringInput(`
+  table:
+    1z:
+      score: abc
+    `),
+    ).toThrow(/score must be a number: abc/);
+  });
+
   // 同じキーが 2 度現れたら、どちらを採るか決められないので弾く。
   test("duplicated keys are rejected", () => {
     expect(() =>

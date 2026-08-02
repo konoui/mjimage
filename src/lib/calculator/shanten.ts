@@ -1,5 +1,4 @@
-import { HONOR_NUMBERS, TERMINAL_NUMBERS, TYPE, Type } from "../core";
-import { Tile } from "../core/parser";
+import { HONOR_NUMBERS, TERMINAL_NUMBERS, TYPE, Type, Tile } from "../core";
 import { Counts, MutableCounts, countsOf } from "./counts";
 import { Hand } from "./hand";
 import { forHand } from "./tile";
@@ -65,38 +64,87 @@ const thirteenOrphansOf = (w: MutableCounts) => {
 };
 
 /**
+ * 手牌を「面子・ブロック候補・浮き牌」の数に均した形。
+ * 標準形のシャンテン数はこの 3 つの数だけから決まる。
+ *
+ * - sets:     完成した面子（順子・刻子）の数
+ * - partials: あと 1 枚で面子になる組（搭子・対子）の数
+ * - isolated: どちらにもならない浮き牌の数
+ */
+interface Grouping {
+  readonly sets: number;
+  readonly partials: number;
+  readonly isolated: number;
+}
+
+/**
+ * 数牌の一つの種類から取れる、意味の違う 2 通りの分け方。
+ *
+ * 面子を最大に取る分け方が常に最善とは限らない（面子を 1 つ諦めて
+ * ブロック候補を 2 つ残す方が近いことがある）ため、両方を残して
+ * 最後にシャンテン数が小さい方を採る。
+ */
+interface Groupings {
+  /** 浮き牌が最も少ない分け方 */
+  readonly fewestIsolated: Grouping;
+  /** 面子が最も多い分け方 */
+  readonly mostSets: Grouping;
+}
+
+const EMPTY: Grouping = { sets: 0, partials: 0, isolated: 0 };
+
+const addGroupings = (a: Grouping, b: Grouping): Grouping => ({
+  sets: a.sets + b.sets,
+  partials: a.partials + b.partials,
+  isolated: a.isolated + b.isolated,
+});
+
+const withSet = (g: Grouping): Grouping => ({ ...g, sets: g.sets + 1 });
+
+/** 浮き牌が少ない方を良しとする。同じなら組が少ない方（面子に寄っている方）。 */
+const hasFewerIsolated = (a: Grouping, b: Grouping) =>
+  a.isolated < b.isolated ||
+  (a.isolated == b.isolated && a.partials < b.partials);
+
+/** 面子が多い方を良しとする。同じなら組が多い方。 */
+const hasMoreSets = (a: Grouping, b: Grouping) =>
+  a.sets > b.sets || (a.sets == b.sets && a.partials > b.partials);
+
+/** 面子を 1 つ取った候補を、それぞれの観点で今の best と比べて残す。 */
+const pickBetter = (best: Groupings, taken: Groupings): Groupings => {
+  const fewestIsolated = withSet(taken.fewestIsolated);
+  const mostSets = withSet(taken.mostSets);
+  return {
+    fewestIsolated: hasFewerIsolated(fewestIsolated, best.fewestIsolated)
+      ? fewestIsolated
+      : best.fewestIsolated,
+    mostSets: hasMoreSets(mostSets, best.mostSets)
+      ? mostSets
+      : best.mostSets,
+  };
+};
+
+/**
  * 標準形のシャンテン数を返す。作業用の写しを受け取る版。
  */
 export const standardShantenOf = (w: MutableCounts) => {
   const calc = (hasPair: boolean) => {
-    // [set, pair, isolated]
-    const z = [0, 0, 0];
-    for (const [t, n] of forHand({ filterBy: [TYPE.Z] })) {
-      if (w.get(t, n) >= 3) z[0]++;
-      else if (w.get(t, n) == 2) z[1]++;
-      else if (w.get(t, n) == 1) z[2]++;
-    }
-
-    const b = [0, 0, 0];
-    const bn = w.back;
-    const bb = bn % 3;
-    b[0] = Math.floor(bn / 3);
-    if (bb == 2) b[1] = 1;
-    else if (bb == 1) b[2] = 1;
+    const honors = honorGrouping(w);
+    const backs = backGrouping(w);
+    const called: Grouping = { ...EMPTY, sets: w.called };
 
     let min = 13;
     const mr = numberTilePatterns(w, TYPE.M);
     const pr = numberTilePatterns(w, TYPE.P);
     const sr = numberTilePatterns(w, TYPE.S);
-    for (const m of [mr.patternA, mr.patternB]) {
-      for (const p of [pr.patternA, pr.patternB]) {
-        for (const s of [sr.patternA, sr.patternB]) {
-          // [set, pair, isolated]
-          const v = [w.called, 0, 0];
-          for (let i = 0; i < 3; i++) {
-            v[i] += m[i] + p[i] + s[i] + z[i] + b[i];
-          }
-          const r = standardShantenFrom(v[0], v[1], v[2], hasPair);
+    for (const m of [mr.fewestIsolated, mr.mostSets]) {
+      for (const p of [pr.fewestIsolated, pr.mostSets]) {
+        for (const s of [sr.fewestIsolated, sr.mostSets]) {
+          const total = [m, p, s, honors, backs].reduce(
+            addGroupings,
+            called,
+          );
+          const r = shantenOfGrouping(total, hasPair);
           if (r < min) min = r;
         }
       }
@@ -118,110 +166,112 @@ export const standardShantenOf = (w: MutableCounts) => {
   return min;
 };
 
+/** 字牌は順子にならないので、枚数だけで分け方が決まる。 */
+const honorGrouping = (w: MutableCounts): Grouping => {
+  let sets = 0;
+  let partials = 0;
+  let isolated = 0;
+  for (const [t, n] of forHand({ filterBy: [TYPE.Z] })) {
+    if (w.get(t, n) >= 3) sets++;
+    else if (w.get(t, n) == 2) partials++;
+    else if (w.get(t, n) == 1) isolated++;
+  }
+  return { sets, partials, isolated };
+};
+
+/** 裏牌は「種類の分からない同じ牌」として 3 枚ずつ面子にする。 */
+const backGrouping = (w: MutableCounts): Grouping => {
+  const count = w.back;
+  const rest = count % 3;
+  return {
+    sets: Math.floor(count / 3),
+    partials: rest == 2 ? 1 : 0,
+    isolated: rest == 1 ? 1 : 0,
+  };
+};
+
+/**
+ * 数牌の一つの種類について、n 以降の牌の分け方を返す。
+ * 面子を取る場合と取らない場合を両方試し、観点ごとに良い方を残す。
+ */
 const numberTilePatterns = (
   w: MutableCounts,
   t: typeof TYPE.M | typeof TYPE.S | typeof TYPE.P,
   n = 1,
-): {
-  patternA: [number, number, number];
-  patternB: [number, number, number];
-} => {
+): Groupings => {
   if (n > 9) return groupRemainingTiles(w, t);
 
-  let max = numberTilePatterns(w, t, n + 1);
+  // 面子を取らずに次の数字へ進んだ場合
+  let best = numberTilePatterns(w, t, n + 1);
 
+  // 順子を取る場合
   if (n <= 7 && w.get(t, n) > 0 && w.get(t, n + 1) > 0 && w.get(t, n + 2) > 0) {
-    const r = w.without(
+    const taken = w.without(
       [new Tile(t, n), new Tile(t, n + 1), new Tile(t, n + 2)],
       () => numberTilePatterns(w, t, n),
     );
-    (r.patternA[0]++, r.patternB[0]++);
-    if (
-      r.patternA[2] < max.patternA[2] ||
-      (r.patternA[2] == max.patternA[2] && r.patternA[1] < max.patternA[1])
-    ) {
-      max.patternA = r.patternA;
-    }
-    if (
-      r.patternB[0] > max.patternB[0] ||
-      (r.patternB[0] == max.patternB[0] && r.patternB[1] > max.patternB[1])
-    ) {
-      max.patternB = r.patternB;
-    }
+    best = pickBetter(best, taken);
   }
 
+  // 刻子を取る場合
   if (w.get(t, n) >= 3) {
-    const r = w.without(new Array(3).fill(new Tile(t, n)), () =>
+    const taken = w.without(new Array(3).fill(new Tile(t, n)), () =>
       numberTilePatterns(w, t, n),
     );
-    (r.patternA[0]++, r.patternB[0]++);
-    if (
-      r.patternA[2] < max.patternA[2] ||
-      (r.patternA[2] == max.patternA[2] && r.patternA[1] < max.patternA[1])
-    ) {
-      max.patternA = r.patternA;
-    }
-    if (
-      r.patternB[0] > max.patternB[0] ||
-      (r.patternB[0] == max.patternB[0] && r.patternB[1] > max.patternB[1])
-    ) {
-      max.patternB = r.patternB;
-    }
+    best = pickBetter(best, taken);
   }
-  return max;
+  return best;
 };
 
-const groupRemainingTiles = (
-  w: MutableCounts,
-  type: Type,
-): {
-  patternA: [number, number, number];
-  patternB: [number, number, number];
-} => {
-  let nSerialPairs = 0;
-  let nIsolated = 0;
+/**
+ * 面子を取り終えた後に残った牌を、隣り合う塊ごとに組と浮き牌へ均す。
+ * 面子は残っていないので、2 つの観点で違いは出ない。
+ */
+const groupRemainingTiles = (w: MutableCounts, type: Type): Groupings => {
+  let partials = 0;
+  let isolated = 0;
   let nTiles = 0;
 
   for (const [t, n] of forHand({ filterBy: [type] })) {
     nTiles += w.get(t, n);
     if (n <= 7 && w.get(t, n + 1) == 0 && w.get(t, n + 2) == 0) {
-      nSerialPairs += nTiles >> 1;
-      nIsolated += nTiles % 2;
+      partials += nTiles >> 1;
+      isolated += nTiles % 2;
       nTiles = 0;
     }
   }
 
-  nSerialPairs += nTiles >> 1;
-  nIsolated += nTiles % 2;
+  partials += nTiles >> 1;
+  isolated += nTiles % 2;
 
-  return {
-    patternA: [0, nSerialPairs, nIsolated],
-    patternB: [0, nSerialPairs, nIsolated],
-  };
+  const g: Grouping = { sets: 0, partials, isolated };
+  return { fewestIsolated: g, mostSets: g };
 };
 
-const standardShantenFrom = (
-  nSet: number,
-  nSerialPair: number,
-  nIsolated: number,
-  hasPair: boolean,
-) => {
-  let n = hasPair ? 4 : 5;
+/**
+ * 分け方からシャンテン数を出す。
+ * 手牌に置けるのは雀頭 1 つと 4 ブロックまでなので、溢れた分は下の種類へ落とす。
+ */
+const shantenOfGrouping = (g: Grouping, hasPair: boolean) => {
+  // 雀頭を別に確保しているなら残りは 4 ブロック、していないなら雀頭候補の分だけ 1 つ多く数える。
+  const maxBlocks = hasPair ? 4 : 5;
 
-  if (nSet > 4) {
-    nSerialPair += nSet - 4;
-    nSet = 4;
-  }
-  if (nSet + nSerialPair > 4) {
-    nIsolated += nSet + nSerialPair - 4;
-    nSerialPair = 4 - nSet;
-  }
-  if (nSet + nSerialPair + nIsolated > n) {
-    nIsolated = n - nSet - nSerialPair;
-  }
-  if (hasPair) nSerialPair++;
+  let { sets, partials, isolated } = g;
 
-  return 13 - nSet * 3 - nSerialPair * 2 - nIsolated;
+  if (sets > 4) {
+    partials += sets - 4;
+    sets = 4;
+  }
+  if (sets + partials > 4) {
+    isolated += sets + partials - 4;
+    partials = 4 - sets;
+  }
+  if (sets + partials + isolated > maxBlocks) {
+    isolated = maxBlocks - sets - partials;
+  }
+  if (hasPair) partials++;
+
+  return 13 - sets * 3 - partials * 2 - isolated;
 };
 
 /**
@@ -229,7 +279,7 @@ const standardShantenFrom = (
  * 計算のたびに手牌から枚数表の写しを取るので、手牌には触れない。
  */
 export class ShantenCalculator {
-  hand: Hand;
+  private readonly hand: Hand;
   constructor(hand: Hand) {
     this.hand = hand;
   }

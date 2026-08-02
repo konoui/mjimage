@@ -1,5 +1,4 @@
-import { BLOCK } from "../core";
-import { Block, Tile, compareTiles } from "../core/parser";
+import { BLOCK, Block, Tile, compareTiles } from "../core";
 
 /**
  * オペレータを無視したブロックの文字列を返す

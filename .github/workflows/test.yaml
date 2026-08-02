@@ -11,6 +11,8 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npm test
+      # 保存済みの対局を再生して、対局の進行が壊れていないことを確認する
+      - run: npm run e2e test
       # ライブラリとブラウザ配布物の両方がビルドできることを確認する
       - run: npm run build
       - run: npm run build:browser

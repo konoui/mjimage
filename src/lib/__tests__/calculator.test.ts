@@ -4,6 +4,8 @@ import {
   Hand,
   HandData,
   MutableCounts,
+  TileCounts,
+  cloneTileCounts,
   PointCalculator,
   BoardContext,
   WinResult,
@@ -11,30 +13,48 @@ import {
   allBlockCombinations,
   calcEffectiveTiles,
   getEffectiveTiles,
-  handleNumType,
+  combinationsOfNumType,
 } from "../calculator";
 import { TYPE, OP, Wind, WIND, ROUND } from "../core/constants";
-import { Parser, Tile } from "../core/parser";
+import { Block, Parser, Tile } from "../core";
 import { handsToString } from "./utils/helper";
 describe("Hand/基本操作", () => {
-  const getData = (h: Hand) => {
-    return (h as any).data as HandData;
+  /**
+   * 手牌の内部状態を素の値へ落としたもの。
+   * 枚数の持ち方（TileStore）に依存せず、値だけを比較するために使う。
+   */
+  interface HandSnapshot {
+    counts: TileCounts;
+    back: number;
+    called: readonly Block[];
+    tsumo: Tile | null;
+    reached: boolean;
+  }
+  const getData = (h: Hand): HandSnapshot => {
+    const d = (h as any).data as HandData;
+    return {
+      counts: cloneTileCounts(d.counts.tiles),
+      back: d.counts.back,
+      called: d.called,
+      tsumo: d.tsumo,
+      reached: d.reached,
+    };
   };
   test("init", () => {
     const c = new Hand("12234m123w1d, -123s, t2p");
-    const want: HandData = {
+    const want: HandSnapshot = {
       counts: {
         [TYPE.M]: [0, 1, 2, 1, 1, 0, 0, 0, 0, 0],
         [TYPE.S]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         [TYPE.P]: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
         [TYPE.Z]: [0, 1, 1, 1, 0, 1, 0, 0],
       },
-      backCount: 0,
+      back: 0,
       called: new Parser("-123s").parse(),
       reached: false,
       tsumo: new Tile(TYPE.P, 2, [OP.TSUMO]),
     };
-    expect((c as any).data).toStrictEqual(want);
+    expect(getData(c)).toStrictEqual(want);
   });
   // clone は直列化を挟まず data を複製する。晒したブロック・ツモ牌・リーチも
   // そのまま引き継ぎ、複製を打っても元の手牌は動かない。
@@ -53,14 +73,14 @@ describe("Hand/基本操作", () => {
   });
   test("operations", () => {
     const h = new Hand("122234m123w1d");
-    const want: HandData = {
+    const want: HandSnapshot = {
       counts: {
         [TYPE.M]: [0, 1, 3, 1, 1, 0, 0, 0, 0, 0],
         [TYPE.S]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         [TYPE.P]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         [TYPE.Z]: [0, 1, 1, 1, 0, 1, 0, 0],
       },
-      backCount: 0,
+      back: 0,
       called: [],
       reached: false,
       tsumo: null,
@@ -110,6 +130,26 @@ describe("Hand/基本操作", () => {
     const itiles = h.inc([new Tile(TYPE.M, 5, [OP.RED])]);
     h.dec(itiles);
     expect(h.toString()).toStrictEqual("4556m");
+  });
+  // 赤 5 の巻き戻しは TileStore に集約されている。対局中の手牌（Hand）からも
+  // 探索用の写し（MutableCounts）からも、同じ規則で赤が復元されること。
+  test("inc/dec/赤 5 の扱いが Hand と MutableCounts で揃う", () => {
+    const h = new Hand("406m"); // 4m r5m 6m
+    const w = MutableCounts.of(h);
+
+    // 探索用の写し: 5m を抜くと、赤が解決された r5m が渡る
+    const viaCounts = w.without([new Tile(TYPE.M, 5)], (removed) =>
+      removed.map((t) => t.toString()).join(""),
+    );
+    expect(viaCounts).toBe("r5m");
+    // without は抜き差しを対にするので、前後で内容は変わらない
+    expect(w.toString()).toBe("4r56m");
+
+    // 対局中の手牌: 同じ牌を渡すと同じ牌が返り、そのまま戻せる
+    const removed = h.dec([new Tile(TYPE.M, 5)]);
+    expect(removed.map((t) => t.toString()).join("")).toBe("r5m");
+    h.inc(removed);
+    expect(h.toString()).toBe("4r56m");
   });
   test("idempotency hand", () => {
     const input = "123m123s123p1z,t1z";
@@ -392,10 +432,10 @@ describe("Block Calculator2", () => {
   });
 });
 
-describe("handleNumType/allBlockCombinations", () => {
-  test("handleNumType()", () => {
+describe("combinationsOfNumType/allBlockCombinations", () => {
+  test("combinationsOfNumType()", () => {
     const h = new Hand("111222333456m");
-    const got = handleNumType(MutableCounts.of(h), TYPE.M);
+    const got = combinationsOfNumType(MutableCounts.of(h), TYPE.M);
     const want = [
       ["123m", "123m", "123m", "456m"],
       ["111m", "234m"],
@@ -683,6 +723,8 @@ describe("PointCalculator/yaku and fu", () => {
         doraIndicators: [new Tile(TYPE.M, 8)],
         myWind: tt.myWind ?? WIND.E,
         round: ROUND.E1,
+        // 点数移動は見ないので、あがり方は結果に影響しない
+        winBy: { type: "ron", from: WIND.S },
       };
       const dc = new PointCalculator(h, cfg);
       const hands = c.calc(tt.lastTile);
@@ -705,7 +747,7 @@ describe("PointCalculator/calc", () => {
       doraIndicators: [new Tile(TYPE.M, 8)],
       myWind: WIND.E,
       round: ROUND.E1,
-      ronWind: WIND.S,
+      winBy: { type: "tsumo" },
     };
     const dc = new PointCalculator(h, cfg);
     const hands = c.calc(lastTile);
@@ -723,7 +765,7 @@ describe("PointCalculator/calc", () => {
       doraIndicators: [new Tile(TYPE.M, 9)],
       myWind: WIND.E,
       round: ROUND.E1,
-      ronWind: WIND.S,
+      winBy: { type: "tsumo" },
     };
     const dc = new PointCalculator(h, cfg);
     const hands = c.calc(new Tile(TYPE.M, 3));
@@ -742,6 +784,7 @@ describe("PointCalculator/calc", () => {
       myWind: WIND.S,
       round: ROUND.E1,
       enableRoundUpMangan: true,
+      winBy: { type: "tsumo" },
     };
     const dc = new PointCalculator(h, cfg);
     const hands = c.calc(new Tile(TYPE.M, 3));
@@ -750,7 +793,7 @@ describe("PointCalculator/calc", () => {
     expect(!!got).toEqual(true);
     expect((got as WinResult).han).toBe(4);
     expect((got as WinResult).points).toBe(8000);
-    expect((got as WinResult).basePoints).toBe(8000);
+    expect((got as WinResult).pointsWithoutSticks).toBe(8000);
   });
   test("親の四暗刻単騎待ちのダブル役満", () => {
     const input = "111m222m333m444m22s";
@@ -760,7 +803,7 @@ describe("PointCalculator/calc", () => {
       doraIndicators: [new Tile(TYPE.M, 9)],
       myWind: WIND.E,
       round: ROUND.E1,
-      ronWind: WIND.S,
+      winBy: { type: "tsumo" },
     };
     let dc = new PointCalculator(h, cfg);
     const hands = c.calc(new Tile(TYPE.S, 2, [OP.TSUMO]));
@@ -780,6 +823,44 @@ describe("PointCalculator/calc", () => {
     expect((got2 as WinResult).points).toBe(48000);
     expect((got2 as WinResult).yakus[0].name).toBe("四暗刻");
   });
+  // あがり方は BoardContext で宣言し、手牌のあがり牌に付く印と一致している必要がある。
+  // 食い違ったまま点数移動を計算すると、誰が払うのかが静かにずれる。
+  test("あがり方の指定が手牌と食い違っていたら弾く", () => {
+    const input = "22m234p234s345s678s";
+    const h = new Hand(input);
+    const base = {
+      doraIndicators: [],
+      myWind: WIND.S,
+      round: ROUND.E1,
+    } as const;
+
+    // あがり牌に印がなく手牌にもツモ牌がない = ロン
+    const ronHands = new BlockCalculator(h).calc(new Tile(TYPE.S, 8));
+    expect(() =>
+      new PointCalculator(h, { ...base, winBy: { type: "tsumo" } }).calc(
+        ...ronHands,
+      ),
+    ).toThrow(/win type mismatch/);
+
+    // あがり牌に t が付いている = ツモ
+    const tsumoHands = new BlockCalculator(h).calc(
+      new Tile(TYPE.S, 8, [OP.TSUMO]),
+    );
+    expect(() =>
+      new PointCalculator(h, {
+        ...base,
+        winBy: { type: "ron", from: WIND.E },
+      }).calc(...tsumoHands),
+    ).toThrow(/win type mismatch/);
+
+    // 一致していれば通る
+    const got = new PointCalculator(h, {
+      ...base,
+      winBy: { type: "ron", from: WIND.E },
+    }).calc(...ronHands);
+    expect(got).not.toBe(false);
+  });
+
   test("1300-2600/リーチ棒と供託", () => {
     const input = "123s456s4r56m78m22m,t9m";
     const h = new Hand(input);
@@ -789,6 +870,7 @@ describe("PointCalculator/calc", () => {
       doraIndicators: [new Tile(TYPE.P, 9)],
       myWind: WIND.S,
       round: ROUND.E1,
+      winBy: { type: "tsumo" },
       sticks: {
         reach: 2,
         dead: 3,
@@ -802,6 +884,6 @@ describe("PointCalculator/calc", () => {
     const r = got as WinResult;
     expect(r.han).toBe(4);
     expect(r.points).toBe(5200 + 1000 * 2 + 300 * 3);
-    expect(r.basePoints).toBe(5200);
+    expect(r.pointsWithoutSticks).toBe(5200);
   });
 });

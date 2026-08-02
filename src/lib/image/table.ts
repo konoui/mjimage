@@ -42,6 +42,10 @@ const tableFont = (helper: ImageHelper): TableFont => {
 /**
  * 要素を [0,width]x[0,height] の矩形とみなして回転させる。
  * 回転後も同じ矩形を占めるよう平行移動を合わせる。
+ *
+ * 回転する場合に g を 2 段にするのは、G.translate が既存の平行移動を上書きするため。
+ * 内側で回転の辻褄合わせに使ってしまうと、呼び出し側が置き場所を決められなくなる。
+ * 回転しない場合はその必要がないので 1 段で返す。
  */
 const simpleRotate = (
   e: SvgNode,
@@ -49,21 +53,12 @@ const simpleRotate = (
   height: number,
   degree: 0 | 90 | 180 | 270,
 ) => {
-  const g = new G().add(e);
-  if (degree == 90) {
-    g.rotate(degree, 0, height).translate(0, -height);
-    return new G().add(g);
-  }
-  if (degree == 180) {
-    g.rotate(degree, 0, height).translate(width, -height);
-    return new G().add(g);
-  }
-  if (degree == 270) {
-    g.rotate(degree, 0, height).translate(height, width - height);
-    return new G().add(g);
-  }
+  if (degree == 0) return new G().add(e);
 
-  // 0
+  const g = new G().add(e);
+  if (degree == 90) g.rotate(degree, 0, height).translate(0, -height);
+  else if (degree == 180) g.rotate(degree, 0, height).translate(width, -height);
+  else g.rotate(degree, 0, height).translate(height, width - height);
   return new G().add(g);
 };
 
@@ -89,7 +84,7 @@ const createDiscardArea = (
     const posY = i * helper.tileHeight;
     width = Math.max(width, riverRowWidth(tiles, helper));
     const e = helper
-      .createBlockDiscard(new BlockOther(tiles, BLOCK.IMAGE_DISCARD))
+      .createBlockRow(new BlockOther(tiles, BLOCK.IMAGE_DISCARD))
       .translate(0, posY);
     g.add(e);
   }
@@ -146,10 +141,8 @@ const createStickAndDora = (
     .y(em)
     .attr({ "text-anchor": "middle" });
 
-  const stickGroupHeight = helper.tileHeight;
-  const stickGroup = new G()
-    .size(stickWidth, stickGroupHeight)
-    .translate(0, roundHeight);
+  // 供託棒とドラ表示牌をまとめて、局表示の下へ下げる。
+  const stickGroup = new G().translate(0, roundHeight);
 
   const stickFont = { family: font.family, size: font.size * 0.7 }; // FIXME STICK_CONTEXT.HEIGHT
   const stick1000 = helper
@@ -229,7 +222,7 @@ const layoutSeats = (
     along(le.width),
   );
 
-  const g = new G().size(sizeWidth, sizeWidth);
+  const g = new G();
   g.add(front);
   g.add(right);
   g.add(opposite);

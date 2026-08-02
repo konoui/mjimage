@@ -1,4 +1,4 @@
-import { Parser } from "../core/parser";
+import { Parser } from "../core";
 import { createHand, render, RenderOptions } from "../image";
 import { TILE_CONTEXT } from "../image/constants";
 
