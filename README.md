@@ -33,9 +33,6 @@
 
 ### 画像生成
 
-> [!NOTE]
-> 表示は svgo によりファイルのサイズを最適化しています。
-
 #### 例 1）
 
 ```
@@ -85,12 +82,6 @@ table:
 
 ![table](./example/output/table-example1.svg)
 
-`dora_indicators` は牌の記述をそのまま受け取るので、槓ドラのように複数のドラ表示牌を並べられます。指定した枚数だけ卓の中央に描かれ、中央の広さもそれに合わせて広がります。
-
-```yaml
-    dora_indicators: 1m2p3s4z0m
-```
-
 ## 牌画像
 
 [【保存版】商用無料の高クオリティーの麻雀画像の無料素材まとめ](https://majandofu.com/mahjong-images)
@@ -109,18 +100,6 @@ table:
 npm run build          # ライブラリを dist/ に生成する
 npm run build:browser  # ブラウザ向け global.js と牌画像を dist-browser/ に生成する
 npm run dev            # 開発サーバを起動する（http://localhost:5173/dev/）
+npm run examples       # README の example を再生成する
 npm test
-npm run deploy         # ブラウザ配布物をビルドし直して S3 に同期する
 ```
-
-構成:
-
-| パス | 内容 |
-| --- | --- |
-| `src/` | ライブラリ本体 |
-| `src/browser/` | `window.mjimage` を生やすブラウザ向けエントリ |
-| `public/svg`, `public/webp` | 配布する牌画像。`dist-browser/` にコピーされる |
-| `assets/png`, `assets/giff` | 牌画像の変換元。配布しない |
-| `dev/` | 開発用ページ |
-| `example/` | 配布する利用例 |
-| `src/cmd/` | CLI |

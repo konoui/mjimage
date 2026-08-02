@@ -19,6 +19,7 @@
         "e2e": "tsx src/e2e/index.ts",
         "svg-sprite": "svg-sprite -C svg-sprite.config.json -shape-transform-svgo svg-sprite.config.json public/svg/*.svg",
         "svgo": "./scripts/svgo.sh",
+        "examples": "./scripts/gen-examples.sh",
         "deploy": "npm run build:browser && ./scripts/sync.sh personal",
         "prepublishOnly": "npm update && npm run build",
         "cmd": "tsx src/cmd/index.ts"
