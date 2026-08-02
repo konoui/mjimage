@@ -28,7 +28,8 @@ export interface WallProps {
 }
 
 export class Wall {
-  private walls: WallProps = {
+  // テストの台本つき山（`__tests__/utils`）が並べ替えられるように protected。
+  protected walls: WallProps = {
     replacement: [],
     dead: [],
     doraIndicators: [],

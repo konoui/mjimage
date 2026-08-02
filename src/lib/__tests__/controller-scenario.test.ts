@@ -13,11 +13,12 @@ import { Tile } from "../core";
 import { OP, ROUND, WIND } from "../core/constants";
 import {
   createScenario,
-  MockWall,
+  MockPlayer,
   recordEvents,
   startNextRound,
   stepUntil,
 } from "./utils/controller";
+import { HARMLESS_DORA, ScriptedWall } from "./utils/wall";
 
 // 状態機械を通した多手数のシナリオで固定する回帰テスト。
 // controller-unit.test.ts が各モジュールを単体で見るのに対し、
@@ -35,15 +36,15 @@ import {
  * 1z（東家）が 111m を持って 1m を引き、暗槓する。
  */
 const anKanScenario = () => {
-  const s = createScenario();
-  const { c, wall } = s;
+  const s = createScenario({
+    wall: {
+      hands: { "1z": "111m456m789m12p33s" },
+      draws: ["1m"], // 1z の第一ツモ
+    },
+  });
+  const { c } = s;
   const [mp1] = s.players;
   const events = recordEvents(c);
-
-  wall.setDoraIndicators("7z", "6z");
-  wall.addExclude("1m");
-  wall.setInitialHand("1z", "111m456m789m12p33s");
-  wall.pushTile("1m"); // 1z の第一ツモ
 
   mp1.mDrawHandlers.push((e, p) => {
     if (!e.choices.AN_KAN) return false;
@@ -65,20 +66,22 @@ const anKanScenario = () => {
  * 1z（東家）が 2z の捨てた 1m をポンし、4 枚目の 1m を引いて加槓する。
  */
 const shoKanScenario = () => {
-  const s = createScenario();
-  const { c, wall } = s;
+  const s = createScenario({
+    wall: {
+      hands: { "1z": "11m456m789m123p33s" },
+      draws: [
+        "1z", // 1: 1z のツモ（誰も使えない牌）
+        "1m", // 2: 2z のツモ → ツモ切り → 1z がポン
+        "2z", // 3: 2z のツモ
+        "3z", // 4: 3z のツモ
+        "4z", // 5: 4z のツモ
+        "1m", // 6: 1z のツモ → 加槓
+      ],
+    },
+  });
+  const { c } = s;
   const [mp1] = s.players;
   const events = recordEvents(c);
-
-  wall.setDoraIndicators("7z", "6z");
-  wall.addExclude("1m", "1z", "2z", "3z", "4z");
-  wall.setInitialHand("1z", "11m456m789m123p33s");
-  wall.pushTile("1z"); // 1: 1z のツモ（誰も使えない牌）
-  wall.pushTile("1m"); // 2: 2z のツモ → ツモ切り → 1z がポン
-  wall.pushTile("2z"); // 3: 2z のツモ
-  wall.pushTile("3z"); // 4: 3z のツモ
-  wall.pushTile("4z"); // 5: 4z のツモ
-  wall.pushTile("1m"); // 6: 1z のツモ → 加槓
 
   mp1.mDiscardHandlers.push((e, p) => {
     if (!e.choices.PON) return false;
@@ -106,17 +109,19 @@ const shoKanScenario = () => {
  * 1z（東家）が 111m を持ち、2z の捨てた 1m を大明槓する。
  */
 const daiKanScenario = () => {
-  const s = createScenario();
-  const { c, wall } = s;
+  const s = createScenario({
+    wall: {
+      hands: { "1z": "111m456m789m12p33s" },
+      draws: [
+        "1z", // 1: 1z のツモ（誰も使えない牌）
+        "1m", // 2: 2z のツモ → ツモ切り → 1z が大明槓
+      ],
+      replacement: ["2z"], // 大明槓の嶺上牌
+    },
+  });
+  const { c } = s;
   const [mp1] = s.players;
   const events = recordEvents(c);
-
-  wall.setDoraIndicators("7z", "6z");
-  wall.addExclude("1m", "1z");
-  wall.setInitialHand("1z", "111m456m789m12p33s");
-  wall.pushTile("1z"); // 1: 1z のツモ（誰も使えない牌）
-  wall.pushTile("1m"); // 2: 2z のツモ → ツモ切り → 1z が大明槓
-  wall.pushReplacement("2z"); // 大明槓の嶺上牌
 
   mp1.mDiscardHandlers.push((e, p) => {
     if (!e.choices.DAI_KAN) return false;
@@ -132,6 +137,20 @@ const daiKanScenario = () => {
   stepUntil(c, () => c.river.discards(WIND.E).length >= 2);
   return { ...s, events: events };
 };
+
+/**
+ * その牌の捨て牌に対して回ってきた選択。
+ * 立直の宣言牌は横向き（"-1p"）で河に入るので、向きを外して比べる。
+ */
+const discardChoiceOf = (p: MockPlayer, tile: string) =>
+  p
+    .all("CHOICE_AFTER_DISCARDED")
+    .find(
+      (e) =>
+        Tile.from(e.discarterInfo.tile)
+          .clone({ remove: OP.HORIZONTAL })
+          .toString() == tile
+    );
 
 /** あるイベント以降の型の並び。カンドラをめくる契機を見るのに使う。 */
 const typesAfter = (
@@ -219,21 +238,29 @@ describe("C5/カンドラ", () => {
  * 1z は直前に見逃しているので、本来チャンカンでもロンできない。
  */
 const chanKanFuritenScenario = () => {
-  const s = createScenario();
-  const { c, wall } = s;
+  const s = createScenario({
+    wall: {
+      hands: {
+        "1z": "123m456m789m11p34s",
+        "3z": "22s123m456m789m1p2p",
+      },
+      draws: [
+        "1z", // 1: 1z のツモ
+        "2z", // 2: 2z のツモ
+        "3z", // 3: 3z のツモ
+        "2s", // 4: 4z のツモ → ツモ切り → 3z がポン
+        "4z", // 5: 4z のツモ
+        "5z", // 6: 1z のツモ（ここで 1z のフリテンが解除される）
+        "5s", // 7: 2z のツモ → ツモ切り → 1z は見逃してフリテンになる
+        "2s", // 8: 3z のツモ → 加槓
+      ],
+      // 1z の当たり牌（5s）が他家から出ると台本がずれるので、残りを場に出さない。
+      // 5s は素が 3 枚 + 赤 1 枚で、素の 1 枚は上のツモで使っている。
+      exclude: ["5s", "5s", "r5s"],
+    },
+  });
+  const { c } = s;
   const [mp1, , mp3] = s.players;
-
-  wall.addExclude("2s", "5s", "1z", "2z", "3z", "4z", "5z");
-  wall.setInitialHand("1z", "123m456m789m11p34s");
-  wall.setInitialHand("3z", "22s123m456m789m1p2p");
-  wall.pushTile("1z"); // 1: 1z のツモ
-  wall.pushTile("2z"); // 2: 2z のツモ
-  wall.pushTile("3z"); // 3: 3z のツモ
-  wall.pushTile("2s"); // 4: 4z のツモ → ツモ切り → 3z がポン
-  wall.pushTile("4z"); // 5: 4z のツモ
-  wall.pushTile("5z"); // 6: 1z のツモ（ここで 1z のフリテンが解除される）
-  wall.pushTile("5s"); // 7: 2z のツモ → ツモ切り → 1z は見逃してフリテンになる
-  wall.pushTile("2s"); // 8: 3z のツモ → 加槓
 
   mp3.mDiscardHandlers.push((e, p) => {
     if (!e.choices.PON) return false;
@@ -251,29 +278,16 @@ const chanKanFuritenScenario = () => {
     return true;
   });
 
-  // 5s の見逃しでフリテンになったか（controller の missingMap は覗けないので、
-  // ロンの選択肢が回ってきて、それを見逃したことで代用する）。
-  let missed = false;
-  mp1.mDiscardHandlers.push((e, p) => {
-    if (e.discarterInfo.tile != "5s") return false;
-    missed = !!e.choices.RON;
-    e.choices.RON = false;
-    p.eventHandler.emit(e);
-    return true;
-  });
-
-  // チャンカンで 1z に回ってきた選択肢
-  let chanKanRon: SerializedWinResult | false | "not-asked" = "not-asked";
-  mp1.mChanKanHandlers.push((e, p) => {
-    chanKanRon = e.choices.RON;
-    e.choices.RON = false;
-    p.eventHandler.emit(e);
-    return true;
-  });
-
+  // 1z は既定でロンを見逃す（doChankan / doReachRon を立てていない）ので、
+  // ハンドラは足さずに MockPlayer の控えから「何を聞かれたか」を読む。
   c.actor.start();
-  stepUntil(c, () => chanKanRon != "not-asked");
-  return { ...s, missed: () => missed, chanKanRon: () => chanKanRon };
+  stepUntil(c, () => mp1.got("CHOICE_FOR_CHAN_KAN"));
+  return {
+    ...s,
+    /** 5s の捨て牌でロンの選択肢が回ってきたか（見逃してフリテンになる） */
+    missed: () => !!discardChoiceOf(mp1, "5s")?.choices.RON,
+    chanKanRon: () => mp1.last("CHOICE_FOR_CHAN_KAN")?.choices.RON,
+  };
 };
 
 describe("C9/チャンカンのフリテン", () => {
@@ -300,14 +314,20 @@ describe("C9/チャンカンのフリテン", () => {
  * 1 度目を見逃した時点でフリテンになるので、2 度目は選択肢が無くなる。
  */
 const reachDeclarationMissScenario = () => {
-  const s = createScenario();
-  const { c, wall } = s;
+  const s = createScenario({
+    wall: {
+      hands: {
+        "1z": "123m456m789m123s1p",
+        "2z": "123m456m789m123s1z",
+      },
+      draws: [
+        "5z", // 1: 1z のツモ → ツモ切り
+        "1p", // 2: 2z のツモ → 1p を切って立直
+      ],
+    },
+  });
+  const { c } = s;
   const [mp1, mp2] = s.players;
-
-  wall.setInitialHand("1z", "123m456m789m123s1p");
-  wall.setInitialHand("2z", "123m456m789m123s1z");
-  wall.pushTile("5z"); // 1: 1z のツモ → ツモ切り
-  wall.pushTile("1p"); // 2: 2z のツモ → 1p を切って立直
 
   mp2.mDrawHandlers.push((e, p) => {
     if (!e.choices.REACH) return false;
@@ -316,34 +336,15 @@ const reachDeclarationMissScenario = () => {
     return true;
   });
 
-  // 立直の受け入れで回ってきたロン（見逃す）
-  let onAcceptance: SerializedWinResult | false | "not-asked" = "not-asked";
-  mp1.mReachAcceptanceHandlers.push((e, p) => {
-    onAcceptance = e.choices.RON;
-    e.choices.RON = false;
-    p.eventHandler.emit(e);
-    return true;
-  });
-  // 同じ宣言牌に対して、続けて回ってくる通常の選択
-  let afterDiscarded: SerializedWinResult | false | "not-asked" = "not-asked";
-  mp1.mDiscardHandlers.push((e, p) => {
-    // 立直の宣言牌は横向き（"-1p"）で河に入る
-    const discarded = Tile.from(e.discarterInfo.tile).clone({
-      remove: OP.HORIZONTAL,
-    });
-    if (discarded.toString() != "1p") return false;
-    afterDiscarded = e.choices.RON;
-    e.choices.RON = false;
-    p.eventHandler.emit(e);
-    return true;
-  });
-
+  // 1z は既定でロンを見逃す。何を聞かれたかは控えから読む。
   c.actor.start();
-  stepUntil(c, () => afterDiscarded != "not-asked");
+  stepUntil(c, () => discardChoiceOf(mp1, "1p") != null);
   return {
     ...s,
-    onAcceptance: () => onAcceptance,
-    afterDiscarded: () => afterDiscarded,
+    /** 立直の受け入れで回ってきたロン */
+    onAcceptance: () => mp1.last("CHOICE_FOR_REACH_ACCEPTANCE")?.choices.RON,
+    /** 同じ宣言牌に対して続けて回ってくる通常の選択 */
+    afterDiscarded: () => discardChoiceOf(mp1, "1p")?.choices.RON,
   };
 };
 
@@ -366,19 +367,21 @@ describe("C16/立直の宣言牌の見逃し", () => {
  * 鳴きが入れば一発は消えるので、その分だけ点数が下がる。
  */
 const ippatsuScenario = (params: { pon: boolean }) => {
-  const s = createScenario({ debug: false });
-  const { c, wall } = s;
+  const s = createScenario({
+    autoAdvance: true,
+    wall: {
+      hands: {
+        "1z": "123m456m789m123s1z",
+        ...(params.pon ? { "3z": "1z33p123456789s1m" } : {}),
+      },
+      draws: params.pon
+        ? ["5z", "3p"] // 1: 1z が立直 / 2: 2z のツモ → 3z がポンして 1z を切る
+        : ["5z", "1z"], // 1: 1z が立直 / 2: 2z が 1z をツモ切り → ロン
+    },
+  });
+  const { c } = s;
   const [mp1, , mp3] = s.players;
   const events = recordEvents(c);
-
-  wall.setInitialHand("1z", "123m456m789m123s1z");
-  wall.pushTile("5z"); // 1: 1z のツモ → ツモ切り立直
-  if (params.pon) {
-    wall.setInitialHand("3z", "1z33p123456789s1m");
-    wall.pushTile("3p"); // 2: 2z のツモ → ツモ切り → 3z がポンして 1z を切る
-  } else {
-    wall.pushTile("1z"); // 2: 2z のツモ → ツモ切り → 1z でロン
-  }
 
   // 立直は必ずツモ切り（切る牌で待ちが変わらないようにする）
   mp1.mDrawHandlers.push((e, p) => {
@@ -439,17 +442,22 @@ describe("C3/一発", () => {
 const tsumoScenario = (params?: {
   tamper?: (ret: SerializedWinResult) => void;
 }) => {
-  const s = createScenario({ debug: false });
-  const { c, wall } = s;
+  const s = createScenario({
+    autoAdvance: true,
+    wall: {
+      hands: { "1z": "123m456m789m123s1z" },
+      draws: [
+        "2z", // 1: 1z のツモ → ツモ切り
+        "3z", // 2: 2z のツモ
+        "4z", // 3: 3z のツモ
+        "5z", // 4: 4z のツモ
+        "1z", // 5: 1z のツモ → ツモ和了
+      ],
+    },
+  });
+  const { c } = s;
   const [mp1] = s.players;
   const events = recordEvents(c);
-
-  wall.setInitialHand("1z", "123m456m789m123s1z");
-  wall.pushTile("2z"); // 1: 1z のツモ → ツモ切り
-  wall.pushTile("3z"); // 2: 2z のツモ
-  wall.pushTile("4z"); // 3: 3z のツモ
-  wall.pushTile("5z"); // 4: 4z のツモ
-  wall.pushTile("1z"); // 5: 1z のツモ → ツモ和了
 
   mp1.mDrawHandlers.push((e, p) => {
     if (!e.choices.TSUMO) return false;
@@ -523,37 +531,30 @@ const twoRoundsScenario = () => {
   const { c } = s;
   const [mp1] = s.players;
 
-  const wall2 = new MockWall({ rand: createSeededRand(20260802) });
-  wall2.addExclude("5z");
-  wall2.setInitialHand("1z", "19m19p19s1234567z");
-  wall2.pushTile("5z");
-
-  let nineTerminals: boolean | "not-asked" = "not-asked";
-  mp1.mDrawHandlers.unshift((e, p) => {
-    if (nineTerminals != "not-asked") return false;
-    nineTerminals = e.choices.DRAWN_GAME_BY_NINE_TERMINALS;
-    e.choices.DRAWN_GAME_BY_NINE_TERMINALS = false;
-    e.choices.TSUMO = false;
-    e.choices.REACH = false;
-    e.choices.AN_KAN = false;
-    e.choices.SHO_KAN = false;
-    p.eventHandler.emit(e);
-    return true;
+  const wall2 = new ScriptedWall({
+    hands: { "1z": "19m19p19s1234567z" },
+    draws: ["5z"],
+    doraIndicators: HARMLESS_DORA,
+    rand: createSeededRand(20260802),
   });
 
-  // 2 局目は最初のツモまで見れば足りる。最後まで回すと、除外牌だらけの
-  // 台本つきの山ではツモれる牌が尽きてしまう。
-  c.debugMode = true;
+  // 2 局目は最初のツモまで見れば足りる
+  mp1.clearReceived(); // 1 局目の控えと混ざらないように
+  c.autoAdvance = false;
   startNextRound(c, wall2);
   c.actor.start();
-  stepUntil(c, () => nineTerminals != "not-asked");
-  return { ...s, nineTerminals: () => nineTerminals };
+  stepUntil(c, () => mp1.got("CHOICE_AFTER_DRAWN"));
+  return {
+    ...s,
+    nineTerminals: () =>
+      mp1.last("CHOICE_AFTER_DRAWN")?.choices.DRAWN_GAME_BY_NINE_TERMINALS,
+  };
 };
 
 describe("C1/局をまたいだ河", () => {
   test("台本どおり 2 局目の東家に九種九牌の配牌が渡る", () => {
     const sc = twoRoundsScenario();
-    expect(sc.nineTerminals()).not.toBe("not-asked");
+    expect(sc.nineTerminals()).not.toBeUndefined();
     expect(sc.c.placeManager.playerID(WIND.E)).toBe("player-1"); // 連荘で親は変わらない
   });
 

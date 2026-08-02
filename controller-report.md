@@ -930,10 +930,38 @@ controller の既存テストは `src/lib/__tests__/controller.test.ts` の 22 �
 | `controller-unit.test.ts` | controller 配下の各モジュールの単体の性質（61 件 + 既知バグ 1 件） |
 | `controller-scenario.test.ts` | 状態機械を通さないと現れない性質（16 件 + 既知バグ 4 件） |
 
-台本つきの対局を組み立てる道具は `src/lib/__tests__/utils/controller.ts` にまとめてある
-（`MockPlayer` / `MockWall` / `createScenario` / `stepUntil` / `startNextRound` /
-`recordEvents`）。`controller.test.ts` に直接書かれていた `MockPlayer` / `MockWall` は
-ここへ移した。
+台本つきの対局を組み立てる道具は `src/lib/__tests__/utils/` にある。
+
+| | 中身 |
+|---|---|
+| `wall.ts` | `buildWall`（台本から `WallProps` を組み立てる）/ `ScriptedWall` / `HARMLESS_DORA` |
+| `controller.ts` | `MockPlayer` / `createScenario` / `stepUntil` / `startNextRound` / `recordEvents` |
+
+山は「振る舞いを上書きする」のをやめ、**136 枚の並びを台本どおりに作って本物の `Wall` に渡す**形にした。
+
+```ts
+const { c, wall, players } = createScenario({
+  wall: {
+    hands: { "1z": "111m456m789m12p33s" }, // 13 枚に満たない分は残りから配る
+    draws: ["1m"],                          // 配牌のあとのツモ順
+    replacement: ["2z"],                    // 嶺上牌
+    exclude: ["5s", "5s", "r5s"],           // 場に出したくない牌は王牌に沈める
+  },
+});
+```
+
+- 台本で使う牌を先に山から取り除くので、指定しなかった家に同じ牌が混ざらない
+  （以前の `addExclude`＝引くときに避ける方式が要らなくなった）
+- ツモ・カン・ドラ表示牌・王牌の扱いが本物のままなので、**局を最後まで回せる**
+  （以前は山の終盤で「除外していない牌が無い」と落ちた）
+- 進行を見ながら差し込みたいときだけ `wall.injectNextDraw(t)`。
+  山（無ければ王牌）から該当の牌を次のツモ位置へ動かすだけなので、枚数は変わらない
+
+`MockPlayer` は受け取った選択イベントを控える（`got` / `last` / `all` / `clearReceived`）。
+「何を聞かれたか」を確かめるのに、テストごとにハンドラと捕捉用の変数を書く必要がなくなった。
+
+`Controller.debugMode` は `autoAdvance` に改めた（ログではなく自動進行の制御なので）。
+`debug` は非推奨の別名として残してある。
 
 | 対象 | 固定した性質 |
 |---|---|
