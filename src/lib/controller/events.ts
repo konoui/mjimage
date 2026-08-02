@@ -95,7 +95,8 @@ export interface DiscardEvent {
 export interface DrawEvent {
   id: string;
   type: Extract<Event, "DRAW">;
-  subtype?: "kan";
+  /** カンの後の嶺上牌なら "kan"。EndEvent.subType と大文字小文字を揃えてある。 */
+  subType?: "kan";
   iam: Wind;
   wind: Wind;
   tile: string;
@@ -248,11 +249,20 @@ function prioritizeEvents<T extends ChoiceType>(
   return highestPriorityIndices;
 }
 
+/**
+ * その選択肢を実際に選べるか。
+ * 候補の一覧は配列で表すが、JS では `[]` も truthy なので、
+ * 候補 0 件を「選べる」と判定しないよう長さまで見る。
+ */
+function selectable(v: unknown): boolean {
+  return Array.isArray(v) ? v.length > 0 : !!v;
+}
+
 function hasChoices<T extends ChoiceType>(
   choice: T,
   order: ChoiceOrder<T>
 ): boolean {
-  return order.some((v) => !!choice[v]);
+  return order.some((v) => selectable(choice[v]));
 }
 
 function calculatePriority<T extends ChoiceType>(
@@ -261,7 +271,7 @@ function calculatePriority<T extends ChoiceType>(
 ): number {
   for (let i = 0; i < order.length; i++) {
     const key = order[i];
-    if (!!choice[key]) return i; // Higher priority
+    if (selectable(choice[key])) return i; // Higher priority
   }
   return Number.POSITIVE_INFINITY; // Same priority
 }
@@ -269,7 +279,7 @@ function calculatePriority<T extends ChoiceType>(
 function priorityIndex<T extends ChoiceType>(order: ChoiceOrder<T>, choice: T) {
   if (choice == null) return false;
   for (const key of order) {
-    if (!!choice[key]) return key;
+    if (selectable(choice[key])) return key;
   }
   return false;
 }

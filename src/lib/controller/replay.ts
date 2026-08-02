@@ -1,5 +1,6 @@
 import { assert } from "../assert";
-import { Controller, RoundHistory } from "./controller";
+import { Controller } from "./controller";
+import { RoundHistory } from "./history";
 
 export class Replayer {
   index = 0;
@@ -13,7 +14,7 @@ export class Replayer {
   }
   prev() {
     this.index--;
-    assert(this.index < 0);
+    assert(this.index >= 0);
   }
   start() {
     const c = Controller.load(this.histories[this.index]);

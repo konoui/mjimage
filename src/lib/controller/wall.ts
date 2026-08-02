@@ -1,6 +1,6 @@
 import { OP, TYPE, WIND } from "../core/constants";
 import { Tile, createWindMap } from "../core";
-import { shuffle } from "./managers";
+import { Rand, shuffle } from "./managers";
 
 export interface IWall {
   kan(): Tile;
@@ -37,7 +37,10 @@ export class Wall {
   };
   private backup: WallProps;
   private openedDoraCount = 1;
-  constructor(backup?: WallProps) {
+  /** 山のシャッフルに使う乱数。テストで山を固定するために差し替えられる。 */
+  private rand: Rand;
+  constructor(backup?: WallProps, params?: { rand?: Rand }) {
+    this.rand = params?.rand ?? Math.random;
     this.init(backup);
     this.backup = Wall.clone(this.walls);
   }
@@ -49,7 +52,8 @@ export class Wall {
     return Tile.from(t);
   }
   draw() {
-    if (!this.walls.drawable) throw new Error("cannot draw any more");
+    if (this.walls.drawable.length == 0)
+      throw new Error("cannot draw any more");
     return Tile.from(this.walls.drawable.pop()!);
   }
 
@@ -107,7 +111,7 @@ export class Wall {
           }
         }
       }
-      shuffle(this.walls.drawable);
+      shuffle(this.walls.drawable, this.rand);
     }
 
     for (let i = 0; i < 14; i++) {

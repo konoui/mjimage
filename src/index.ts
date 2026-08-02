@@ -80,16 +80,12 @@ export type {
 } from "./lib/calculator/efficiency";
 
 // 対局の進行。
-export {
-  Controller,
-  ActorHand,
-  BaseActor,
-  Observer,
-} from "./lib/controller/controller";
-export type {
-  RoundHistory,
-  PlayerSession,
-} from "./lib/controller/controller";
+export { Controller } from "./lib/controller/controller";
+export { consoleLogger, silentLogger } from "./lib/controller/logger";
+export type { Logger } from "./lib/controller/logger";
+export type { PlayerSession } from "./lib/controller/controller";
+export { ActorHand, BaseActor, Observer } from "./lib/controller/actor";
+export type { RoundHistory } from "./lib/controller/history";
 export { createLocalGame } from "./lib/controller/game";
 export { Player } from "./lib/controller/player";
 export { Replayer } from "./lib/controller/replay";

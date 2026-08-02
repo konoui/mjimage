@@ -15,8 +15,9 @@ export class ScoreManager {
   constructor(initial: { readonly [id: string]: number }) {
     this.m = structuredClone(initial);
   }
+  /** 呼び出し側と内部の可変オブジェクトを共有しないよう、写しを返す。 */
   get summary(): { readonly [id: string]: number } {
-    return this.m;
+    return { ...this.m };
   }
   reach(id: string) {
     this.m[id] -= this.reachValue;
@@ -52,8 +53,9 @@ export class PlaceManager {
       this.windToPlayer[this.playerToWind[playerID]] = playerID;
   }
 
+  /** 呼び出し側と内部の可変オブジェクトを共有しないよう、写しを返す。 */
   get sticks(): { readonly reach: number; readonly dead: number } {
-    return this._sticks;
+    return { ...this._sticks };
   }
 
   get round() {
@@ -93,17 +95,38 @@ export class PlaceManager {
   playerID(w: Wind) {
     return this.windToPlayer[w];
   }
+  /** 呼び出し側と内部の可変オブジェクトを共有しないよう、写しを返す。 */
   get playerMap(): { readonly [id: string]: Wind } {
-    return this.playerToWind;
+    return { ...this.playerToWind };
   }
 }
 
-export function shuffle<T>(array: T[]) {
+/**
+ * 0 以上 1 未満の値を返す乱数。既定は Math.random。
+ * 差し替えられるようにしてあるのは、テストで山と席順を固定するため。
+ */
+export type Rand = () => number;
+
+export function shuffle<T>(array: T[], rand: Rand = Math.random) {
   for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rand() * (i + 1));
     [array[i], array[j]] = [array[j], array[i]];
   }
   return array;
+}
+
+/**
+ * 種から決まった列を返す乱数（mulberry32）。同じ種なら常に同じ順になるので、
+ * 失敗したテストをそのまま再現できる。
+ */
+export function createSeededRand(seed: number): Rand {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
 /**

@@ -14,8 +14,9 @@ import {
   prioritizeDrawnEvents,
   type ChoiceAfterDiscardedEvent,
   type ChoiceAfterDrawnEvent,
+  silentLogger,
 } from "../controller";
-import { Tile } from "../core";
+import { Tile, createWindMap } from "../core";
 import { OP, ROUND, TYPE, WIND, Wind } from "../core/constants";
 
 // controller のリファクタリング用の回帰テスト。
@@ -97,7 +98,13 @@ describe("events/優先順位", () => {
   test("ツモ番の優先順位は TSUMO > REACH > AN_KAN > SHO_KAN > 九種九牌 > DISCARD", () => {
     const order = [
       ["TSUMO", drawnChoice(WIND.E, { TSUMO: {} as never, DISCARD: ["1m"] })],
-      ["REACH", drawnChoice(WIND.E, { REACH: [] as never, DISCARD: ["1m"] })],
+      [
+        "REACH",
+        drawnChoice(WIND.E, {
+          REACH: [{ tile: "1m" }] as never,
+          DISCARD: ["1m"],
+        }),
+      ],
       ["AN_KAN", drawnChoice(WIND.E, { AN_KAN: anyBlock, DISCARD: ["1m"] })],
       ["SHO_KAN", drawnChoice(WIND.E, { SHO_KAN: anyBlock, DISCARD: ["1m"] })],
       [
@@ -115,15 +122,18 @@ describe("events/優先順位", () => {
       );
   });
 
-  test("空配列の選択肢も「選べる」と見なされる（C13）", () => {
-    // hasChoices / calculatePriority は truthy 判定で、JS では [] は truthy。
-    // このため候補 0 件の REACH が DISCARD より優先され、
-    // pollReplies の `candidates[0].tile` が undefined 参照で落ちる。
-    // 直したら DISCARD が選ばれるはずなので、期待値を書き換えること。
+  test("候補 0 件の選択肢は選ばれない（C13）", () => {
+    // JS では [] が truthy なので、以前は候補 0 件の REACH が DISCARD より
+    // 優先され、pollReplies の `candidates[0].tile` が undefined 参照で落ちていた。
     const got = prioritizeDrawnEvents([
       drawnChoice(WIND.E, { REACH: [], DISCARD: ["1m"] }),
     ]);
-    expect(got.type).toBe("REACH");
+    expect(got.type).toBe("DISCARD");
+
+    // 候補が 1 件でも無ければ「選択肢なし」
+    expect(
+      prioritizeDiscardedEvents([discardChoice(WIND.E, { PON: [] as never })])
+    ).toStrictEqual({ events: [], type: false });
   });
 });
 
@@ -152,6 +162,12 @@ describe("managers/ScoreManager", () => {
     const initial = { a: 25000 };
     const s = new ScoreManager(initial);
     initial.a = 0;
+    expect(s.summary.a).toBe(25000);
+  });
+
+  test("summary は写しを返す（C21）", () => {
+    const s = new ScoreManager({ a: 25000 });
+    (s.summary as { a: number }).a = 0;
     expect(s.summary.a).toBe(25000);
   });
 });
@@ -207,6 +223,14 @@ describe("managers/PlaceManager", () => {
     expect(pm.sticks).toStrictEqual({ reach: 1, dead: 0 });
     pm.resetReachStick();
     expect(pm.sticks).toStrictEqual({ reach: 0, dead: 0 });
+  });
+
+  test("sticks と playerMap は写しを返す（C21）", () => {
+    const pm = newPM();
+    (pm.sticks as { reach: number }).reach = 99;
+    expect(pm.sticks).toStrictEqual({ reach: 0, dead: 0 });
+    (pm.playerMap as { a: Wind }).a = WIND.N;
+    expect(pm.playerMap.a).toBe(WIND.E);
   });
 
   test("is は現在の局と比較する", () => {
@@ -420,7 +444,7 @@ describe("ActorHand", () => {
 
 describe("controller/鳴きの可否", () => {
   const withHand = (w: Wind, hand: string) => {
-    const { c } = createLocalGame();
+    const { c } = createLocalGame({ logger: silentLogger });
     c.observer.hands[w] = new ActorHand(hand);
     return c;
   };
@@ -482,7 +506,7 @@ describe("controller/鳴きの可否", () => {
 
 describe("controller/打牌候補", () => {
   test("リーチ後はツモ切りのみ", () => {
-    const { c } = createLocalGame();
+    const { c } = createLocalGame({ logger: silentLogger });
     c.observer.hands[WIND.E] = new ActorHand("123m456m789m123s1z");
     const hand = c.hand(WIND.E);
     hand.reach();
@@ -491,7 +515,7 @@ describe("controller/打牌候補", () => {
   });
 
   test("ポンした牌と同じ牌は切れない（喰い替え）", () => {
-    const { c } = createLocalGame();
+    const { c } = createLocalGame({ logger: silentLogger });
     c.observer.hands[WIND.E] = new ActorHand("133m5p");
     const pon = c.doPon(WIND.E, WIND.S, new Tile(TYPE.M, 3));
     expect(pon).not.toBe(false);
@@ -504,7 +528,7 @@ describe("controller/打牌候補", () => {
   });
 
   test("チーの喰い替えは現物と筋牌の両方が切れない", () => {
-    const { c } = createLocalGame();
+    const { c } = createLocalGame({ logger: silentLogger });
     c.observer.hands[WIND.E] = new ActorHand("1234m5p");
     const chi = c.doChi(WIND.E, WIND.N, new Tile(TYPE.M, 1));
     expect(chi).not.toBe(false);
@@ -519,27 +543,27 @@ describe("controller/打牌候補", () => {
 
 describe("controller/九種九牌", () => {
   test("ちょうど 9 種で宣言できる", () => {
-    const { c } = createLocalGame();
+    const { c } = createLocalGame({ logger: silentLogger });
     // 1m 9m 1p 9p 1s 9s 1z 2z 3z = 9 種
     c.observer.hands[WIND.E] = new ActorHand("19m123459p19s123z");
     expect(c.canDeclareNineTerminalsAbort(WIND.E)).toBe(true);
   });
 
   test("8 種では宣言できない", () => {
-    const { c } = createLocalGame();
+    const { c } = createLocalGame({ logger: silentLogger });
     // 1m 9m 1p 9p 1s 1z 2z 3z = 8 種
     c.observer.hands[WIND.E] = new ActorHand("19m19p145566s123z");
     expect(c.canDeclareNineTerminalsAbort(WIND.E)).toBe(false);
   });
 
   test("同じ牌を複数持っていても 1 種として数える", () => {
-    const { c } = createLocalGame();
+    const { c } = createLocalGame({ logger: silentLogger });
     c.observer.hands[WIND.E] = new ActorHand("1111m1111p19s123z");
     expect(c.canDeclareNineTerminalsAbort(WIND.E)).toBe(false);
   });
 
   test("自分の捨て牌があると宣言できない", () => {
-    const { c } = createLocalGame();
+    const { c } = createLocalGame({ logger: silentLogger });
     c.observer.hands[WIND.E] = new ActorHand("19m19p19s1234z5z");
     c.river.discard(new Tile(TYPE.M, 1), WIND.E);
     expect(c.canDeclareNineTerminalsAbort(WIND.E)).toBe(false);
@@ -548,7 +572,7 @@ describe("controller/九種九牌", () => {
 
 describe("controller/リーチ", () => {
   test("テンパイかつ門前ならリーチできる", () => {
-    const { c } = createLocalGame();
+    const { c } = createLocalGame({ logger: silentLogger });
     c.observer.hands[WIND.E] = new ActorHand("123m456m789m123s1z");
     const got = c.doReach(WIND.E);
     expect(got).not.toBe(false);
@@ -558,13 +582,13 @@ describe("controller/リーチ", () => {
   });
 
   test("鳴いているとリーチできない", () => {
-    const { c } = createLocalGame();
+    const { c } = createLocalGame({ logger: silentLogger });
     c.observer.hands[WIND.E] = new ActorHand("123m456m123s1z,-789m");
     expect(c.doReach(WIND.E)).toBe(false);
   });
 
   test("テンパイしていないとリーチできない", () => {
-    const { c } = createLocalGame();
+    const { c } = createLocalGame({ logger: silentLogger });
     c.observer.hands[WIND.E] = new ActorHand("123m456m789m135s1z");
     expect(c.doReach(WIND.E)).toBe(false);
   });
@@ -572,7 +596,7 @@ describe("controller/リーチ", () => {
 
 describe("controller/1 局を通す", () => {
   test("局は必ず終局し、点数の合計は保存される", () => {
-    const { c } = createLocalGame({ shuffle: false });
+    const { c } = createLocalGame({ shuffle: false, logger: silentLogger });
     c.start();
     expect(c.actor.getSnapshot().status).toBe("done");
     const sum = Object.values(c.scoreManager.summary).reduce((a, b) => a + b, 0);
@@ -581,11 +605,22 @@ describe("controller/1 局を通す", () => {
   });
 
   test("局の履歴が 1 件残り、山を含む再開情報を持つ", () => {
-    const { c } = createLocalGame({ shuffle: false });
+    const { c } = createLocalGame({ shuffle: false, seed: 20260801, logger: silentLogger });
     c.start();
     const h = c.export();
     expect(h).toHaveLength(1);
     expect(h[0].round).toBe(ROUND.E1);
+    // 記録するのは「局を始める直前」の値。
+    // getter が内部の可変オブジェクトを返していたころも、DISTRIBUTE のたびに
+    // manager 自体が作り直されるおかげで結果的に守られていた（C21 の「偶然」）。
+    expect(h[0].scores).toStrictEqual({
+      "player-1": 25000,
+      "player-2": 25000,
+      "player-3": 25000,
+      "player-4": 25000,
+    });
+    expect(h[0].sticks).toStrictEqual({ reach: 0, dead: 0 });
+    expect(c.scoreManager.summary).not.toStrictEqual(h[0].scores); // この局で点数は動く
     expect(Object.keys(h[0].players)).toHaveLength(4);
     const w = h[0].wall;
     expect(
@@ -598,7 +633,7 @@ describe("controller/1 局を通す", () => {
   });
 
   test("履歴からロードすると同じ局が同じ結果で再現される", () => {
-    const { c } = createLocalGame({ shuffle: false });
+    const { c } = createLocalGame({ shuffle: false, logger: silentLogger });
     c.start();
     const before = { ...c.scoreManager.summary };
 
@@ -608,91 +643,151 @@ describe("controller/1 局を通す", () => {
   });
 });
 
-// ここから下は controller-report.md に挙げた確認済みのバグ。
-// 現状は「期待どおりに動かない」ことを test.fails で固定してある。
-// 修正するとこのテストが失敗に転じるので、通常の test に書き換えること。
-describe("既知のバグ", () => {
-  test("C2: 鳴いた牌の位置は東家からは正しい", () => {
-    const { c } = createLocalGame();
-    const pon = (by: Wind) => {
-      c.observer.hands[WIND.E] = new ActorHand("333m");
-      return c.doPon(WIND.E, by, new Tile(TYPE.M, 3)).toString();
-    };
-    expect(pon(WIND.N)).toBe("-333m"); // 上家 → 左端
-    expect(pon(WIND.W)).toBe("3-33m"); // 対面 → 中央
-    expect(pon(WIND.S)).toBe("33-3m"); // 下家 → 右端
+describe("controller/鳴き牌の位置", () => {
+  const pon = (caller: Wind, by: Wind) => {
+    const { c } = createLocalGame({ logger: silentLogger });
+    c.observer.hands[caller] = new ActorHand("333m");
+    return c.doPon(caller, by, new Tile(TYPE.M, 3)).toString();
+  };
+  const daiKan = (caller: Wind, by: Wind) => {
+    const { c } = createLocalGame({ logger: silentLogger });
+    c.observer.hands[caller] = new ActorHand("333m");
+    return c.doDaiKan(caller, by, new Tile(TYPE.M, 3)).toString();
+  };
+
+  test("ポンは上家から左端・対面から中央・下家から右端（C2）", () => {
+    // 東家だけは方角の差の絶対値でも偶然一致するので、他の家も見る。
+    expect([pon(WIND.E, WIND.N), pon(WIND.E, WIND.W), pon(WIND.E, WIND.S)])
+      .toStrictEqual(["-333m", "3-33m", "33-3m"]);
+    expect([pon(WIND.S, WIND.E), pon(WIND.S, WIND.N), pon(WIND.S, WIND.W)])
+      .toStrictEqual(["-333m", "3-33m", "33-3m"]);
+    expect([pon(WIND.N, WIND.W), pon(WIND.N, WIND.S), pon(WIND.N, WIND.E)])
+      .toStrictEqual(["-333m", "3-33m", "33-3m"]);
   });
 
-  test.fails("C2: 南家が上家（東家）からポンすると鳴き牌は左端になるべき", () => {
-    const { c } = createLocalGame();
+  test("大明槓は上家から左端・対面から 3 枚目・下家から右端（C2）", () => {
+    expect([
+      daiKan(WIND.E, WIND.N),
+      daiKan(WIND.E, WIND.W),
+      daiKan(WIND.E, WIND.S),
+    ]).toStrictEqual(["-3333m", "33-33m", "333-3m"]);
+    expect([
+      daiKan(WIND.N, WIND.W),
+      daiKan(WIND.N, WIND.S),
+      daiKan(WIND.N, WIND.E),
+    ]).toStrictEqual(["-3333m", "33-33m", "333-3m"]);
+  });
+
+  test("自分の捨て牌は鳴けない", () => {
+    const { c } = createLocalGame({ logger: silentLogger });
     c.observer.hands[WIND.S] = new ActorHand("333m");
-    // getCallBlockIndex が方角の差を Math.abs で見ているため、
-    // 上家（距離 -1）と下家（距離 +1）が区別できず右端になる
-    expect(c.doPon(WIND.S, WIND.E, new Tile(TYPE.M, 3)).toString()).toBe(
-      "-333m"
-    );
+    expect(c.doPon(WIND.S, WIND.S, new Tile(TYPE.M, 3))).toBe(false);
   });
+});
 
-  test.fails("C2: 北家が下家（東家）から大明槓すると鳴き牌は右端になるべき", () => {
-    const { c } = createLocalGame();
-    c.observer.hands[WIND.N] = new ActorHand("333m");
-    expect(c.doDaiKan(WIND.N, WIND.E, new Tile(TYPE.M, 3)).toString()).toBe(
-      "333-3m"
-    );
-  });
-
-  test.fails("C1: 次局の開始時に河はリセットされるべき", () => {
-    const { c } = createLocalGame({ shuffle: false });
-    c.start();
-    expect(c.river.discards().length).toBeGreaterThan(0);
-    // startGame が次局のために行っているリセット（controller.ts:420-424 相当）
-    c.wall = new Wall();
-    c.observer.applied = {};
-    c.mailBox = {};
-    // 河が残るため 2 局目以降はフリテン・ダブルリーチ・四風連打・
-    // 九種九牌の判定がすべて 1 局目の捨て牌に引きずられる
+describe("controller/局の初期化", () => {
+  test("DISTRIBUTE で河がリセットされる（C1）", () => {
+    // 河が残ると 2 局目以降はフリテン・ダブルリーチ・四風連打・
+    // 九種九牌の判定がすべて前の局の捨て牌に引きずられる。
+    const { c } = createLocalGame({ logger: silentLogger });
+    c.river.discard(new Tile(TYPE.M, 1), WIND.E);
+    c.observer.handleEvent({
+      id: "0",
+      type: "DISTRIBUTE",
+      wind: WIND.E,
+      hands: createWindMap(() => "_____________"),
+      doraIndicator: "1m",
+      players: [],
+      places: {},
+      sticks: { reach: 0, dead: 0 },
+      round: ROUND.E1,
+      scores: {},
+    });
     expect(c.river.discards()).toStrictEqual([]);
+    expect(c.river.discards(WIND.E)).toStrictEqual([]);
   });
+});
 
-  test.fails("C3: 状態機械が参照するアクションはすべて実装されているべき", () => {
-    const { c } = createLocalGame();
+describe("state-machine", () => {
+  test("参照しているアクションはすべて実装されている（C3）", () => {
+    // xstate は未実装のアクション名を例外にせず黙って無視するので、
+    // 綴り誤り（poned の "disable_none_shot"）が実行時まで表に出なかった。
+    // setup() に移してからは同じ誤りがコンパイルで止まる（L7）。
+    // このテストは、config を動的に組み立てるようになった場合の保険として残す。
+    const { c } = createLocalGame({ logger: silentLogger });
     const machine = createControllerMachine(c) as unknown as {
       config: { states: Record<string, Record<string, unknown>> };
       implementations: { actions: Record<string, unknown> };
     };
     const implemented = new Set(Object.keys(machine.implementations.actions));
-    const referenced = new Set<string>();
-    const walk = (v: unknown) => {
-      if (Array.isArray(v)) return v.forEach(walk);
-      if (v == null || typeof v != "object") return;
-      const o = v as Record<string, unknown>;
-      if (typeof o.type == "string" && "type" in o && Object.keys(o).length <= 2)
-        referenced.add(o.type);
-      Object.values(o).forEach(walk);
-    };
-    for (const s of Object.values(machine.config.states))
-      for (const key of ["entry", "exit", "on", "always"]) walk(s[key]);
 
-    // poned が "disable_none_shot"（one の綴り誤り）を参照している。
-    // xstate は未実装のアクション名を黙って無視するため、
-    // ポンで一発が消えない。
+    const referenced = new Set<string>();
+    // アクションは文字列か { type } か、その配列。guard も同じ形なので
+    // entry / exit と、遷移の actions だけを見る。
+    const collect = (v: unknown) => {
+      if (Array.isArray(v)) return v.forEach(collect);
+      if (typeof v == "string") return void referenced.add(v);
+      const type = (v as { type?: unknown } | null)?.type;
+      if (typeof type == "string") referenced.add(type);
+    };
+    const collectTransitions = (v: unknown) => {
+      if (v == null) return;
+      const transitions = Array.isArray(v) ? v : [v];
+      for (const t of transitions)
+        collect((t as { actions?: unknown } | null)?.actions);
+    };
+    for (const s of Object.values(machine.config.states)) {
+      collect(s.entry);
+      collect(s.exit);
+      collectTransitions(s.always);
+      for (const t of Object.values((s.on ?? {}) as Record<string, unknown>))
+        collectTransitions(t);
+    }
+
+    expect(referenced.size).toBeGreaterThan(0); // 走査自体が空振りしていないこと
     expect([...referenced].filter((r) => !implemented.has(r))).toStrictEqual([]);
   });
 
-  test.fails("C12: 山が尽きたら draw は専用のエラーを投げるべき", () => {
+  test("context は直列化できる（C18）", () => {
+    // Controller やイベント ID の採番（クロージャ）が context に入っていると
+    // 循環参照で JSON にできず、スナップショットを保存・復元できない。
+    const { c } = createLocalGame({ debug: true, shuffle: false, seed: 1, logger: silentLogger });
+    c.actor.start();
+    c.next(true);
+    c.next(true);
+
+    const context = (c.actor.getPersistedSnapshot() as unknown as { context: unknown })
+      .context;
+    expect(Object.keys(context as object).sort()).toStrictEqual([
+      "currentWind",
+      "missingMap",
+      "oneShotMap",
+      "pendingNewDora",
+    ]);
+    // 素のデータだけであること（往復して同じなら関数や循環参照は無い）
+    expect(JSON.parse(JSON.stringify(context))).toStrictEqual(context);
+  });
+});
+
+describe("wall/replay", () => {
+  test("山が尽きたら draw は専用のエラーを投げる（C12）", () => {
     const w = new Wall();
     while (w.canDraw) w.draw();
-    // ガードが `!this.walls.drawable` で配列オブジェクトを見ているため
-    // 常に truthy。pop() の undefined が Tile.from に渡って別の例外になる。
     expect(() => w.draw()).toThrow(/cannot draw any more/);
   });
 
-  test.fails("C11: Replayer.prev は index が負になったら落ちるべき", () => {
+  test("Replayer.prev は index が負になったら落ちる（C11）", () => {
     const r = new Replayer("[]");
-    // assert(this.index < 0) は条件が反転している
     expect(() => r.prev()).toThrow();
   });
+});
 
+// PlayerEfficiency / RiskRank は Player の打ち方を決めるだけで、
+// 返す牌も候補の中に限られる（＝不正な局面は作れない）。実装もまだ途中なので、
+// controller-report.md では C10 を保留にしてある。
+// ここでは「今はこう動く」ことだけ test.fails で残す。Player を仕上げるときに
+// 通常の test に書き換えること。
+describe("既知のバグ（保留）", () => {
   test.fails("C10: selectMinPriority は優先度が最小のものを返すべき", () => {
     const counter = new Counter();
     const mk = (t: Tile) => ({
