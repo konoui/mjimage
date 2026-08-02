@@ -1,5 +1,5 @@
 import { WIND, Tile } from "../core/";
-import { BaseActor, ActorHand } from "./controller";
+import { BaseActor, ActorHand } from "./actor";
 import { River } from "./river";
 import { PlayerEfficiency, RiskRank } from "./player-efficiency";
 import { ShantenCalculator, calcEffectiveTiles } from "../calculator";

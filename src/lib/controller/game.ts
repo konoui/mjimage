@@ -1,10 +1,23 @@
+import { Round } from "../core/";
 import { Controller } from "./controller";
 import { createEventPipe, EventHandler } from "./events";
+import { Logger } from "./logger";
+import { createSeededRand, Rand } from "./managers";
 import { Player } from "./player";
+import { IWall } from "./wall";
 
 export const createLocalGame = (params?: {
   debug?: boolean;
   shuffle?: boolean;
+  /** 席順と山を固定したいときに種を渡す。同じ種なら同じ対局になる。 */
+  seed?: number;
+  rand?: Rand;
+  /** 局ごとに作られる山を差し替える。台本つきの山でテストするときに使う。 */
+  newWall?: () => IWall;
+  /** この局に達した時点で終局する。既定は西入り（＝東南戦）。 */
+  endRound?: Round;
+  /** 進行ログの出し先。既定は console。テストでは silentLogger を渡す。 */
+  logger?: Logger;
   playerInjection?: {
     p1?: new (id: string, e: EventHandler) => Player;
     p2?: new (id: string, e: EventHandler) => Player;
@@ -37,10 +50,18 @@ export const createLocalGame = (params?: {
     { handler: ce4, id: playerIDs[3] },
   ];
 
+  const rand =
+    params?.rand ??
+    (params?.seed != null ? createSeededRand(params.seed) : undefined);
+
   return {
     c: new Controller(players, {
       debug: params?.debug,
       shuffle: params?.shuffle,
+      rand: rand,
+      newWall: params?.newWall,
+      endRound: params?.endRound,
+      logger: params?.logger,
     }),
     p1,
     p2,

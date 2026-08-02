@@ -1,10 +1,15 @@
 # mjimage controller リファクタリング調査レポート
 
 対象: `src/lib/controller/`（`refactor-report.md` が対象外にしていた範囲）
-現状: `npx tsc --noEmit` エラーなし / `npm test` 277 passed + 7 expected fail（2026-07-29 時点）
+現状: `npx tsc --noEmit` エラーなし / `npm test` 331 passed + 5 expected fail（2026-08-02 時点）
+済: C1 / C2 / C3 / C9 / C11 / C12 / C13（正しさ）、C4 / C7 / C8 / C17 / L2 と C20 の一部（構造）、
+C5 / C14 / C15 / C16 / C18 / L3 / L5 / L7 / L8（状態機械）、C19 / C21 / C22 / C23 / L1 / L10（残り）。
+いずれも 2026-08-02。該当行は **済** と記した。
 観点: 責務分割・重複コード・型の使い方・正しさ・テスト容易性
 方針: 公開 API は `src/index.ts` で選別済み（`refactor-report.md` H1）。controller 内部の大半は
 公開面に出ていないため、semver の制約なく組み替えられる。
+
+調査時（2026-07-29）の構成。
 
 ```
 src/lib/controller/
@@ -21,6 +26,30 @@ src/lib/controller/
   index.ts               11 行  barrel
 ```
 
+C4 のファイル分割後（2026-08-02）。`controller.ts` は 1117 行から 291 行になった。
+
+```
+src/lib/controller/
+  state-machine.ts      958 行  xstate のマシン定義 + 全アクション
+  actions.ts            345 行  鳴き/立直/和了の可否判定（旧 ActionLogic + 赤牌・喰い替え）
+  events.ts             319 行  イベント型 + 優先順位判定 + EventHandler
+  controller.ts         291 行  Controller（進行のみ）
+  actor.ts              279 行  ActorHand / BaseActor / Observer
+  mailbox.ts            251 行  返信の集約（イベント種別ごと）
+  managers.ts           188 行  ScoreManager / PlaceManager / Counter / shuffle / 乱数
+  player-efficiency.ts  178 行  PlayerEfficiency / RiskRank（保留）
+  wall.ts               142 行  Wall / IWall
+  player.ts              78 行  Player
+  game.ts                63 行  createLocalGame
+  river.ts               56 行  River / IRiver
+  history.ts             39 行  RoundHistory / snapshotRound / restoreRound
+  replay.ts              28 行  Replayer
+  call-index.ts          19 行  鳴き牌の位置
+  index.ts               14 行  barrel
+```
+
+`actions.ts` / `call-index.ts` / `mailbox.ts` は barrel に出していない（controller の内部）。
+
 公開されているのは `Controller` / `ActorHand` / `BaseActor` / `Observer` / `Player` /
 `Replayer` / `Wall` / `River` / `ScoreManager` / `PlaceManager` / `Counter` /
 `PlayerEfficiency` / `RiskRank` / `createLocalGame` / イベント型（`src/index.ts:81-125`）。
@@ -32,29 +61,29 @@ src/lib/controller/
 
 | # | 優先度 | 観点 | 箇所 | 概要 | 確認 |
 |---|---|---|---|---|---|
-| C1 | 高 | 正しさ | `river.ts:52` / `controller.ts:900` | `River.reset()` が一度も呼ばれず、河が局をまたいで残る | 実験で確認 |
-| C2 | 高 | 正しさ | `controller.ts:62-78` | `getCallBlockIndex` が方角の差を `Math.abs` で見るため、東家以外の 4 組で鳴き牌の位置が誤る | 実験で確認 |
-| C3 | 高 | 正しさ | `state-machine.ts:256` | `disable_none_shot` は綴り誤りで未実装。xstate は黙って無視するのでポンで一発が消えない | 実験で確認 |
-| C4 | 高 | 責務分割 | `controller.ts` | 1117 行に 5 つのクラス。`Controller` 自身も 4 責務 | 読み |
-| C5 | 高 | 正しさ | `state-machine.ts:156,727-744` | 小明槓・大明槓で新ドラがめくられない（既存 FIXME） | 読み |
-| C6 | 高 | 信頼境界 | `state-machine.ts:872-878` / `controller.ts:429-441` | `canWin` が常に true。点数はプレイヤー申告の `boardContext` を信頼する | 読み |
-| C7 | 中 | 死んだコード | `controller.ts:454-477` | `doWin` の `cloned` は組み立てて捨てるだけ。ロン判定も二重 | 読み |
-| C8 | 中 | 責務分割 | `controller.ts:179-369` | `pollReplies` が 190 行 5 分岐 | 読み |
-| C9 | 中 | 正しさ | `state-machine.ts:568` | チャンカンのフリテン判定が `missingMap[event.iam]`（`[w]` の誤り） | 読み |
-| C10 | 中 | 正しさ | `player-efficiency.ts:74,100,113,119` | `selectMinPriority` は常に先頭を返す。`calcPriority` に式文と二重加算 | 実験で確認 |
-| C11 | 中 | 正しさ | `replay.ts:15-17` | `Replayer.prev` の `assert` が反転 | 読み |
-| C12 | 中 | 正しさ | `wall.ts:53` | `draw` のガードが配列オブジェクトを見ている | 実験で確認 |
-| C13 | 中 | 正しさ | `events.ts:251-267` | 空配列の選択肢が truthy 判定で「選べる」になる | 実験で確認 |
-| C14 | 中 | 型の使い方 | `events.ts:98` / `state-machine.ts:646-653` | `DrawEvent.subtype` と実装の `subType` が食い違う。イベント生成に型注釈が無い | 読み |
-| C15 | 中 | 重複コード | `state-machine.ts` 12 箇所 | 「4 家にブロードキャスト」の定型 | 読み |
-| C16 | 中 | 重複コード | `state-machine.ts:469-552` | `notify_choice_after_discarded` と `notify_choice_for_reach_acceptance` がほぼ同一 | 読み |
-| C17 | 中 | 重複コード | `controller.ts:920-978` | `BaseActor` の DISCARD と REACH が同一処理 | 読み |
-| C18 | 中 | 型の使い方 | `state-machine.ts` 全般 | `assign` を使わず context を直接ミューテート | 読み |
-| C19 | 中 | 型の使い方 | `controller.ts:165` | `emit` の `(e as any).iam` | 読み |
-| C20 | 中 | 型の使い方 | `controller.ts:527` ほか | static のみのクラス 3 つ（`refactor-report.md` M27 と同型） | 読み |
-| C21 | 中 | 型の使い方 | `managers.ts:19,56,97` | getter が内部の可変オブジェクトを `readonly` 型で返す | 読み |
-| C22 | 中 | 責務分割 | `controller.ts:415-428` | `startGame` の局リセットがインライン（既存 TODO）。終局条件がハードコード | 読み |
-| C23 | 中 | テスト容易性 | `controller.ts:97` | `Controller` のフィールド初期化子で `this` が漏れる | 読み |
+| C1 | 高 | 正しさ | `river.ts:52` / `controller.ts:900` | `River.reset()` が一度も呼ばれず、河が局をまたいで残る | **済** |
+| C2 | 高 | 正しさ | `controller.ts:62-78` | `getCallBlockIndex` が方角の差を `Math.abs` で見るため、東家以外の 4 組で鳴き牌の位置が誤る | **済** |
+| C3 | 高 | 正しさ | `state-machine.ts:256` | `disable_none_shot` は綴り誤りで未実装。xstate は黙って無視するのでポンで一発が消えない | **済** |
+| C4 | 高 | 責務分割 | `controller.ts` | 1117 行に 5 つのクラス。`Controller` 自身も 4 責務 | **済** |
+| C5 | 高 | 正しさ | `state-machine.ts:156,727-744` | 小明槓・大明槓で新ドラがめくられない（既存 FIXME） | **済** |
+| C6 | 中 | 信頼境界 | `state-machine.ts` / `controller.ts` | `canWin` が常に true。点数はプレイヤー申告の `boardContext` を信頼する | **保留（意図的）** |
+| C7 | 中 | 死んだコード | `controller.ts:454-477` | `doWin` の `cloned` は組み立てて捨てるだけ。ロン判定も二重 | **済** |
+| C8 | 中 | 責務分割 | `controller.ts:179-369` | `pollReplies` が 190 行 5 分岐 | **済** |
+| C9 | 中 | 正しさ | `state-machine.ts:568` | チャンカンのフリテン判定が `missingMap[event.iam]`（`[w]` の誤り） | **済** |
+| C10 | 低 | 未完成 | `player-efficiency.ts:74,100,113,119` | `selectMinPriority` は常に先頭を返す。`calcPriority` に式文と二重加算 | **保留** |
+| C11 | 中 | 正しさ | `replay.ts:15-17` | `Replayer.prev` の `assert` が反転 | **済** |
+| C12 | 中 | 正しさ | `wall.ts:53` | `draw` のガードが配列オブジェクトを見ている | **済** |
+| C13 | 中 | 正しさ | `events.ts:251-267` | 空配列の選択肢が truthy 判定で「選べる」になる | **済** |
+| C14 | 中 | 型の使い方 | `events.ts:98` / `state-machine.ts:646-653` | `DrawEvent.subtype` と実装の `subType` が食い違う。イベント生成に型注釈が無い | **済** |
+| C15 | 中 | 重複コード | `state-machine.ts` 12 箇所 | 「4 家にブロードキャスト」の定型 | **済** |
+| C16 | 中 | 重複コード | `state-machine.ts:469-552` | `notify_choice_after_discarded` と `notify_choice_for_reach_acceptance` がほぼ同一 | **済** |
+| C17 | 中 | 重複コード | `controller.ts:920-978` | `BaseActor` の DISCARD と REACH が同一処理 | **済** |
+| C18 | 中 | 型の使い方 | `state-machine.ts` 全般 | `assign` を使わず context を直接ミューテート | **済** |
+| C19 | 中 | 型の使い方 | `controller.ts:165` | `emit` の `(e as any).iam` | **済** |
+| C20 | 中 | 型の使い方 | `controller.ts:527` ほか | static のみのクラス 3 つ（`refactor-report.md` M27 と同型） | **一部** |
+| C21 | 中 | 型の使い方 | `managers.ts:19,56,97` | getter が内部の可変オブジェクトを `readonly` 型で返す | **済** |
+| C22 | 中 | 責務分割 | `controller.ts:415-428` | `startGame` の局リセットがインライン（既存 TODO）。終局条件がハードコード | **済** |
+| C23 | 中 | テスト容易性 | `controller.ts:97` | `Controller` のフィールド初期化子で `this` が漏れる | **済** |
 | C24 | 中 | 効率 | `controller.ts:858-862` | `ActorHand.clone()` の文字列往復（`refactor-report.md` M18 の controller 側） | 読み |
 | L1〜L10 | 低 | 各種 | （後述） | 命名の不一致、死んだフィールド、マジックナンバー、`console.debug` 直書き | 読み |
 
@@ -63,6 +92,11 @@ src/lib/controller/
 ## 高
 
 ### C1. `River` が局をまたいでリセットされない
+
+**状態**: 修正済み。`BaseActor.handleEvent` の `DISTRIBUTE` で `this.river.reset()` を呼ぶ。
+局の初期化を `DISTRIBUTE` に一本化する話（C22）は未着手。
+固定: `controller-unit.test.ts`「DISTRIBUTE で河がリセットされる」/
+`controller-scenario.test.ts`「2 局目の九種九牌は 1 局目の捨て牌に影響されない」。
 
 **箇所**: `river.ts:52-55`（`reset()`）、`controller.ts:900-919`（`DISTRIBUTE` ハンドラ）、`controller.ts:415-428`（`startGame`）
 
@@ -91,6 +125,9 @@ src/lib/controller/controller.ts:902:        this.counter.reset();   ← Counter
 `DISTRIBUTE` に寄せ、`startGame` 側の手作業（C22）と二重に持たない。
 
 ### C2. `getCallBlockIndex` が鳴いた方角を絶対値で判定する
+
+**状態**: 修正済み。`nextWind` / `prevWind` で上家・対面・下家を判定する。
+固定: `controller-unit.test.ts`「controller/鳴き牌の位置」（4 家 × 3 方向）。
 
 **箇所**: `controller.ts:62-78`
 
@@ -129,6 +166,11 @@ const relation = (caller: Wind, discardedBy: Wind) =>
 
 ### C3. `disable_none_shot` の綴り誤りでポンが一発を消さない
 
+**状態**: 修正済み。綴りを `disable_one_shot` に直した。
+`setup({ actions })` でアクション名に型を付ける話は未着手（C18 と同時が自然）。
+固定: `controller-unit.test.ts`「参照しているアクションはすべて実装されている」（名前）/
+`controller-scenario.test.ts`「C3/一発」（振る舞い）。
+
 **箇所**: `state-machine.ts:256`（`poned` の entry）
 
 ```ts
@@ -152,6 +194,11 @@ chied: { entry: [{ type: "notify_call" }, { type: "disable_one_shot" }] },
 （後者は追加済み。「回帰テスト」の節を参照）。
 
 ### C4. `controller.ts` が 1117 行で 5 つのクラスを持つ
+
+**状態**: 済。`controller.ts` は 291 行（Controller のみ）になった。
+分割先は上のファイル一覧を参照。import 元は barrel のままなので、公開面は変わっていない
+（`src/index.ts` は `ActorHand` / `BaseActor` / `Observer` / `RoundHistory` の
+取得元パスだけ変更）。`ActionLogic` は barrel から外し、controller の内部にした。
 
 **箇所**: `controller.ts`
 
@@ -187,6 +234,27 @@ controller/
 
 ### C5. 小明槓・大明槓で新ドラがめくられない
 
+**状態**: 済。めくる契機を暗槓と明槓で分けた。
+
+- 暗槓: カンの直後（`an_sho_kaned` の entry でそのままめくる）
+- 大明槓・加槓: カンした人が打牌したあと（context の `pendingNewDora` に予約し、`discarded` の entry でめくる）
+
+`dai_kaned` には `notify_new_dora_if_needed` 自体が無かったので追加した。
+`discarded` の FIXME はこれで解消。裏ドラ（`hiddenDoraIndicators`）も
+`Wall.openedDoraCount` に連動しているので同時に増える。
+固定: `controller-scenario.test.ts`「C5/カンドラ」。枚数だけでなく、
+イベントの並び（暗槓は `AN_KAN → NEW_DORA`、明槓は `… → DISCARD → NEW_DORA`）で
+めくる契機そのものを見ている。
+
+**残した判断**（どちらもハウスルールの差で、現状は単純な側を選んでいる）:
+
+1. カンした人の打牌でロンされた場合、その和了に新ドラが乗る。
+   `NEW_DORA` を `DISCARD` の直後に出しているため。乗せない側にするなら、
+   めくるのを「打牌が誰にも取られなかったとき」（`wildcard_after_discarded` と
+   鳴きの各 entry）に移すことになり、めくる箇所が 1 つから 4 つに増える。
+2. 嶺上開花で和了した場合、打牌が無いので明槓の新ドラはめくられないまま局が終わる。
+   予約（`pendingNewDora`）は局ごとに作り直される context にあるので次局には残らない。
+
 **箇所**: `state-machine.ts:727-744`（`notify_new_dora_if_needed`）、`:156`（既存 FIXME）
 
 ```ts
@@ -212,6 +280,23 @@ notify_new_dora_if_needed: ({ context, event }) => {
 （`state-machine.ts:330-332`、`NEXT` ではカンの文脈が失われる）と同根なので同時に扱う。
 
 ### C6. 和了の検証がプレイヤー申告を信頼している
+
+**状態**: 保留。現状のまま（プレイヤーの申告を信頼する）で進める、という判断。
+
+理由は xstate の guard の性質にある。guard が false を返すとイベントは黙って捨てられ、
+状態機械はその場に留まる。つまり検証に落ちても「何も起きない」だけで、
+どこで弾かれたのかが表に出ない。`disable_none_shot` の綴り誤り（C3）が長く残ったのと
+同じ形の見えない失敗を、和了という一番複雑な経路で抱えることになる。
+ローカル対戦では実害が無いので、追いやすさを優先して今は素通しにしている。
+
+**将来入れるときの置き場所**: guard ではなく `pollReplies`（`mailbox.ts`）。
+ここなら「なぜ弾いたか」を例外やログとして出せるし、
+`canChi` / `canPon` / `canReach` のように controller 側の判定を呼び直す形にできる。
+`finalResult` の入力を controller の盤面から組み立て直すのも同時に行う。
+
+現状の振る舞いは `controller-scenario.test.ts`「C6/和了の申告」で仕様として固定してある
+（`canWin` は常に true / 申告の `boardContext` がそのまま点数になる）。
+検証を入れるときはこの 2 件を書き換えることになる。
 
 **箇所**: `state-machine.ts:872-878`（`guards.canWin`）、`controller.ts:429-441`（`finalResult`）
 
@@ -251,6 +336,11 @@ new PointCalculator(hand, {
 
 ### C7. `doWin` に死んだコードがあり、ロン判定が二重
 
+**状態**: 一部済。`cloned` の 3 行は削除した（ロン牌を加えるのは `actions.doWin` 側だけ）。
+ロンかどうかの判定基準が `Controller.doWin`（`hand.drawn == null`）と
+`actions.doWin`（`env.winBy.type`）で二重なのは残っている。
+呼び出し側から 1 つの値として渡す形にするのは state-machine 側の変更（C6）と同時が効率的。
+
 **箇所**: `controller.ts:442-478`
 
 ```ts
@@ -287,6 +377,12 @@ return ActionLogic.doWin(hand, env, t, discarded);   // ← 渡すのは hand
 
 ### C8. `pollReplies` が 190 行 5 分岐
 
+**状態**: 済。`mailbox.ts` に移し、イベント種別ごとの関数に分けた
+（`afterDiscarded` / `afterDrawn` / `afterCalled` / `forReachAcceptance` / `forChanKan`）。
+`case` の波括弧なし宣言も揃えた。例外メッセージの got/want の入れ違いと、
+到達しない `wind.length == 0` の分岐もここで直した。
+`mailBox` の型をイベント種別ごとに絞る話（`MailBox` は今のところ別名だけ）は未着手。
+
 **箇所**: `controller.ts:179-369`
 
 `sample.type` による 5 分岐（`CHOICE_AFTER_DISCARDED` / `CHOICE_AFTER_DRAWN` /
@@ -312,6 +408,10 @@ type Replies = {
 
 ### C9. チャンカンのフリテン判定が別人のフラグを見る
 
+**状態**: 修正済み。`context.missingMap[w]` に直した。
+3 つの通知の共通化（C16）は未着手なので、写し間違いが再発する余地は残っている。
+固定: `controller-scenario.test.ts`「見逃した人はチャンカンでもロンできない」。
+
 **箇所**: `state-machine.ts:561-569`
 
 ```ts
@@ -334,6 +434,12 @@ for (const w of Object.values(WIND)) {
 この種の写し間違いは構造的に起きなくなる。
 
 ### C10. `PlayerEfficiency` の優先度計算
+
+**状態**: 保留。`PlayerEfficiency` / `RiskRank` は `Player.handleDiscard` からしか呼ばれず、
+返す牌も候補（`e.choices.DISCARD`）の中に限られるため、どう間違っても不正な局面は作れない。
+対局の正しさではなく Player の打ち方の質の話であり、実装自体がまだ途中
+（`Player.doras` がどこからも代入されない / 場風・自風が FIXME のまま）。
+Player を仕上げるときに、下の (1)(2)(3) と A〜D をまとめて決める。
 
 **箇所**: `player-efficiency.ts:68-122`
 
@@ -374,11 +480,26 @@ if (tile.n == 0) v * 2;   // 式文。結果が捨てられる
 なお `weight`（`:33-38`）が既にドラ 2 倍を見ているので、この行が何を意図していたかは
 確定させる必要がある。
 
-**修正方針**: (1) を直すと打牌選択が変わるため、`Player` の挙動を固定するテストを
-先に置いてから触る。(2)(3) は意図を決めてから。いずれも対局の勝敗にしか影響せず、
-ルール上の正しさには関わらない。
+**修正方針**: (1) は判断不要（`RiskRank.selectTile:133` が正しく
+`Number.POSITIVE_INFINITY` を使っているので、それに揃える）。(2)(3) は意図を決めてから。
+
+着手するときに決めること。
+
+| | 決めること | 備考 |
+|---|---|---|
+| A | `Player.doras`（`player.ts:10`）を埋めるか、引数ごと落とすか | 宣言と読み出し（`player.ts:47`）の 2 箇所だけで代入がなく、`weight()` は常に 1 を返す。ドラの重み付けが丸ごと効いていない。B・C の前提 |
+| B | `:100` と `:113` の重複を残すか消すか | 同じ牌の枚数を隣接牌の 2 倍に見る意図か、編集の取り残しか |
+| C | `:119` の赤牌の扱い | 式文なだけでなく、条件が成立しない。赤 5 はパース時に `n=5 + OP.RED` に正規化される（`core/tile.ts:285`、`:352`）。残すなら `tile.has(OP.RED)` で見る |
+| D | 字牌の重み（`:94-96`）に場風・自風を入れるか | 既存 FIXME。入れるなら `calcPriority` に `Wind` / `Round` を渡す必要がある |
+
+いずれを触っても `controller-scenario.test.ts`「再現性」の期待点数は取り直しになる。
+`managers.ts` の `addTileToSafeMap` / `isSafeTile` の非推奨（L9）も、
+`RiskRank` を仕上げるまで結論を出せない。
 
 ### C11. `Replayer.prev` の assert が反転している
+
+**状態**: 修正済み。`assert(this.index >= 0)`。削除はしていない。
+固定: `controller-unit.test.ts`「Replayer.prev は index が負になったら落ちる」。
 
 **箇所**: `replay.ts:14-17`
 
@@ -398,6 +519,9 @@ prev() {
 
 ### C12. `Wall.draw` のガードが配列オブジェクトを見ている
 
+**状態**: 修正済み。`this.walls.drawable.length == 0` を見る。
+固定: `controller-unit.test.ts`「山が尽きたら draw は専用のエラーを投げる」。
+
 **箇所**: `wall.ts:52-55`
 
 ```ts
@@ -416,6 +540,10 @@ draw() {
 **修正方針**: `if (this.walls.drawable.length == 0)` にする。もしくは `canDraw` を使う。
 
 ### C13. 空配列の選択肢が「選べる」と判定される
+
+**状態**: 修正済み。`selectable()` を通し、配列は長さまで見る。
+「選ばない」を型として表せなくする案（`undefined` にする）は未着手。
+固定: `controller-unit.test.ts`「候補 0 件の選択肢は選ばれない」。
 
 **箇所**: `events.ts:251-267`（`hasChoices` / `calculatePriority`）
 
@@ -441,6 +569,10 @@ JS では `[]` は truthy なので、候補 0 件の `REACH` / `PON` / `CHI` / 
 空配列を型として作れないようにする。
 
 ### C14. `DrawEvent.subtype` と実装の `subType` が食い違う
+
+**状態**: 済。`events.ts` を `subType?: "kan"` に統一し、イベントを組み立てる箇所すべてに
+型注釈を付けた（`notify_draw` の `DrawEvent`、`notify_call` の `CallEvent`）。
+`params` の `as` は `asParams<T>()` に集約した。`setup()` で params 自体に型を付ける話（L7）は未着手。
 
 **箇所**: `events.ts:95-102`、`state-machine.ts:629-657`
 
@@ -471,6 +603,9 @@ const e = {                    // ← 型注釈なし
 
 ### C15. 「4 家にブロードキャスト」の定型が 12 箇所
 
+**状態**: 済。`broadcast(controller, (w) => イベント)` にまとめた。
+`notify_end` の 4 分岐を含め、4 家に配る箇所はすべてこれを通る。
+
 **箇所**: `state-machine.ts` の `notify_*` 全般
 
 ```ts
@@ -497,6 +632,13 @@ const broadcast = <E extends PlayerEvent>(c: Controller, make: (w: Wind) => E) =
 
 ### C16. リーチ後の受けと通常の捨て牌の受けがほぼ同一
 
+**状態**: 済。`ronChoicesForLastDiscard()` に一本化した（直前の捨て牌に対する
+ロンの可否を 4 家ぶん求め、フリテンの印も一緒に返す）。配る選択肢の集合が違うだけなので、
+イベントの組み立ては呼び出し側に残してある。
+
+これは振る舞いの変更を伴う: 立直の宣言牌のロンを見逃してもフリテンにならなかったのが、
+通常の捨て牌と同じくフリテンになる。`controller-scenario.test.ts`「C16/立直の宣言牌の見逃し」で固定した。
+
 **箇所**: `state-machine.ts:469-507`（`notify_choice_after_discarded`）と
 `:529-552`（`notify_choice_for_reach_acceptance`）
 
@@ -509,6 +651,10 @@ const broadcast = <E extends PlayerEvent>(c: Controller, make: (w: Wind) => E) =
 配る選択肢の集合を引数にする。C9 のフリテン判定もここに一本化される。
 
 ### C17. `BaseActor` の DISCARD と REACH が同一処理
+
+**状態**: 済。`applyDiscard(t, iam, wind)` に抜き、`REACH` は `reach()` + `applyDiscard()` にした。
+波括弧なしで `const` を宣言していた `DISTRIBUTE` と `REACH_ACCEPTED` も揃えた。
+イベント種別のハンドラをテーブルに載せて switch を畳む話は未着手。
 
 **箇所**: `controller.ts:926-937`（`DISCARD`）と `:963-977`（`REACH`）
 
@@ -537,6 +683,22 @@ if (e.iam != e.wind) {
 
 ### C18. xstate の context を `assign` を使わず直接書き換える
 
+**状態**: 済。
+
+1. `currentWind` / `oneShotMap` / `missingMap` の書き換えはすべて `assign` を通した
+   （notify_* のように「イベントを配りながら context も変える」ものは `enqueueActions` を使う）。
+   直接のミューテーションは残っていない。
+2. `controller` と `genEventID`（可変のクロージャ）を context から出し、
+   `createControllerMachine(c)` のクロージャに移した。
+   `createMachine` はもともと Controller ごとに呼ばれているので、`input` を使うまでもない。
+
+結果、context は `currentWind` / `oneShotMap` / `missingMap` / `pendingNewDora` の
+素のデータだけになり、`actor.getPersistedSnapshot()` がそのまま JSON にできる。
+固定: `controller-unit.test.ts`「context は直列化できる（C18）」。
+
+なお、局の再開に必要なのは状態機械の context だけではない（手牌・河・山・点数は
+Controller 側にある）。そちらは `RoundHistory` が受け持っていて、C18 とは別の経路。
+
 **箇所**: `state-machine.ts:413-415`（`updateNextWind`）、`:599`（`notify_call`）、
 `:501`・`:583`（`missingMap`）、`:698`（`oneShotMap`）、`:642`（`missingMap`）、
 `:746`・`:749`（`oneShotMap`）
@@ -560,6 +722,11 @@ xstate v5 では context の更新は `assign` を通すのが前提で、直接
 
 ### C19. `emit` の `(e as any).iam`
 
+**状態**: 済。`"iam" in e` で絞るようにした（TS の絞り込みが効くので `any` は不要）。
+重複排除は `applyToObserver()` に切り出し、規則をコメントに書いた
+（`iam` を持つイベントは本人あてのぶんだけ / 持たないイベントは ID につき 1 回 /
+`DISTRIBUTE` だけ 4 家ぶん）。
+
 **箇所**: `controller.ts:160-173`
 
 ```ts
@@ -577,6 +744,11 @@ else if (iam == null) { ... }
 
 ### C20. static メソッドのみのクラスが 3 つ
 
+**状態**: 一部済。`ActionLogic` は素の関数にした（`actions.ts`、呼び出し側は
+`import * as actions` で名前空間として使う）。あわせて L2 の `doAnkan` → `doAnKan` も揃えた。
+`PlayerEfficiency` / `RiskRank` は C10 と同じ理由で保留（実装が途中で、
+仕上げるときに `export * as` へ移す）。
+
 **箇所**: `controller.ts:527`（`ActionLogic`）、
 `player-efficiency.ts:40`（`PlayerEfficiency`）、`:125`（`RiskRank`）
 
@@ -586,6 +758,14 @@ else if (iam == null) { ... }
 `ActionLogic` は公開されていないので素の関数にしてよい。
 
 ### C21. manager の getter が内部の可変オブジェクトを返す
+
+**状態**: 済。`ScoreManager.summary` / `PlaceManager.sticks` / `PlaceManager.playerMap` は写しを返す。
+固定: `controller-unit.test.ts`「summary は写しを返す（C21）」「sticks と playerMap は写しを返す（C21）」。
+
+なお、実害が出ていなかった理由を確かめた: `RoundHistory` は局を始める前の値を握るが、
+`DISTRIBUTE` のたびに manager 自体が作り直されるため、古いオブジェクトはそのまま凍る。
+報告書に書いた「型ではなく偶然に支えられている」がそのとおりで、
+getter を写しに変えても履歴の中身は変わらなかった（テストで確認済み）。
 
 **箇所**: `managers.ts:19-21`（`ScoreManager.summary`）、`:56-58`（`PlaceManager.sticks`）、
 `:97-99`（`PlaceManager.playerMap`）
@@ -609,6 +789,16 @@ manager 自体を作り直しているため（`controller.ts:907-911`）で、
 更新は新しいオブジェクトの代入にする。
 
 ### C22. `startGame` の局リセットがインラインで、終局条件がハードコード
+
+**状態**: 済。局の作り直しを `Controller.prepareNextRound()` に抜いた。
+手牌・河・点数などの盤面は `DISTRIBUTE` のハンドラ（`actor.ts`）が作り直すので（C1）、
+ここが見るのは controller 側の入れ物（山・`applied`・`mailBox`・`actor`）だけ。
+「初期化すべきものの一覧」がこの 2 か所に分かれて揃った。
+
+終局条件は構築子のパラメータ（`endRound`、既定 `ROUND.W1`）にし、`startGame(endRound?)` で
+上書きもできる。東風戦や 1 局戦を回せる。
+テスト側の `startNextRound`（`utils/controller.ts`）は `prepareNextRound()` の呼び出しに置き換えた
+（それまでは同じ初期化をテストが書き写していた）。
 
 **箇所**: `controller.ts:415-428`
 
@@ -635,6 +825,10 @@ startGame() {
 （`endRound?: Round`、既定 `ROUND.W1`）。
 
 ### C23. `Controller` のフィールド初期化子で `this` が漏れる
+
+**状態**: 済。`actor` の生成を構築子の末尾に移し、`private newActor()` にまとめた。
+`prepareNextRound()` も同じものを使うので、生成が 2 か所に散らない。
+フィールドの宣言順への依存も無くなった。
 
 **箇所**: `controller.ts:95-103`
 
@@ -679,16 +873,38 @@ override clone() {
 
 | # | 箇所 | 内容 | 修正方針 |
 |---|---|---|---|
-| L1 | `river.ts:5,41-43` | `DiscardEntry.callMarker` は `markCalled()` が書くだけで読み手がゼロ | 河の描画で使う予定が無いなら `markCalled` ごと削除 |
-| L2 | `controller.ts:497` / `:765` | `doAnKan`（controller）と `doAnkan`（ActionLogic）で K の大小が違う | `doAnKan` に統一 |
-| L3 | `state-machine.ts:264-267` | `chied` が `params: { action: "chi" }` を渡すが `notify_choice_after_called` は `_params` を無視 | 削除 |
-| L4 | `state-machine.ts:784` | 和了時だけ `sticks: { reach: 0, dead: 0 }` のハードコード。他の 3 分岐は `placeManager.sticks` | 意図（供託を払い出し済み）をコメントにするか、`placeManager` 側で 0 にしてから読む |
-| L5 | `state-machine.ts:776-777` | `hands[event.iam] = ...` がループ内不変 | ループの外へ |
-| L6 | `state-machine.ts:824-832` | テンパイ料の `3000` が直値。`shouldContinue` の条件も式に埋まっている | 定数に出す |
-| L7 | `state-machine.ts:453-455,632` | `params as { replacementWin: boolean } \| undefined` / `as { action: string }`（既存 TODO） | xstate の `setup` でアクションの params に型を付ける |
-| L8 | `state-machine.ts:78` | マシンの `id` が `"Untitled"` | `"controller"` に |
+| L1 | ~~`river.ts:5,41-43`~~ | `DiscardEntry.callMarker` は `markCalled()` が書くだけで読み手がゼロ | **済**（`markCalled` ごと削除） |
+| L2 | ~~`controller.ts:497` / `:765`~~ | `doAnKan`（controller）と `doAnkan`（ActionLogic）で K の大小が違う | **済**（C20 と同時に `doAnKan` へ統一） |
+| L3 | ~~`state-machine.ts:264-267`~~ | `chied` が `params: { action: "chi" }` を渡すが `notify_choice_after_called` は `_params` を無視 | **済**（削除） |
+| L4 | `state-machine.ts` | 和了時だけ `sticks: { reach: 0, dead: 0 }` のハードコード。他の 3 分岐は `placeManager.sticks` | **一部**（意図をコメントにした。`placeManager` 側で 0 にする案は未着手） |
+| L5 | ~~`state-machine.ts:776-777`~~ | `hands[event.iam] = ...` がループ内不変 | **済**（ループの外へ） |
+| L6 | `state-machine.ts` | テンパイ料の `3000` が直値。`shouldContinue` の条件も式に埋まっている | **一部**（`NOTEN_PENALTY` に出した。`shouldContinue` はそのまま） |
+| L7 | `state-machine.ts` | `params as { replacementWin: boolean } \| undefined` / `as { action: string }`（既存 TODO） | **一部**（`setup()` に移行してアクション名・ガード名は型で縛った。params の型付けは下記の理由で見送り） |
+| L8 | ~~`state-machine.ts:78`~~ | マシンの `id` が `"Untitled"` | **済** |
 | L9 | `managers.ts:141-153` | `addTileToSafeMap` / `isSafeTile` が `@deprecated` のまま `player-efficiency.ts` の `RiskRank` から使われている | 代替を決めるか、非推奨を外す |
-| L10 | `controller.ts` 12 箇所 / `state-machine.ts` 4 箇所 | `console.debug` / `console.warn` / `console.error` の直書き | ロガーを注入可能にする。`debugMode`（`controller.ts:103`）が既にあるので合流させる |
+| L10 | ~~`controller.ts` / `state-machine.ts`~~ | `console.debug` / `console.warn` / `console.error` の直書き | **済**（`logger.ts` を追加し `Controller` に注入） |
+
+L7 の中身: `createMachine(config, implementations)` を `setup({ types, actions, guards }).createMachine(config)` に
+書き換えた。これで **states から参照するアクション名・ガード名がコンパイルで検査される**。
+C3（`disable_none_shot`）と同じ綴り誤りを入れると `tsc` が止まることを確認済み。
+
+params（`{ action: "kan" }` / `{ replacementWin: true }`）の型付けは見送った。
+実装に `enqueueActions` を使っているアクションがあると、
+「アクションの型 → マシンのアクション union → そのアクションの型」と推論が循環し、
+`Two different types with this name exist` で通らない。
+`enqueueActions` をやめれば型は付くが、`missingMap` の更新は
+「4 家ぶんの `doWin` を計算した結果」なので、assign を別アクションに分けると同じ計算を 2 度することになる。
+params の形は `DrawParams` / `DrawnChoiceParams` として名前を付け、
+受け取り側で 1 度だけキャストする形に留めた。
+
+`controller-unit.test.ts` の「参照しているアクションはすべて実装されている（C3）」は、
+config を動的に組み立てるようになった場合の保険として残してある。
+
+L10 の中身: `logger.ts` に `Logger`（`debug` / `warn` / `error`）を置き、
+`Controller` の構築子パラメータで受け取る（既定は `consoleLogger` なので出力は今までどおり）。
+observer と状態機械のガードも controller のロガーを使う。
+`Player` は今のところログを出さないので繋いでいない。
+テストは `silentLogger` を渡していて、`npm test` の出力から進行ログが消えた。
 
 なお `Controller.pollReplies:187-191` の例外メッセージは got と want が逆
 （`got: ${wind.length}, want: ${events.length}`）。`events` が実際に届いた数なので
@@ -706,9 +922,18 @@ controller の既存テストは `src/lib/__tests__/controller.test.ts` の 22 �
 取り逃していた。`events.ts` / `managers.ts` / `wall.ts` / `river.ts` / `replay.ts` /
 `player-efficiency.ts` は素通しだった。
 
-リファクタリングの安全網として `src/lib/__tests__/controller-unit.test.ts` を追加した
-（55 件 + 既知バグ 7 件）。既存の `controller.test.ts` は通しのシナリオを見るもの、
-新しい方は controller 配下の各モジュールを単体で固定するものとして分けてある。
+現在は 3 つのファイルで役割を分けてある。
+
+| ファイル | 見るもの |
+|---|---|
+| `controller.test.ts` | 既存の通しシナリオと `callable`（22 件） |
+| `controller-unit.test.ts` | controller 配下の各モジュールの単体の性質（61 件 + 既知バグ 1 件） |
+| `controller-scenario.test.ts` | 状態機械を通さないと現れない性質（16 件 + 既知バグ 4 件） |
+
+台本つきの対局を組み立てる道具は `src/lib/__tests__/utils/controller.ts` にまとめてある
+（`MockPlayer` / `MockWall` / `createScenario` / `stepUntil` / `startNextRound` /
+`recordEvents`）。`controller.test.ts` に直接書かれていた `MockPlayer` / `MockWall` は
+ここへ移した。
 
 | 対象 | 固定した性質 |
 |---|---|
@@ -725,45 +950,88 @@ controller の既存テストは `src/lib/__tests__/controller.test.ts` の 22 �
 | `Controller`（立直） | テンパイかつ門前、鳴きあり不可、ノーテン不可 |
 | 1 局通し | 必ず `done` で終わる、点数の合計 + 供託 = 100000、履歴 1 件と山 136 枚、`export` → `load` → `start` で同じ点数 |
 
-確認済みのバグは `test.fails` で「期待どおりに動かない」ことを固定してある（C1・C2・C3・
-C10・C11・C12）。直すとこれらが失敗に転じるので、そのとき通常の `test` に書き換える。
-C13 は現状の挙動を通常の `test` に書き、コメントで直したときの期待値を記してある。
+`controller-scenario.test.ts` が固定したもの。
+
+| 対象 | 固定した性質 |
+|---|---|
+| C5 カンドラ | 暗槓・加槓・大明槓の 3 つの台本。めくる契機をイベントの並びで固定（暗槓はカン直後、明槓は打牌後） |
+| C9 チャンカン | 直前にロンを見逃した人はチャンカンでもロンできない |
+| C3 一発 | ポンが割り込むと一発が消える（点数では見えないので役で見る） |
+| C16 立直の宣言牌 | 宣言牌のロンを見逃すとフリテンになり、続けて聞かれても選択肢が無い |
+| C6 和了の申告 | `canWin` は常に true。申告の `boardContext` がそのまま点数になる（意図的な現状の仕様として固定） |
+| C1 局をまたいだ河 | 2 局目の九種九牌が 1 局目の捨て牌に影響されない |
+| イベント列 | 1 局分のイベントの型の並び（C15・C16・C18 で崩れていないことの見張り） |
+| context | 状態機械の context が素のデータだけで、JSON にできる（C18） |
+| 再現性 | 同じ種からは同じ 1 局になる（`Player` の打牌選択まで含めた最終点数） |
+
+まだ直していないものは `test.fails` で「期待どおりに動かない」ことを固定してある（C10 のみ）。
+直すと失敗に転じるので、そのとき通常の `test` に書き換える。
+C6 は直さない判断なので、`test.fails` ではなく通常の `test` で現状の仕様を固定してある。
+
+`test.fails` は「どこで失敗しても通る」ので、台本が壊れて別の場所で落ちても気づけない。
+シナリオ側は「目的の局面まで到達したこと」を通常の `test` で別に確かめ、
+それを台本の見張りにしてある（例: 「台本どおり加槓する」と
+「加槓でもカンした人の打牌後に新ドラがめくられるべき」の対）。
 
 C3 のテストはマシンの config を走査して、参照されているアクション名がすべて
 実装されていることを確かめる形にした。綴り誤りは文字列である以上再発するので、
-`disable_none_shot` を直したあともこのテストは残す価値がある。
+綴りを直したあとも残してある。名前だけでは「entry からアクションが消えた」を
+拾えないので、振る舞いの側（ポンで一発が消える）も別に固定してある。
 
-**未着手のテスト**: C5（カンドラ）・C6（和了の検証）・C9（チャンカンのフリテン）は
-状態機械を通した多手数のシナリオが要るため、`controller.test.ts` 側に
-`MockPlayer` / `MockWall` を使って書くことになる。修正と同時に足すのが効率的。
+### テストのために足した機能
+
+いずれも既定の振る舞いは変えていない。
+
+| 箇所 | 追加 | 何のため |
+|---|---|---|
+| `managers.ts` | `Rand` 型、`shuffle(array, rand)`、`createSeededRand(seed)` | 乱数を差し替え可能にする。`Math.random` を spy する必要がなくなる |
+| `wall.ts` | `new Wall(backup?, { rand })` | 山を種から固定する |
+| `controller.ts` | `Controller` の `rand` / `newWall` パラメータ | 席順と山を固定する。局をまたいでも台本つきの山を使い続けられる |
+| `controller.ts` | `endRound`（構築子 / `startGame`） | 東風戦・1 局戦を回せる（C22 で構築子のパラメータに移した） |
+| `game.ts` | `createLocalGame({ seed, rand, newWall, endRound, logger })` | 上を local game から使う |
+| `logger.ts` | `Logger` / `consoleLogger` / `silentLogger` | 進行ログの出し先を差し替える（L10）。テストは `silentLogger` を渡して出力を黙らせている |
+
+`Controller.wall` はフィールド初期化子から構築子へ移した（`newWall` を使うため）。
+C23（`actor` の初期化子で `this` が漏れる）はまだそのまま。
+
+`MockWall` の制約: 台本と `addExclude` で使う牌を本物の山から避けて引くため、
+山の終盤で「除外していない牌が残っていない」状態になり得る。
+局を最後まで回す台本には向かないので、必要なところまで `stepUntil` で進めること。
 
 ---
 
 ## 実施順序
 
-**1. 安全網** — 済（`controller-unit.test.ts`、55 + 7 件）。
-C5 / C6 / C9 のシナリオテストは各修正と同時に。
+**1. 安全網** — 済。`controller-unit.test.ts`（61 + 1 件）と
+`controller-scenario.test.ts`（16 + 4 件）で C1 / C5 / C6 / C9 も含めて固定してある。
+新しいシナリオは `utils/controller.ts` の道具立てで書く。
 
-**2. 正しさ（単独で完結し、影響範囲が小さい順）**
+**2. 正しさ（単独で完結し、影響範囲が小さい順）** — C10 を除いて済。
 
-| 項目 | 変わるもの |
-|---|---|
-| C12 `Wall.draw` のガード | 例外メッセージのみ |
-| C11 `Replayer.prev` の assert | `src/` 内に呼び出しゼロ |
-| C3 `disable_none_shot` の綴り | ポン後に一発が消える |
-| C2 `getCallBlockIndex` の方角 | 東家以外の鳴き牌の描画位置 |
-| C1 `River.reset()` の呼び出し | 2 局目以降のフリテン・ダブルリーチ・四風連打・九種九牌 |
-| C13 空配列の選択肢 | `Player` が候補を絞り切ったときに落ちなくなる |
-| C9 チャンカンのフリテン | C16 と同時が効率的 |
-| C10 `selectMinPriority` | `Player` の打牌選択。(2)(3) は意図の確定が要る |
+| 項目 | 変わるもの | |
+|---|---|---|
+| C12 `Wall.draw` のガード | 例外メッセージのみ | 済 |
+| C11 `Replayer.prev` の assert | `src/` 内に呼び出しゼロ | 済 |
+| C3 `disable_none_shot` の綴り | ポン後に一発が消える | 済 |
+| C2 `getCallBlockIndex` の方角 | 東家以外の鳴き牌の描画位置 | 済 |
+| C1 `River.reset()` の呼び出し | 2 局目以降のフリテン・ダブルリーチ・四風連打・九種九牌 | 済 |
+| C13 空配列の選択肢 | `Player` が候補を絞り切ったときに落ちなくなる | 済 |
+| C9 チャンカンのフリテン | C16 と同時が効率的 | 済 |
+| C10 `selectMinPriority` | `Player` の打牌選択 | 保留 |
 
-**3. 構造** — C4 のファイル分割を先に行い、その上で C8（`pollReplies`）→
-C20（static クラスの解体）→ C17（`BaseActor`）と進む。C7 の死んだコードは
-C4 の途中で落ちる。
+C10 を保留にしたのは、対局の正しさではなく Player の打ち方の質の話であり、
+`PlayerEfficiency` / `RiskRank` の実装自体がまだ途中のため。
+Player を仕上げるときに C10 の節の A〜D をまとめて決める。
 
-**4. 状態機械** — C15（ブロードキャストの共通化）→ C16（捨て牌の受けの統合、C9 を含む）→
-C14（イベントの型注釈）→ C18（`assign` への移行）。C5 と C6 は
-C18 で context の持ち方を決めたあとに行うのが手戻りが少ない。
+**3. 構造** — 済。C4（ファイル分割）→ C8（`pollReplies`）→ C20（`ActionLogic`）→
+C17（`BaseActor`）の順で行い、C7 の死んだコードは C4 の途中で落とした。
+残っているのは C7 のロン判定の二重（C6 と同時）、C8 の `mailBox` の型絞り込み、
+C20 の `PlayerEfficiency` / `RiskRank`（C10 と同じく保留）。
 
-**5. 残り** — C21 / C22 / C23 / C24 と低の 10 件。C24 は
-`refactor-report.md` M18 と同時に。
+**4. 状態機械** — 済。C15（ブロードキャストの共通化）→ C16（捨て牌の受けの統合）→
+C14（イベントの型注釈）→ C18（`assign` への移行と context の整理）→ C5（カンドラ）。
+C6 は保留（意図的、上記）。
+
+**5. 残り** — C19 / C21 / C22 / C23 / L1 / L7 / L10 は済。
+残るのは C24（`ActorHand.clone`、`refactor-report.md` M18 と同時）と
+L9（`@deprecated` の結論、C10 待ち）。L4 / L6 / L7 は一部済。

@@ -2,13 +2,12 @@ import { assert } from "../assert";
 import { Wind } from "../core/constants";
 import { Tile } from "../core";
 
-type DiscardEntry = { w: Wind; t: Tile; callMarker?: boolean };
+type DiscardEntry = { w: Wind; t: Tile };
 
 export interface IRiver {
   discard(t: Tile, w: Wind): void;
   discards(w?: Wind): readonly DiscardEntry[];
   lastTile: DiscardEntry;
-  markCalled(): void;
   isFourWindsAbort(): boolean;
   reset(): void;
 }
@@ -36,10 +35,6 @@ export class River implements IRiver {
       `lastTile is null. river: ${JSON.stringify(this.all, null, 2)}`,
     );
     return last;
-  }
-
-  markCalled() {
-    this.lastTile.callMarker = true;
   }
 
   isFourWindsAbort() {
