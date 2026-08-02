@@ -12,7 +12,17 @@ import { createScenario } from "./utils/controller";
 
 describe("controller", () => {
   test("立直直後のロンは立直棒を消費しない/ダブルリーチ/一発のテスト", () => {
-    const { c, wall, players } = createScenario({ debug: false });
+    // 1w は 1p 待ち。1z をツモ切りダブルリーチし、2w の立直宣言牌 1p をロンする。
+    const { c, players } = createScenario({
+      autoAdvance: true,
+      wall: {
+        hands: {
+          "1z": "123m456m789m123s1p",
+          "2z": "123m456m789m123s1z",
+        },
+        draws: ["1z", "1p"],
+      },
+    });
     const [mp1, mp2] = players;
 
     mp1.mDrawHandlers.unshift((e, p) => {
@@ -31,15 +41,6 @@ describe("controller", () => {
       return !!e.choices.REACH;
     });
 
-    // 1w は 1p 待ちを想定する
-    // 1w が 1z をツモ切りダブルリーチをする
-    // 2w が 1p をつも切りリーチをする
-    // それをロンする
-    wall.setInitialHand("1z", "123m456m789m123s1p");
-    wall.pushTile("1z");
-    wall.setInitialHand("2z", "123m456m789m123s1z");
-    wall.pushTile("1p");
-
     c.actor.start();
 
     const sum = c.scoreManager.summary;
@@ -49,21 +50,25 @@ describe("controller", () => {
     ]).toStrictEqual([25000 + 12000, 25000 - 12000]);
   });
   test("同順フリテン", () => {
-    const { c, wall, players } = createScenario();
-    const [mp1] = players;
-
     // p1　は 1z 待ちを想定する
     // p2 が 1z を捨てるのをロン可能であるかチェックし、スルーする
     // p3 が 1z を捨てるのをロンできないことをチェックする
     // p2 が 1z を捨てるのをロンできることをチェックし、ロンする
     // 点数と 2本場になることをチェック
-    wall.addExclude("1z");
-    wall.setInitialHand("1z", "123m456m789m123s1z");
-    wall.pushTile("1p");
-    wall.setInitialHand("2z", "2p");
-    wall.pushTile("1z");
-    wall.setInitialHand("3z", "7z");
-    wall.pushTile("1z");
+    const { c, players } = createScenario({
+      wall: {
+        hands: { "1z": "123m456m789m123s1z" },
+        draws: [
+          "1p", // 1: 1z のツモ
+          "1z", // 2: 2z のツモ → ツモ切り（1 回目は見逃す）
+          "1z", // 3: 3z のツモ → ツモ切り（フリテンでロンできない）
+          "5z", // 4: 4z のツモ
+          "6z", // 5: 1z のツモ（上がらないように無関係な牌）
+          "1z", // 6: 2z のツモ → ツモ切り → フリテンが解けてロンできる
+        ],
+      },
+    });
+    const [mp1] = players;
 
     c.actor.start();
 
@@ -89,10 +94,8 @@ describe("controller", () => {
     c.next(true);
     mp1.mDiscardHandlers.shift(); // remove pre check
     c.next(true);
-    wall.pushTile("6z"); // p1 が上がらないように dummy をセット
     c.next(true); // p1 draw
     c.next(true); // p1 discard
-    wall.pushTile("1z"); // ロン牌をセット
     c.next(true);
     // フリテンが解消されロンできる
     mp1.mDiscardHandlers.unshift((e, p) => {
@@ -114,20 +117,27 @@ describe("controller", () => {
     expect(sticks).toStrictEqual({ reach: 0, dead: 1 });
   });
   test("チャンカン", () => {
-    const { c, wall, players } = createScenario();
-    const [mp1, mp2] = players;
-
     // p1 は 1-4s 待ちを想定する
     // p2 が 1s を 3w からポンする
     // p2 が 1s をカカンしたのをロンする
-    wall.addExclude("1s", "4s");
-    wall.setInitialHand("1z", "123m456m789m23s11p");
-    wall.pushTile("2z");
-    wall.setInitialHand("2z", "123m456m11s");
-    wall.pushTile("4z");
-    wall.setInitialHand("3z", "567s");
-    wall.pushTile("1s");
-    wall.setInitialHand("4z", "7z");
+    const { c, wall, players } = createScenario({
+      wall: {
+        hands: {
+          "1z": "123m456m789m23s11p",
+          "2z": "123m456m11s",
+          "3z": "567s",
+          "4z": "7z",
+        },
+        draws: [
+          "2z", // 1z のツモ
+          "4z", // 2z のツモ
+          "1s", // 3z のツモ → ツモ切り → 2z がポン
+        ],
+        // 1z の当たり牌が他家から出ると台本がずれるので、残りを場に出さない
+        exclude: ["4s", "4s", "4s", "r5s"],
+      },
+    });
+    const [mp1, mp2] = players;
 
     mp1.doChankan = true;
 
@@ -153,7 +163,7 @@ describe("controller", () => {
     c.next(true);
     c.next(true);
 
-    wall.pushTile("1s");
+    wall.injectNextDraw("1s");
     mp2.mDrawHandlers.push((e, p) => {
       expect(!!e.choices.SHO_KAN).toBe(true);
       p.eventHandler.emit(e);

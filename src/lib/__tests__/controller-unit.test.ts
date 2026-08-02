@@ -751,7 +751,12 @@ describe("state-machine", () => {
   test("context は直列化できる（C18）", () => {
     // Controller やイベント ID の採番（クロージャ）が context に入っていると
     // 循環参照で JSON にできず、スナップショットを保存・復元できない。
-    const { c } = createLocalGame({ debug: true, shuffle: false, seed: 1, logger: silentLogger });
+    const { c } = createLocalGame({
+      autoAdvance: false,
+      shuffle: false,
+      seed: 1,
+      logger: silentLogger,
+    });
     c.actor.start();
     c.next(true);
     c.next(true);

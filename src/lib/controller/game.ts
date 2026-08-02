@@ -7,7 +7,10 @@ import { Player } from "./player";
 import { IWall } from "./wall";
 
 export const createLocalGame = (params?: {
+  /** @deprecated `autoAdvance: false` を使うこと。 */
   debug?: boolean;
+  /** false にすると `next()` で進まなくなる。テストで 1 手ずつ進めるときに使う。 */
+  autoAdvance?: boolean;
   shuffle?: boolean;
   /** 席順と山を固定したいときに種を渡す。同じ種なら同じ対局になる。 */
   seed?: number;
@@ -57,6 +60,7 @@ export const createLocalGame = (params?: {
   return {
     c: new Controller(players, {
       debug: params?.debug,
+      autoAdvance: params?.autoAdvance,
       shuffle: params?.shuffle,
       rand: rand,
       newWall: params?.newWall,

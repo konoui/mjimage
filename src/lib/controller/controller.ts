@@ -54,7 +54,11 @@ export class Controller {
   // TODO 同じイベント ID は同じ特定イベントの配列になるので特定イベント ID の配列の union が良さそう
   mailBox: MailBox = {};
   histories: RoundHistory[] = [];
-  debugMode: boolean;
+  /**
+   * 状態機械を自分で進めるか。false にすると `next()` が黙って何もしないので、
+   * テストが `next(true)` で 1 手ずつ進められる。
+   */
+  autoAdvance: boolean;
   /** 席順と山のシャッフルに使う乱数。テストで対局を固定するために差し替えられる。 */
   private rand: Rand;
   /** 局ごとに山を作り直す。テストが台本つきの山を使い続けられるように差し替えられる。 */
@@ -67,6 +71,7 @@ export class Controller {
   constructor(
     players: readonly PlayerSession[],
     params?: {
+      /** @deprecated `autoAdvance: false` を使うこと。 */
       debug?: boolean;
       shuffle?: boolean;
       rand?: Rand;
@@ -75,9 +80,11 @@ export class Controller {
       endRound?: Round;
       /** 進行ログの出し先。既定は console。 */
       logger?: Logger;
+      /** false にすると `next()` で進まなくなる。既定は true。 */
+      autoAdvance?: boolean;
     }
   ) {
-    this.debugMode = params?.debug ?? false;
+    this.autoAdvance = params?.autoAdvance ?? !(params?.debug ?? false);
     this.logger = params?.logger ?? consoleLogger;
     this.endRound = params?.endRound ?? ROUND.W1;
     this.rand = params?.rand ?? Math.random;
@@ -152,8 +159,9 @@ export class Controller {
   get river() {
     return this.observer.river;
   }
+  /** @param force 自動進行を止めていても 1 手だけ進める。 */
   next(force?: boolean) {
-    if (!this.debugMode || force) this.actor.send({ type: "NEXT" });
+    if (this.autoAdvance || force) this.actor.send({ type: "NEXT" });
   }
   emit(e: PlayerEvent) {
     const id = this.observer.placeManager.playerID(e.wind);
