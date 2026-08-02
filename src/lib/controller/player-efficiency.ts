@@ -1,6 +1,6 @@
 import { assert } from "../assert";
 import { TYPE, Wind } from "../core/constants";
-import { Tile } from "../core/parser";
+import { Tile } from "../core";
 import { TileAnalysis } from "../calculator";
 import { Counter } from "./managers";
 

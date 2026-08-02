@@ -15,7 +15,7 @@ import {
   type ChoiceAfterDiscardedEvent,
   type ChoiceAfterDrawnEvent,
 } from "../controller";
-import { Tile } from "../core/parser";
+import { Tile } from "../core";
 import { OP, ROUND, TYPE, WIND, Wind } from "../core/constants";
 
 // controller のリファクタリング用の回帰テスト。

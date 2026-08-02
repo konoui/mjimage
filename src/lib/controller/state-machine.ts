@@ -23,7 +23,9 @@ import {
   BlockShoKan,
   Block,
   Tile,
-} from "../core/parser";
+  nextWind,
+  createWindMap,
+} from "../core";
 import {
   TileAnalysis,
   SerializedTileAnalysis,
@@ -31,7 +33,6 @@ import {
   WinResult,
   serializeWinResult,
 } from "./../calculator";
-import { nextWind, createWindMap } from "../core";
 import { assert } from "../assert";
 
 type ControllerContext = {

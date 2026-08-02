@@ -40,11 +40,6 @@ export abstract class SvgNode {
   constructor(type: string) {
     this.type = type;
   }
-  size(width: number, height: number): this {
-    this.attrs.width = width;
-    this.attrs.height = height;
-    return this;
-  }
   /** 親から自分を取り除く。親に属していない場合は何もしない。 */
   remove() {
     this.parent?.removeChild(this);
@@ -97,8 +92,16 @@ export abstract class SvgNode {
 
 /**
  * 置き場所を持つ要素。座標を指定できるものだけがこれを継承する。
+ *
+ * 大きさ（width/height）もここに置く。g のように大きさを持たない要素で呼べると、
+ * 描画側が無視するだけの属性が出力に混ざる。
  */
 export abstract class Mark extends SvgNode {
+  size(width: number, height: number): this {
+    this.attrs.width = width;
+    this.attrs.height = height;
+    return this;
+  }
   dx(x: number): this {
     if (this.attrs.x == null) this.attrs.x = x;
     else this.attrs.x += x;
@@ -284,6 +287,12 @@ export class Svg extends Container {
       .filter((v) => v != "")
       .join(" ")}>`;
   }
+  /** ルートの svg は大きさを持つ。ページ側の CSS で上書きできる絶対値になる。 */
+  size(width: number, height: number): this {
+    this.attrs.width = width;
+    this.attrs.height = height;
+    return this;
+  }
   viewbox(x: number, y: number, width: number, height: number) {
     this.viewBox = { x, y, width, height };
     return this;
@@ -401,7 +410,9 @@ const PRECISION = 6;
  * 呼び出し側へ返す寸法も同じ丸めを通し、viewBox の値と一致させる。
  */
 export const round = (v: number) => {
-  if (!Number.isFinite(v)) return v;
+  // NaN や Infinity をそのまま通すと width="NaN" のような SVG ができ、
+  // 原因から離れた場所（描画結果）でしか気づけない。
+  assert(Number.isFinite(v), `unexpected non finite value: ${v}`);
   const r = Number(v.toFixed(PRECISION));
   // -0 を 0 に正規化する
   return r === 0 ? 0 : r;

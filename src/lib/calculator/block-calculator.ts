@@ -1,5 +1,9 @@
-import { HONOR_NUMBERS, OP, TERMINAL_NUMBERS, TYPE, Type } from "../core";
 import {
+  HONOR_NUMBERS,
+  OP,
+  TERMINAL_NUMBERS,
+  TYPE,
+  Type,
   Tile,
   BlockPair,
   Block,
@@ -8,7 +12,7 @@ import {
   BlockRun,
   BlockHand,
   is5Tile,
-} from "../core/parser";
+} from "../core";
 import { MutableCounts, tilesOf } from "./counts";
 import { Hand } from "./hand";
 import {
@@ -149,16 +153,21 @@ export const allBlockCombinations = (
   // [["123m", "123m"], ["222m", "333m"]]
   // [["123s", "123s"]]
   // result: [["123m", "123m", "123s", "123s"], ["111m", "333m", "123s", "123s"]]
-  const vvv = [
-    addRedPatterns(w, TYPE.M, handleNumType(w, TYPE.M)),
-    addRedPatterns(w, TYPE.P, handleNumType(w, TYPE.P)),
-    addRedPatterns(w, TYPE.S, handleNumType(w, TYPE.S)),
-    handleZ(w),
-    handleBack(w),
+  //
+  // 並べ替えは組み合わせの数には影響しない（積の順序が変わるだけ）。効くのは
+  // 出来上がる構成のブロックの並び順で、それは WinResult.hand としてそのまま外へ出る。
+  // TODO 何のための並び順なのかは不明。外してもテストは通るが、利用側が並び順に
+  // 依存していないことを確かめられていないため、いまは残している。
+  const groups = [
+    addRedPatterns(w, TYPE.M, combinationsOfNumType(w, TYPE.M)),
+    addRedPatterns(w, TYPE.P, combinationsOfNumType(w, TYPE.P)),
+    addRedPatterns(w, TYPE.S, combinationsOfNumType(w, TYPE.S)),
+    combinationsOfHonors(w),
+    combinationsOfBacks(w),
     [called.concat()],
   ].sort((a, b) => b.length - a.length);
   // combine all patterns
-  const ret = vvv.reduce(
+  const ret = groups.reduce(
     (acc, group) =>
       group.length === 0
         ? acc // 空の配列があればそのまま acc を返す
@@ -168,8 +177,13 @@ export const allBlockCombinations = (
   return ret;
 };
 
-// handle back tiles as same unknown tiles, Not joker tile.
-const handleBack = (w: MutableCounts): readonly (readonly Block[])[] => {
+/**
+ * 裏牌から作れる面子の組み合わせを返す。
+ * 裏牌は「種類の分からない同じ牌」として扱う（万能牌ではない）。
+ */
+const combinationsOfBacks = (
+  w: MutableCounts,
+): readonly (readonly Block[])[] => {
   const bt = TYPE.BACK;
   const sum = w.get(bt, 0);
   if (sum < 3) return [];
@@ -178,7 +192,12 @@ const handleBack = (w: MutableCounts): readonly (readonly Block[])[] => {
   return b.length == 0 ? [] : [b];
 };
 
-const handleZ = (w: MutableCounts): readonly (readonly Block[])[] => {
+/**
+ * 字牌から作れる面子の組み合わせを返す。字牌は順子にならないので刻子だけ。
+ */
+const combinationsOfHonors = (
+  w: MutableCounts,
+): readonly (readonly Block[])[] => {
   const z: Block[] = [];
   for (const [zt, n] of forHand({ filterBy: [TYPE.Z] })) {
     if (w.get(zt, n) == 0) continue;
@@ -246,7 +265,7 @@ const addRedPatterns = (
 /**
  * 数牌の一つの種類について、面子の組み合わせを全て返す。
  */
-export const handleNumType = (
+export const combinationsOfNumType = (
   w: MutableCounts,
   t: typeof TYPE.M | typeof TYPE.S | typeof TYPE.P,
   n: number = 1,
@@ -254,7 +273,7 @@ export const handleNumType = (
   if (n > 9) return [];
 
   if (w.get(t, n) == 0) {
-    return handleNumType(w, t, n + 1);
+    return combinationsOfNumType(w, t, n + 1);
   }
 
   const ret: Block[][] = [];
@@ -262,7 +281,7 @@ export const handleNumType = (
     const runs = w.without(
       [new Tile(t, n), new Tile(t, n + 1), new Tile(t, n + 2)],
       (tiles) => {
-        const nested = handleNumType(w, t, n);
+        const nested = combinationsOfNumType(w, t, n);
         const arrs = nested.length == 0 ? [[]] : nested;
         return arrs.map((arr) => [
           new BlockRun([tiles[0], tiles[1], tiles[2]]),
@@ -275,7 +294,7 @@ export const handleNumType = (
 
   if (w.get(t, n) == 3) {
     const triples = w.without(new Array(3).fill(new Tile(t, n)), (tiles) => {
-      const nested = handleNumType(w, t, n);
+      const nested = combinationsOfNumType(w, t, n);
       const arrs = nested.length == 0 ? [[]] : nested;
       // Note insert it to the head due to handling recursively, 111333m
       // first arr will have [333m]

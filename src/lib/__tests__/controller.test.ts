@@ -9,9 +9,26 @@ import {
   ChoiceAfterDrawnEvent,
   ChoiceAfterCalled,
 } from "../controller";
-import { Tile } from "../core/parser";
+import { Parser, Tile, createWindMap, Wind } from "../core";
 import { TYPE, OP, WIND } from "../core/constants";
-import { createWindMap, Wind } from "../core";
+
+// MockWall は台本にない部分（明示していない 3 人の配牌と、台本を使い切った後のツモ）を
+// 本物の Wall に任せており、そこは Math.random でシャッフルされる。
+// 実行ごとに山が変わると、失敗したときに再現できない。ここで乱数を固定しておく。
+//
+// なお、稀にテストが落ちていた原因は乱数そのものではなく MockWall.addExclude の取りこぼし
+// （台本で使う牌が他家の配牌に混ざり 5 枚目になる）で、そちらは下で直してある。
+beforeEach(() => {
+  let seed = 20260801;
+  vi.spyOn(Math, "random").mockImplementation(() => {
+    seed = (seed * 1103515245 + 12345) % 2147483648;
+    return seed / 2147483648;
+  });
+});
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe("controller", () => {
   test("立直直後のロンは立直棒を消費しない/ダブルリーチ/一発のテスト", () => {
     const { c, p1, p2 } = createLocalGame({
@@ -405,24 +422,45 @@ class MockWall extends Wall {
     return this.doraIndicators;
   }
 
+  /**
+   * 台本で使う牌を、山からも他家の配牌からも取り除く。
+   * 除外しないと、台本で足した分と合わせて 5 枚目になり
+   * `[counter] tile ... appears more than 4 times` で落ちる。
+   */
   addExclude(...tiles: readonly string[]) {
     this.exclude.push(...tiles);
   }
 
+  /** 除外した牌を避けて本物の山から 1 枚引く。 */
+  private drawUnexcluded(): Tile {
+    // 同じ牌は高々 4 枚なので、除外牌の 4 倍も引けば必ず別の牌に当たる。
+    for (let i = 0; i < this.exclude.length * 4 + 1; i++) {
+      const d = this.oWall.draw();
+      if (!this.exclude.includes(d.toString())) return d;
+    }
+    throw new Error(`could not draw a tile outside: ${this.exclude}`);
+  }
+
+  /** 配牌から除外牌を取り除き、別の牌で埋め直す。 */
+  private withoutExcluded(hand: string): string {
+    if (this.exclude.length == 0) return hand;
+    return new Parser(hand)
+      .tiles()
+      .map((t) => (this.exclude.includes(t.toString()) ? this.drawUnexcluded() : t))
+      .join("");
+  }
+
   override draw() {
     const t = this.wall.shift();
-    if (t == null) {
-      const d = this.oWall.draw();
-      // TODO
-      if (this.exclude.includes(d.toString())) return this.oWall.draw();
-      return d;
-    }
+    // 台本を使い切ったら本物の山から引く
+    if (t == null) return this.drawUnexcluded();
     return Tile.from(t);
   }
   override initialHands(): { readonly [key in Wind]: string } {
     const i = this.oWall.initialHands();
     for (let w of Object.values(WIND)) {
-      if (this.initial[w] != "") i[w] = this.initial[w];
+      // 明示していない家の配牌は本物の山任せなので、除外牌だけ入れ替える
+      i[w] = this.initial[w] != "" ? this.initial[w] : this.withoutExcluded(i[w]);
     }
     return i;
   }

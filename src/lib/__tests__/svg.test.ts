@@ -1,6 +1,6 @@
 import { XMLValidator, XMLParser } from "fast-xml-parser";
 import fs from "fs";
-import { Parser } from "../core/parser";
+import { Parser } from "../core";
 import { ImageHelper, render } from "../image";
 import { SVG, assetPath, loadInputData } from "./utils/helper";
 import { TYPE, TILE_NUMBERS } from "../core/constants";

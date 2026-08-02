@@ -7,6 +7,7 @@ import {
   pipe,
   picklist,
   safeParse,
+  summarize,
   InferOutput,
   strictObject,
   InferInput,
@@ -54,12 +55,14 @@ const boardInputSchema = optional(
     ),
     sticks: optional(
       strictObject({
+        // メッセージは valibot の既定（"Invalid value: Expected <=9 but received 99"）に任せる。
+        // 空文字を渡すと、範囲外のときに何も表示されない。
         reach: optional(
-          pipe(number(), minValue(0, ""), maxValue(9, "")),
+          pipe(number(), minValue(0), maxValue(9)),
           defaultBoard.sticks.reach,
         ),
         dead: optional(
-          pipe(number(), minValue(0, ""), maxValue(9, "")),
+          pipe(number(), minValue(0), maxValue(9)),
           defaultBoard.sticks.dead,
         ),
       }),
@@ -82,7 +85,6 @@ const tableInputSchema = strictObject({
 
 // 型定義
 export type RawWindInput = InferInput<typeof windInputSchema>;
-export type RawWindInputs = InferInput<typeof windInputsSchema>;
 export type RawBoardInput = InferInput<typeof boardInputSchema>;
 export type RawTableInput = InferInput<typeof tableInputSchema>;
 
@@ -96,7 +98,12 @@ export function parseRawTableInput(
 ): ValidatedTableInput {
   const ret = safeParse(tableInputSchema, rawInput);
   if (!ret.success) {
-    throw ret.issues;
+    // issue の配列をそのまま投げると Error でない値が飛び、message も stack も残らない。
+    // 卓の入力は利用者が手で書くものなので、ここが誤りを伝える唯一の場所になる。
+    // 元の issue は cause に残し、プログラムから詳細を辿れるようにする。
+    throw new Error(`invalid table input:\n${summarize(ret.issues)}`, {
+      cause: ret.issues,
+    });
   }
   return ret.output;
 }

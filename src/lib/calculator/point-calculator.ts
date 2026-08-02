@@ -1,5 +1,13 @@
-import { BLOCK, OP, Wind, WIND, createWindMap, roundWind } from "../core";
-import { Tile, Block } from "../core/parser";
+import {
+  BLOCK,
+  OP,
+  Wind,
+  WIND,
+  createWindMap,
+  roundWind,
+  Tile,
+  Block,
+} from "../core";
 import { assert } from "../assert";
 import { Hand } from "./hand";
 import { calcFu } from "./fu";
@@ -22,8 +30,12 @@ import {
 } from "./types";
 
 export class PointCalculator {
-  hand: Hand;
-  cfg: {
+  private readonly hand: Hand;
+  /**
+   * BoardContext を計算しやすい形に正規化したもの。実装都合の表現なので外へ出さない。
+   * 利用者へ返すのは元の BoardContext（`orig`）の方で、WinResult.boardContext がそれになる。
+   */
+  private readonly cfg: {
     doras: readonly Tile[];
     hiddenDoras: readonly Tile[];
     roundWind: Tile;
@@ -73,20 +85,21 @@ export class PointCalculator {
 
     const bestHand = this.selectBestHand(patterns);
     const scoreInfo = this.calculateScore(bestHand);
-    const deltas = this.calculateDeltas(
-      scoreInfo.base,
-      scoreInfo.isTsumo,
+    this.assertWinByMatchesHand(scoreInfo.isTsumo);
+
+    // 手牌のあがり点と供託・積み棒を別々に出して足す。
+    // 一つの表を書き換えていくと、どの時点で読んだ値かで意味が変わってしまう。
+    const winDeltas = this.calculateDeltas(
+      scoreInfo.baseScore,
       scoreInfo.isParent,
       scoreInfo.myWind,
-      this.cfg.orig.ronWind,
     );
-
-    const basePoints = deltas[scoreInfo.myWind];
-
-    this.addStickPoints(deltas, scoreInfo.myWind, this.cfg.orig.ronWind);
+    const stickDeltas = this.stickDeltas(scoreInfo.myWind);
+    const deltas = createWindMap(() => 0);
+    for (const w of Object.values(WIND)) deltas[w] = winDeltas[w] + stickDeltas[w];
 
     const description = getPointDescription({
-      base: scoreInfo.base,
+      baseScore: scoreInfo.baseScore,
       fu: scoreInfo.fu,
       han: scoreInfo.han,
       isTsumo: scoreInfo.isTsumo,
@@ -100,10 +113,24 @@ export class PointCalculator {
       fu: scoreInfo.fu, // ceiled value
       deltas,
       points: deltas[scoreInfo.myWind],
-      basePoints,
+      pointsWithoutSticks: winDeltas[scoreInfo.myWind],
       boardContext: this.cfg.orig,
       description,
     };
+  }
+
+  /** あがり方の指定が、手牌のあがり牌に付いた印と食い違っていないか確かめる。 */
+  private assertWinByMatchesHand(isTsumo: boolean) {
+    const declared = this.winBy.type;
+    const actual = isTsumo ? "tsumo" : "ron";
+    assert(
+      declared === actual,
+      `win type mismatch: boardContext says ${declared} but the winning tile is marked as ${actual}`,
+    );
+  }
+
+  private get winBy() {
+    return this.cfg.orig.winBy;
   }
 
   /**
@@ -163,12 +190,12 @@ export class PointCalculator {
     const fu = bestHand.fu !== 25 ? myCeil(bestHand.fu, 10) : 25;
     const isYakuman = bestHand.isYakuman ?? false;
 
-    let base = this.getBasePoints(han, fu);
+    let baseScore = this.baseScoreOf(han, fu);
     let isCountableYakuman = false;
 
     // 数え役満処理
     if (han >= 13 && han < 26 && !this.hasYakuman(bestHand.yakus)) {
-      base = this.cfg.disableCountableYakuman
+      baseScore = this.cfg.disableCountableYakuman
         ? SCORING.TRIPLE
         : SCORING.YAKUMAN;
       isCountableYakuman = !this.cfg.disableCountableYakuman;
@@ -176,7 +203,7 @@ export class PointCalculator {
 
     // 切り上げ満貫
     if (this.cfg.enableRoundUpMangan && this.isRoundUpMangan(fu, han)) {
-      base = SCORING.MANGAN;
+      baseScore = SCORING.MANGAN;
     }
 
     const isTsumo = this.isTsumoWin(bestHand.hand);
@@ -184,7 +211,7 @@ export class PointCalculator {
     const isParent = myWind === WIND.E;
 
     return {
-      base,
+      baseScore,
       fu,
       han,
       isYakuman: isCountableYakuman ? true : isYakuman,
@@ -208,22 +235,16 @@ export class PointCalculator {
   }
 
   /**
-   * Wind をキーとした点数移動の構成を返す
+   * 手牌のあがり点による点数移動を Wind ごとに返す。供託・積み棒は含まない。
    */
-  private calculateDeltas(
-    base: number,
-    isTsumo: boolean,
-    isParent: boolean,
-    myWind: Wind,
-    ronWind?: Wind,
-  ) {
+  private calculateDeltas(baseScore: number, isParent: boolean, myWind: Wind) {
     const deltas = createWindMap(() => 0);
+    const winBy = this.winBy;
 
-    if (!isTsumo) {
-      assert(ronWind != null, "tumo is false but ron wind is null");
-      this.calculateRonDeltas(deltas, base, isParent, myWind, ronWind);
+    if (winBy.type === "ron") {
+      this.calculateRonDeltas(deltas, baseScore, isParent, myWind, winBy.from);
     } else {
-      this.calculateTsumoDeltas(deltas, base, isParent, myWind);
+      this.calculateTsumoDeltas(deltas, baseScore, isParent, myWind);
     }
 
     return deltas;
@@ -231,12 +252,12 @@ export class PointCalculator {
 
   private calculateRonDeltas(
     deltas: { [key in Wind]: number },
-    base: number,
+    baseScore: number,
     isParent: boolean,
     myWind: Wind,
     ronWind: Wind,
   ) {
-    const points = ronPoints(base, isParent);
+    const points = ronPoints(baseScore, isParent);
 
     deltas[myWind] += points;
     deltas[ronWind] -= points;
@@ -244,11 +265,11 @@ export class PointCalculator {
 
   private calculateTsumoDeltas(
     deltas: { [w in Wind]: number },
-    base: number,
+    baseScore: number,
     isParent: boolean,
     myWind: Wind,
   ) {
-    const { fromParent, fromChild } = tsumoPoints(base, isParent);
+    const { fromParent, fromChild } = tsumoPoints(baseScore, isParent);
 
     if (isParent) {
       deltas[WIND.E] += fromChild * 3;
@@ -259,33 +280,40 @@ export class PointCalculator {
     }
     for (const key of Object.values(WIND)) {
       if (key == myWind) continue;
-      const basePoints = key == WIND.E ? fromParent : fromChild;
-      deltas[key] -= basePoints;
-      deltas[myWind] += basePoints;
+      const payment = key == WIND.E ? fromParent : fromChild;
+      deltas[key] -= payment;
+      deltas[myWind] += payment;
     }
   }
 
-  private addStickPoints(
-    deltas: { [w in Wind]: number },
-    myWind: Wind,
-    ronWind: Wind | undefined,
-  ) {
+  /**
+   * 供託（立直棒）と積み棒による点数移動を Wind ごとに返す。
+   * 立直棒はあがった人がまとめて取り、積み棒はロンなら放銃者、ツモなら他家 3 人が払う。
+   */
+  private stickDeltas(myWind: Wind) {
+    const deltas = createWindMap(() => 0);
     deltas[myWind] += SCORING.REACH_STICK * this.cfg.sticks.reach;
+
     const deadPoint = SCORING.DEAD_STICK * this.cfg.sticks.dead;
-    if (ronWind != null) {
+    const winBy = this.winBy;
+    if (winBy.type === "ron") {
       deltas[myWind] += deadPoint;
-      deltas[ronWind] -= deadPoint;
-      return;
+      deltas[winBy.from] -= deadPoint;
+      return deltas;
     }
     for (const key of Object.values(WIND)) {
       if (key == myWind) deltas[key] += deadPoint;
       else deltas[key] -= deadPoint / 3;
     }
+    return deltas;
   }
 
-  private getBasePoints(han: number, fu: number): number {
-    for (const { minHan, points } of HAN_SCORING_TABLE) {
-      if (han >= minHan) return points;
+  /**
+   * 翻数と符から基礎点を返す。ロン・ツモの係数を掛ける前の値。
+   */
+  private baseScoreOf(han: number, fu: number): number {
+    for (const { minHan, baseScore } of HAN_SCORING_TABLE) {
+      if (han >= minHan) return baseScore;
     }
     // 40符以上の4飜は満貫の2000にする。
     return Math.min(fu * 2 ** (han + 2), SCORING.MANGAN);

@@ -1,6 +1,6 @@
 import { assert } from "../assert";
 import { Wind } from "../core/constants";
-import { Tile } from "../core/parser";
+import { Tile } from "../core";
 
 type DiscardEntry = { w: Wind; t: Tile; callMarker?: boolean };
 

@@ -1,4 +1,4 @@
-import { Parser } from "../core/parser";
+import { Parser } from "../core";
 import { SVG, RenderedSvg, asRenderedSvg } from "../svgjs/svg";
 import {
   ImageHelper,

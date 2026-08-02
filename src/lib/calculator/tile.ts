@@ -1,5 +1,4 @@
-import { TILE_NUMBERS, TYPE, Type } from "../core";
-import { Tile } from "../core/parser";
+import { TILE_NUMBERS, TYPE, Type, Tile } from "../core";
 
 /**
  * 全ての牌を順番に返すジェネレーター。値域は TILE_NUMBERS から導く。

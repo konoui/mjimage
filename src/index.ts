@@ -24,8 +24,9 @@ export {
 export type { Type, Operator, Wind, Round } from "./lib/core/constants";
 
 // 牌とブロック。入力のパースと、計算・描画の共通の受け渡し形式。
+// core は「牌 → ブロック → パーサ」の順に積んである（依存もこの向き）。
+export { Tile } from "./lib/core/tile";
 export {
-  Tile,
   Block,
   BlockChi,
   BlockPon,
@@ -38,9 +39,9 @@ export {
   BlockIsolated,
   BlockHand,
   BlockOther,
-  Parser,
-} from "./lib/core/parser";
-export type { SerializedBlock } from "./lib/core/parser";
+} from "./lib/core/block";
+export type { SerializedBlock } from "./lib/core/block";
+export { Parser } from "./lib/core/parser";
 
 // 風・局の操作。
 export {

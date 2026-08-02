@@ -1,5 +1,12 @@
-import { BLOCK, TYPE, OP, TERMINAL_NUMBERS, HONOR_NUMBERS } from "../core";
-import { Tile, Block } from "../core/parser";
+import {
+  BLOCK,
+  TYPE,
+  OP,
+  TERMINAL_NUMBERS,
+  HONOR_NUMBERS,
+  Tile,
+  Block,
+} from "../core";
 import { countSameBlocks, minTile } from "./block-util";
 import { Yaku } from "./types";
 
@@ -186,7 +193,12 @@ export const YAKU: readonly YakuDef[] = [
   { name: "白", han: 1, match: (h) => hasHonorSet(h, (t) => t.n == 5) },
   { name: "發", han: 1, match: (h) => hasHonorSet(h, (t) => t.n == 6) },
   { name: "中", han: 1, match: (h) => hasHonorSet(h, (t) => t.n == 7) },
-  { name: "一発", han: 1, match: (_h, ctx) => ctx.oneShotWin },
+  // 一発は立直が前提。oneShotWin は呼び出し側が渡す値なので、ここで立直と併せて見る。
+  {
+    name: "一発",
+    han: 1,
+    match: (_h, ctx) => ctx.reached > 0 && ctx.oneShotWin,
+  },
   { name: "嶺上開花", han: 1, match: (_h, ctx) => ctx.replacementWin },
   { name: "搶槓", han: 1, match: (_h, ctx) => ctx.quadWin },
   { name: "海底摸月", han: 1, match: (_h, ctx) => ctx.finalWallWin },

@@ -1,4 +1,4 @@
-import { Tile, Block, SerializedBlock } from "../core/parser";
+import { Tile, Block, SerializedBlock } from "../core";
 import { BoardContext, WinResult } from "./types";
 
 type SerializedBoardContext = Omit<

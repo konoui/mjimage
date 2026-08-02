@@ -9,7 +9,7 @@ import {
   compareCalledTiles,
   BlockPon,
   BlockShoKan,
-} from "../core/parser";
+} from "../core";
 import { TYPE, OP, BLOCK, INPUT_SEPARATOR } from "../core/constants";
 
 describe("parse", () => {
@@ -109,6 +109,22 @@ describe("tiles parse/red operator", () => {
       new Tile(TYPE.S, 2),
       new Tile(TYPE.S, 5, [OP.TSUMO, OP.RED]),
     ]);
+  });
+});
+
+// Tile.from は Parser を経由せず走査（scanTileSeparators）だけを使う。
+// Parser 側の暗黙のツモブロック（reconstruct）を通らなくなるので、
+// 1 枚の入力では結果が変わらないことを固定する。
+describe("Tile.from", () => {
+  const inputs = ["1m", "t1m", "r5m", "-t^5m", "_", ",1m", ",t1m", "1z", "0p"];
+  test.each(inputs)("%s は Parser 経由と同じ牌になる", (input) => {
+    const viaParser = new Parser(input).tiles();
+    expect(viaParser).toHaveLength(1);
+    expect(Tile.from(input)).toStrictEqual(viaParser[0]);
+  });
+
+  test("2 枚以上は弾く", () => {
+    expect(() => Tile.from("12m")).toThrow(/input must be a single tile/);
   });
 });
 

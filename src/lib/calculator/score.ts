@@ -9,13 +9,14 @@ export const SCORING = {
   REACH_STICK: 1000,
 } as const;
 
+/** 翻数から基礎点を引く表。ロン・ツモの係数を掛ける前の値。 */
 export const HAN_SCORING_TABLE = [
-  { minHan: 26, points: SCORING.DOUBLE_YAKUMAN },
-  { minHan: 13, points: SCORING.YAKUMAN },
-  { minHan: 11, points: SCORING.TRIPLE },
-  { minHan: 8, points: SCORING.DOUBLE },
-  { minHan: 6, points: SCORING.HANEMAN },
-  { minHan: 5, points: SCORING.MANGAN },
+  { minHan: 26, baseScore: SCORING.DOUBLE_YAKUMAN },
+  { minHan: 13, baseScore: SCORING.YAKUMAN },
+  { minHan: 11, baseScore: SCORING.TRIPLE },
+  { minHan: 8, baseScore: SCORING.DOUBLE },
+  { minHan: 6, baseScore: SCORING.HANEMAN },
+  { minHan: 5, baseScore: SCORING.MANGAN },
 ] as const;
 
 const SCORE_NAMES = {
@@ -40,9 +41,9 @@ export const myCeil = (v: number, p = 100) => {
 /**
  * ロンあがりの支払い点。放銃者が 1 人でこの全額を払う。
  */
-export const ronPoints = (base: number, isParent: boolean): number =>
+export const ronPoints = (baseScore: number, isParent: boolean): number =>
   myCeil(
-    base *
+    baseScore *
       (isParent ? POINT_COEFFICIENT.PARENT_RON : POINT_COEFFICIENT.CHILD_RON),
   );
 
@@ -52,24 +53,25 @@ export const ronPoints = (base: number, isParent: boolean): number =>
  * 子 3 人が fromChild を等しく払う。
  */
 export const tsumoPoints = (
-  base: number,
+  baseScore: number,
   isParent: boolean,
 ): { fromParent: number; fromChild: number } =>
   isParent
     ? {
         fromParent: 0,
-        fromChild: myCeil(base * POINT_COEFFICIENT.PARENT_TSUMO),
+        fromChild: myCeil(baseScore * POINT_COEFFICIENT.PARENT_TSUMO),
       }
     : {
-        fromParent: myCeil(base * POINT_COEFFICIENT.CHILD_TUMO_FROM_PARENT),
-        fromChild: myCeil(base * POINT_COEFFICIENT.CHILD_TUMO_FROM_CHILD),
+        fromParent: myCeil(baseScore * POINT_COEFFICIENT.CHILD_TUMO_FROM_PARENT),
+        fromChild: myCeil(baseScore * POINT_COEFFICIENT.CHILD_TUMO_FROM_CHILD),
       };
 
 /**
  * あがりの説明を返す。
  */
 export function getPointDescription(params: {
-  base: number;
+  /** 基礎点。ロン・ツモの係数を掛ける前の値。 */
+  baseScore: number;
   fu: number;
   han: number;
   isTsumo: boolean;
@@ -81,26 +83,26 @@ export function getPointDescription(params: {
   if (params.isCountableYakuman) return "数え役満";
 
   const pointDesc = generatePointDescription(
-    params.base,
+    params.baseScore,
     params.isTsumo,
     params.isParent,
   );
 
-  const scoreName = SCORE_NAMES[params.base as keyof typeof SCORE_NAMES];
+  const scoreName = SCORE_NAMES[params.baseScore as keyof typeof SCORE_NAMES];
   return scoreName
     ? `${params.fu}符${params.han}飜 ${scoreName}${pointDesc}`
     : `${params.fu}符${params.han}飜 ${pointDesc}`;
 }
 
 function generatePointDescription(
-  base: number,
+  baseScore: number,
   isTsumo: boolean,
   isParent: boolean,
 ): string {
   // RON: 単一の点数
-  if (!isTsumo) return `${ronPoints(base, isParent)}`;
+  if (!isTsumo) return `${ronPoints(baseScore, isParent)}`;
 
-  const { fromParent, fromChild } = tsumoPoints(base, isParent);
+  const { fromParent, fromChild } = tsumoPoints(baseScore, isParent);
   // 親のツモ: 子 3 人が同額なので単一の点数
   if (isParent) return `${fromChild}`;
   // 子のツモ: 子から-親から の範囲表示

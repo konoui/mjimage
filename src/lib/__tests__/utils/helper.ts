@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { Block } from "../../core/parser";
+import { Block } from "../../core";
 
 export { SVG } from "../../../index";
 export { Use } from "../../svgjs/svg";

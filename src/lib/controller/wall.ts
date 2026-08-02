@@ -1,6 +1,5 @@
 import { OP, TYPE, WIND } from "../core/constants";
-import { Tile } from "../core/parser";
-import { createWindMap } from "../core";
+import { Tile, createWindMap } from "../core";
 import { shuffle } from "./managers";
 
 export interface IWall {
