@@ -12,4 +12,10 @@ export * from "./controller";
 export * from "./player";
 export * from "./replay";
 export * from "./game";
-export * from "./player-efficiency";
+// 打牌の評価は名前空間として出す（素の関数名は controller の語彙として広すぎる）。
+export * as PlayerEfficiency from "./player-efficiency";
+export * as RiskRank from "./risk-rank";
+export type {
+  PlayerTileAnalysis,
+  PriorityContext,
+} from "./player-efficiency";

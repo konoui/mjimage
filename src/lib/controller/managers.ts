@@ -161,14 +161,16 @@ export class Counter {
     }
   }
   /**
-   * @deprecated 非推奨にします。
+   * 対象の家に対する現物として牌を記録する。
+   * 赤の印は見ないので、`0m` と `5m` は同じ牌として扱う。
    */
   addTileToSafeMap(t: Tile, targetUser: Wind) {
     if (this.disabled) return;
     this.safeTileMap[targetUser][this.key(t.t, t.n)] = true;
   }
   /**
-   * @deprecated 非推奨にします。
+   * 対象の家に対する現物であれば true を返す。
+   * 数字だけを受け取るのは、筋（n±3）の問い合わせに牌を作らずに答えるため。
    */
   isSafeTile(k: Type, n: number, targetUser: Wind) {
     return this.safeTileMap[targetUser][this.key(k, n)];

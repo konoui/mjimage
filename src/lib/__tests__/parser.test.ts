@@ -13,7 +13,7 @@ import {
 import { TYPE, OP, BLOCK, INPUT_SEPARATOR } from "../core/constants";
 
 describe("parse", () => {
-  test("12s34m1z2d,t1s,_05s_,-123s", () => {
+  test("手牌・ツモ・暗槓・チーが混ざった入力をブロックに分ける", () => {
     const got = new Parser("12s34m1z2d,t1s,_05s_,-123s").parse();
     const want = [
       new BlockHand([
@@ -41,7 +41,7 @@ describe("parse", () => {
     expect(got).toStrictEqual(want);
   });
 
-  test("ErrorTest/require type prefix", () => {
+  test("牌の種類で終わらない入力は弾く", () => {
     const p = new Parser("1");
     expect(() => {
       p.parse();
@@ -50,13 +50,13 @@ describe("parse", () => {
 });
 
 describe("TileSeparators", () => {
-  test("single tile/1s", () => {
+  test("1 枚だけの入力", () => {
     const got = new Parser("1s").tiles();
     const want = [new Tile(TYPE.S, 1)];
     expect(got).toStrictEqual(want);
   });
 
-  test("12s34m1z2d,t1s,_-1s", () => {
+  test("区切り文字ごとに牌の並びを返す", () => {
     const got = new Parser("12s34m1z2d,t1s,_-1s").tileSeparators();
     const want = [
       new Tile(TYPE.S, 1),
@@ -74,7 +74,7 @@ describe("TileSeparators", () => {
     expect(got).toStrictEqual(want);
   });
 
-  test("implicit tsumo block", () => {
+  test("暗黙のツモブロックを補う", () => {
     const p = new Parser("123s12t3p66m, 2-22m");
     const got = p.tileSeparators();
     const want = [
@@ -97,12 +97,12 @@ describe("TileSeparators", () => {
 });
 
 describe("tiles parse/red operator", () => {
-  test("single tile/r5s", () => {
+  test("赤 5 は r5s として読む", () => {
     const got = new Parser("r5s").tiles();
     expect(got).toStrictEqual([new Tile(TYPE.S, 5, [OP.RED])]);
   });
 
-  test("handle t0s alias as tr5s", () => {
+  test("0 は赤 5 の別名（t0s は tr5s と同じ）", () => {
     const got = new Parser("12s, t0s").tiles();
     expect(got).toStrictEqual([
       new Tile(TYPE.S, 1),
@@ -129,7 +129,7 @@ describe("Tile.from", () => {
 });
 
 describe("sortTiles", () => {
-  test("13p5s786m1z", () => {
+  test("並び替えは種類ごと、種類の中は数字順", () => {
     const parsed = new Parser("13p5s786m1z").tiles();
     const got = [...parsed].sort(compareTiles);
     const want: Tile[] = [
@@ -143,7 +143,7 @@ describe("sortTiles", () => {
     ];
     expect(got).toStrictEqual(want);
   });
-  test("red tiles/505p", () => {
+  test("赤 5 は同じ 5 の中で先頭に来る", () => {
     const parsed = new Parser("505p").tiles();
     const got = [...parsed].sort(compareTiles);
     const want: Tile[] = [
@@ -156,7 +156,7 @@ describe("sortTiles", () => {
 });
 
 describe("sort called tiles", () => {
-  test("keep a horizontal location", () => {
+  test("鳴き牌の横向きの位置は並び替えても動かない", () => {
     const t = new Tile(TYPE.M, 3);
     const want = [t, t.clone({ add: OP.HORIZONTAL }), t];
     const got = compareCalledTiles([...want]);
@@ -166,7 +166,7 @@ describe("sort called tiles", () => {
 });
 
 describe("shokan/fromPon", () => {
-  test("from pon", () => {
+  test("加槓はポンしたブロックから作る", () => {
     const t = new Tile(TYPE.M, 3);
     const pon = new BlockPon([t, t.clone({ add: OP.HORIZONTAL }), t]);
     const want = [
@@ -181,12 +181,12 @@ describe("shokan/fromPon", () => {
 });
 
 describe("toString", () => {
-  test("anakn", () => {
+  test("暗槓は両端が裏牌の文字列になる", () => {
     const t = new Tile(TYPE.M, 1);
     const b = new BlockAnKan([t, t, t, t]);
     expect(b.toString()).toEqual("_11m_");
   });
-  test("hand", () => {
+  test("手牌はブロックごとに区切って書き出す", () => {
     const t1 = new Tile(TYPE.M, 1);
     const t2 = new Tile(TYPE.S, 1);
     const t3 = new Tile(TYPE.BACK, 0);
@@ -223,5 +223,30 @@ describe("tile value range", () => {
       }
     }
     expect(() => new Parser("_").parse()).not.toThrow();
+  });
+});
+
+// 1 枚の牌に付けられる印（ツモ・ロン・横向き・ツモ切り・赤）の組み合わせ。
+// 以前は先読みの幅が足りず、3 個を超えると「expected a number」で落ちていた。
+describe("牌に付ける印", () => {
+  test("4 個まで重ねて付けられる", () => {
+    const got = Tile.from("-t^r5m");
+    expect(got.has(OP.HORIZONTAL)).toBe(true);
+    expect(got.has(OP.TSUMO)).toBe(true);
+    expect(got.has(OP.COLOR_GRAYSCALE)).toBe(true); // ^ はツモ切り
+    expect(got.has(OP.RED)).toBe(true);
+    expect(got.n).toBe(5);
+    expect(got.toString()).toBe("-t^r5m");
+  });
+
+  test("ロンの印も読める", () => {
+    const got = Tile.from("v1m");
+    expect(got.has(OP.RON)).toBe(true);
+    expect(got.toString()).toBe("v1m");
+  });
+
+  test("同じ印を重ねて書くと 1 つに畳まれる", () => {
+    expect(Tile.from("rr5m").toString()).toBe("r5m");
+    expect(Tile.from("rrr5m").ops).toHaveLength(1);
   });
 });

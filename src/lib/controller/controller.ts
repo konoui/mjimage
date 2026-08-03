@@ -4,15 +4,19 @@ import {
   TYPE,
   OP,
   Wind,
+  WindMap,
   Round,
   WIND,
   ROUND,
   HONOR_NUMBERS,
   TERMINAL_NUMBERS,
+  createWindMap,
 } from "../core/";
 import {
   BoardContext,
   PointCalculator,
+  SerializedWinResult,
+  WinBy,
   WinResult,
   TileAnalysis,
 } from "../calculator";
@@ -25,7 +29,12 @@ import {
   Tile,
 } from "../core";
 import { createControllerMachine } from "./state-machine";
-import { PlayerEvent, EventHandler, createEventEmitter } from "./events";
+import {
+  PlayerEvent,
+  EventHandler,
+  createEventEmitter,
+  isChoiceReply,
+} from "./events";
 import { Wall, IWall } from "./wall";
 import { PlaceManager, ScoreManager, shuffle, Rand } from "./managers";
 import * as actions from "./actions";
@@ -51,8 +60,14 @@ export class Controller {
   actor: ControllerActor;
   observer: Observer;
   handlers: { [id: string]: EventHandler } = {};
-  // TODO 同じイベント ID は同じ特定イベントの配列になるので特定イベント ID の配列の union が良さそう
+  /** プレイヤーからの返信。イベント ID ごとに 1 種類の選択が溜まる。 */
   mailBox: MailBox = {};
+  /**
+   * 各家に提示した和了。返信ではこちらを使う（プレイヤーの申告は信用しない）。
+   * 提示したときと同じ直列化済みの形で持つので、返信の側は復元するだけでよい。
+   */
+  private winOffers: { [eventID: string]: WindMap<SerializedWinResult | false> } =
+    {};
   histories: RoundHistory[] = [];
   /**
    * 状態機械を自分で進めるか。false にすると `next()` が黙って何もしないので、
@@ -137,6 +152,7 @@ export class Controller {
     this.wall = this.newWall();
     this.observer.applied = {};
     this.mailBox = {};
+    this.winOffers = {};
     this.actor = this.newActor();
   }
   getBaseBoardParams(w: Wind) {
@@ -184,11 +200,38 @@ export class Controller {
     this.observer.applied[e.id] = true;
   }
   enqueue(event: PlayerEvent): void {
+    // プレイヤーが返してよいのは、こちらが返事を求めた選択イベントだけ。
+    // 盤面を伝えるだけのイベントが返ってくるのは Player 側の組み立て誤り。
+    assert(
+      isChoiceReply(event),
+      `[bug] unexpected reply from a player: ${event.type}`
+    );
     if (this.mailBox[event.id] == null) this.mailBox[event.id] = [];
     this.mailBox[event.id].push(event);
   }
-  /** プレイヤーから返ってきた選択を 1 つ選び、状態機械に送る。 */
-  // TODO イベント ID ではなくイベントを受け取り、選択が妥当かをここで検証する
+  /**
+   * 和了の選択肢として提示した内容を控える。
+   * 提示と返信で同じイベント ID を使うので、返信側はここから引き直せる。
+   */
+  recordWinOffer(eventID: string, w: Wind, ret: SerializedWinResult | false) {
+    if (this.winOffers[eventID] == null)
+      this.winOffers[eventID] = createWindMap<SerializedWinResult | false>(
+        () => false
+      );
+    // 同じ物体をプレイヤーにも渡すので、控えは写しにする
+    // （プレイヤーが手元で書き換えても点数には出ない）。
+    this.winOffers[eventID][w] =
+      ret === false ? false : (JSON.parse(JSON.stringify(ret)) as typeof ret);
+  }
+  /** 提示した和了。提示していなければ false。 */
+  winOffer(eventID: string, w: Wind): SerializedWinResult | false {
+    return this.winOffers[eventID]?.[w] ?? false;
+  }
+  /**
+   * プレイヤーから返ってきた選択を 1 つ選び、状態機械に送る。
+   * 和了の申告はここで controller の控えに置き換わる（`mailbox.ts`）。
+   * 打牌・鳴きで返ってきた牌やブロックが提示したものかは、まだ照合していない。
+   */
   pollReplies(eventID: string, winds: readonly Wind[]) {
     pollReplies(this, eventID, winds);
   }
@@ -211,8 +254,10 @@ export class Controller {
     });
 
     const ent = snapshotRound(this);
-    this.actor.start();
+    // 始めた局は必ず履歴に残す。局の途中で落ちても `export()` で取り出せるように、
+    // actor を動かす前に積む（`choiceEvents` は mailBox の参照なので、進行に従って埋まる）。
     this.histories.push(ent);
+    this.actor.start();
     const v = this.actor.getSnapshot().status;
     if (v != "done")
       throw new Error(
@@ -233,6 +278,12 @@ export class Controller {
       if (this.placeManager.is(endRound)) break;
     }
   }
+  /**
+   * 最終的な点数を求める。
+   *
+   * `ret` は controller が提示した和了（`winOffer`）なので、盤面もブロック分解も自前のもの。
+   * ここで計算し直すのは、和了して初めて確定する供託と裏ドラを足すため。
+   */
   finalResult(ret: WinResult, iam: Wind) {
     const hand = this.hand(iam);
     const hiddenDoraIndicators = hand.reached
@@ -246,40 +297,46 @@ export class Controller {
     assert(final, `[bug] the final result is false`);
     return final;
   }
+  /**
+   * 和了できるかを controller 側で判定し、できるならその内容を返す。
+   *
+   * ロンかツモかは呼び出し側が `winBy` で決める。`actions.doWin` も同じ値を見るので、
+   * 「どちらであがったか」の判断が 2 か所に分かれない（ロン牌を手牌に加えるのは向こうの仕事）。
+   */
   doWin(
     w: Wind,
     t: Tile | null | undefined,
-    params?: {
+    params: {
+      winBy: WinBy;
       quadWin?: boolean;
       replacementWin?: boolean;
       oneShot?: boolean;
       missingRon?: boolean;
-      discardedBy?: Wind;
     }
   ): WinResult | false {
     if (t == null) return false;
     const hand = this.hand(w);
     const discarded = this.river.discards(w);
     const base = this.getBaseBoardParams(w);
-    // あがり方はロンの場合だけ下で上書きする（放銃者が決まって初めて点数移動が決まる）。
-    const env: BoardContext = { ...base, winBy: { type: "tsumo" } };
-    // ツモ牌が無ければロン。actions.doWin は env.winBy でこれを見るので、
-    // ロン牌を手牌に加えるのも向こうに任せる。
-    const isRon = hand.drawn == null;
-    if (isRon) {
-      if (params == null) throw new Error("should ron but params == null");
-      if (params.discardedBy == w) return false;
-      if (params.missingRon) return false;
-      const from = params.discardedBy;
-      if (from == null) throw new Error("should ron but discardedBy == null");
-      env.winBy = { type: "ron", from };
+    const winBy = params.winBy;
+    const env: BoardContext = { ...base, winBy: winBy };
+    if (winBy.type == "ron") {
+      // 4 家ぶんまとめて聞くので、捨てた人・カンした人自身もここに来る。
+      // その人はツモ牌を持ったままのことがあるので、先に落とす。
+      if (winBy.from == w) return false; // 自分が出した牌ではあがれない
+      if (params.missingRon) return false; // フリテン
+      // ほかの人がツモ牌を持ったままロンにはならない。食い違うなら進行側の組み立て誤り。
+      assert(
+        hand.drawn == null,
+        `[bug] ron with a drawn tile: ${hand.drawn?.toString()}`
+      );
       env.finalDiscardWin = !this.wall.canDraw;
       env.quadWin = params.quadWin;
     } else {
       env.finalWallWin = !this.wall.canDraw;
-      env.replacementWin = params?.replacementWin;
+      env.replacementWin = params.replacementWin;
     }
-    env.oneShotWin = params?.oneShot;
+    env.oneShotWin = params.oneShot;
     env.doubleReached =
       discarded.length == 0 ||
       (discarded.length == 1 && discarded[0].t.has(OP.HORIZONTAL));
@@ -303,15 +360,21 @@ export class Controller {
     const hand = this.hand(w);
     return actions.doDiscard(hand, called);
   }
+  // カンは嶺上牌の数（4 回）が上限。4 回目のカンの打牌に誰も反応しなければ
+  // `cannotContinue` で流局するが、その打牌が鳴かれると次のカンの機会が回るので、
+  // 選択肢を出す側で止める。
   doAnKan(w: Wind): readonly BlockAnKan[] | false {
+    if (!this.wall.canKan) return false;
     const hand = this.hand(w);
     return actions.doAnKan(hand);
   }
   doShoKan(w: Wind): readonly BlockShoKan[] | false {
+    if (!this.wall.canKan) return false;
     const hand = this.hand(w);
     return actions.doShoKan(hand);
   }
   doDaiKan(w: Wind, discardedBy: Wind, t: Tile): BlockDaiKan | false {
+    if (!this.wall.canKan) return false;
     const hand = this.hand(w);
     return actions.doDaiKan(hand, w, discardedBy, t);
   }

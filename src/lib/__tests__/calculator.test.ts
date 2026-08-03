@@ -201,108 +201,112 @@ describe("Hand/基本操作", () => {
 });
 
 describe("Shanten Calculator", () => {
-  const tests = [
+  const tests: {
+    name: string;
+    input: string;
+    want: number;
+    calc: (c: ShantenCalculator) => number;
+  }[] = [
     {
       name: "seven pairs tenpai",
       input: "1122334455667m",
       want: 0,
-      handler: "Seven",
+      calc: (c) => c.sevenPairs(),
     },
     {
       name: "seven pairs 1 shanten",
       input: "1122334455678m",
       want: 1,
-      handler: "Seven",
+      calc: (c) => c.sevenPairs(),
     },
     {
       name: "seven pairs 1 shanten",
       input: "1111s2233p445579m",
       want: 1,
-      handler: "Seven",
+      calc: (c) => c.sevenPairs(),
     },
     {
       name: "seven pairs 2 shanten",
       input: "1122334456789m",
       want: 2,
-      handler: "Seven",
+      calc: (c) => c.sevenPairs(),
     },
     {
       name: "seven pairs 3 shanten",
       input: "112233456789m1s",
       want: 3,
-      handler: "Seven",
+      calc: (c) => c.sevenPairs(),
     },
     {
       name: "seven pairs 3 shanten",
       input: "1123456789m123s",
       want: 5,
-      handler: "Seven",
+      calc: (c) => c.sevenPairs(),
     },
     {
       name: "thirteen orphans waiting 13 tiles",
       input: "19m19s19p1234567z",
       want: 0,
-      handler: "Orphans",
+      calc: (c) => c.thirteenOrphans(),
     },
     {
       name: "thirteen orphans waiting 7z",
       input: "19m19s19p123456z1p",
       want: 0,
-      handler: "Orphans",
+      calc: (c) => c.thirteenOrphans(),
     },
     {
       name: "thirteen orphans 13 tiles",
       input: "19m19s19p123456w2p",
       want: 1,
-      handler: "Orphans",
+      calc: (c) => c.thirteenOrphans(),
     },
     {
       name: "standardType",
       input: "123m456m789m123s1p",
       want: 0,
-      handler: "Standard",
+      calc: (c) => c.standardType(),
     },
     {
       name: "standardType",
       input: "123m456m789m12s11p",
       want: 0,
-      handler: "Standard",
+      calc: (c) => c.standardType(),
     },
     {
       name: "standardType",
       input: "123m456m789m12s1p1z",
       want: 1,
-      handler: "Standard",
+      calc: (c) => c.standardType(),
     },
     {
       name: "standardType",
       input: "111m456m789m12s1p1z",
       want: 1,
-      handler: "Standard",
+      calc: (c) => c.standardType(),
     },
   ];
 
   for (const tt of tests) {
-    test(tt.name, () => {
-      const h = new Hand(tt.input);
-      const c = new ShantenCalculator(h);
-      let got;
-      if (tt.handler == "Seven") got = c.sevenPairs();
-      else if (tt.handler == "Orphans") got = c.thirteenOrphans();
-      else if (tt.handler == "Standard") got = c.standardType();
-      else throw new Error(`unexpected handler ${tt.handler}`);
-      expect(got).toBe(tt.want);
+    test(`${tt.name}/${tt.input}`, () => {
+      const c = new ShantenCalculator(new Hand(tt.input));
+      expect(tt.calc(c)).toBe(tt.want);
     });
   }
 });
 
 describe("Block Calculator", () => {
-  const tests = [
+  const tests: {
+    name: string;
+    input: string;
+    want: string[][];
+    calc: (c: BlockCalculator) => readonly (readonly Block[])[];
+  }[] = [
     {
       name: "seven pairs tenpai",
       input: "11223344556677m",
       want: [["11m", "22m", "33m", "44m", "55m", "66m", "77m"]],
-      handler: "Seven",
+      calc: (c) => c.sevenPairs(),
     },
     {
       name: "thirteen orphans waiting 13 tiles",
@@ -324,25 +328,25 @@ describe("Block Calculator", () => {
           "7z",
         ],
       ],
-      handler: "Orphans",
+      calc: (c) => c.thirteenOrphans(),
     },
     {
       name: "nine gates",
       input: "11123456789990m",
       want: [["111234r55678999m"]],
-      handler: "Nine",
+      calc: (c) => c.nineGates(),
     },
     {
       name: "simple",
       input: "111m456m789m123s11p",
       want: [["11p", "111m", "456m", "789m", "123s"]],
-      handler: "Standard",
+      calc: (c) => c.standardType(),
     },
     {
       name: "with called",
       input: "111m456m789m11p,-213s",
       want: [["11p", "111m", "456m", "789m", "-213s"]],
-      handler: "Standard",
+      calc: (c) => c.standardType(),
     },
     {
       name: "multiple/three and run",
@@ -351,7 +355,7 @@ describe("Block Calculator", () => {
         ["11p", "123m", "123m", "123m", "123s"],
         ["11p", "111m", "222m", "333m", "123s"],
       ],
-      handler: "Standard",
+      calc: (c) => c.standardType(),
     },
     {
       name: "complex 清一色",
@@ -361,51 +365,44 @@ describe("Block Calculator", () => {
         ["44m", "123m", "123m", "567m", "567m"],
         ["77m", "123m", "123m", "456m", "456m"],
       ],
-      handler: "Standard",
+      calc: (c) => c.standardType(),
     },
     {
       name: "standardType",
       input: "111123m123s123p11z",
       want: [["11z", "123m", "111m", "123p", "123s"]],
-      handler: "Standard",
+      calc: (c) => c.standardType(),
     },
     {
       name: "standardType",
       input: "123m123s123p111z22m",
       want: [["22m", "123m", "123p", "123s", "111z"]],
-      handler: "Standard",
+      calc: (c) => c.standardType(),
     },
     {
       name: "standardType with red",
       input: "123m123pr555s111z22m",
       want: [["22m", "123m", "123p", "r555s", "111z"]],
-      handler: "Standard",
+      calc: (c) => c.standardType(),
     },
     {
       name: "seven with red",
       input: "11s33sr55s66s88s11z22z",
       want: [["11s", "33s", "r55s", "66s", "88s", "11z", "22z"]],
-      handler: "Seven",
+      calc: (c) => c.sevenPairs(),
     },
   ];
 
   for (const tt of tests) {
-    test(tt.name, () => {
-      const h = new Hand(tt.input);
-      const c = new BlockCalculator(h);
-      let got;
-      if (tt.handler == "Seven") got = c.sevenPairs();
-      else if (tt.handler == "Orphans") got = c.thirteenOrphans();
-      else if (tt.handler == "Standard") got = c.standardType();
-      else if (tt.handler == "Nine") got = c.nineGates();
-      else throw new Error(`unexpected handler ${tt.handler}`);
-      expect(handsToString(got)).toStrictEqual(tt.want);
+    test(`${tt.name}/${tt.input}`, () => {
+      const c = new BlockCalculator(new Hand(tt.input));
+      expect(handsToString(tt.calc(c))).toStrictEqual(tt.want);
     });
   }
 });
 
 describe("Block Calculator2", () => {
-  test("tusmo op のブロックパターン", () => {
+  test("ツモの印が付いた牌でもブロックパターンは変わらない", () => {
     const h = new Hand("1223m123s111z, -123m");
     h.draw(new Tile(TYPE.M, 2));
     const c = new BlockCalculator(h);

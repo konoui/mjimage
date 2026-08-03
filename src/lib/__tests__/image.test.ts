@@ -1,5 +1,5 @@
 import { Parser } from "../core";
-import { createHand, render, RenderOptions } from "../image";
+import { createHand, isTableInput, render, RenderOptions } from "../image";
 import { TILE_CONTEXT } from "../image/constants";
 
 import { SVG, snapshotPath } from "./utils/helper";
@@ -263,6 +263,17 @@ describe("block edge cases", () => {
       // ディセンダが牌の下辺より下へ出ない
       expect(svg).toContain('dominant-baseline="text-after-edge"');
     }
+  });
+});
+
+// 入力が手牌か卓かは、この 1 つの判定だけで決まる（render の分岐もここ）。
+// 呼び出し側も牌の大きさを変えるために使うので、境界を固定しておく。
+describe("isTableInput", () => {
+  test("table で始まる入力だけが卓になる", () => {
+    expect(isTableInput("table:\n  board:\n")).toBe(true);
+    expect(isTableInput("  \n table:")).toBe(true); // 先頭の空白は無視される
+    expect(isTableInput("123m")).toBe(false);
+    expect(isTableInput("123m,table:")).toBe(false); // 途中に出てきても手牌
   });
 });
 

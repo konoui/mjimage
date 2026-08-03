@@ -1,4 +1,5 @@
 import {
+  ActorHand,
   ChoiceAfterCalled,
   ChoiceAfterDiscardedEvent,
   ChoiceAfterDrawnEvent,
@@ -9,18 +10,77 @@ import {
   Player,
   PlayerEvent,
   IWall,
+  Logger,
   createLocalGame,
   createSeededRand,
   silentLogger,
 } from "../../controller";
 import { assert } from "../../assert";
 import { Tile } from "../../core";
-import { OP } from "../../core/constants";
+import { OP, WIND, Wind } from "../../core/constants";
 import { HARMLESS_DORA, ScriptedWall, WallScript } from "./wall";
 
-// controller のシナリオテスト用の道具立て。
+// controller のテスト用の道具立て。
 // 実際の対局を通してしか確かめられない性質（カンドラ・フリテン・和了の検証など）を
 // 台本つきの山と、指示どおりに動くプレイヤーで再現する。
+// 手牌だけ差し替えて可否判定を見る単体テスト向けの道具（withHand ほか）も置く。
+
+/**
+ * 指定した家の手牌だけ差し替えた controller を返す。
+ * 山も進行も使わないので、鳴き・立直・打牌候補のような可否判定の単体テストに使う。
+ */
+export const withHand = (w: Wind, hand: string) => {
+  const { c } = createLocalGame({ logger: silentLogger });
+  c.observer.hands[w] = new ActorHand(hand);
+  return c;
+};
+
+/** 捨て牌に対する選択イベント。既定はすべて「選べない」。 */
+export const discardChoice = (
+  wind: Wind,
+  choices: Partial<ChoiceAfterDiscardedEvent["choices"]>,
+  discardedBy: Wind = WIND.E
+): ChoiceAfterDiscardedEvent => ({
+  id: "0",
+  type: "CHOICE_AFTER_DISCARDED",
+  wind: wind,
+  discarterInfo: { wind: discardedBy, tile: "1m" },
+  choices: {
+    RON: false,
+    PON: false,
+    CHI: false,
+    DAI_KAN: false,
+    ...choices,
+  },
+});
+
+/** ツモ番の選択イベント。既定はすべて「選べない」。 */
+export const drawnChoice = (
+  wind: Wind,
+  choices: Partial<ChoiceAfterDrawnEvent["choices"]>
+): ChoiceAfterDrawnEvent => ({
+  id: "0",
+  type: "CHOICE_AFTER_DRAWN",
+  wind: wind,
+  drawerInfo: { wind: wind, tile: "1m" },
+  choices: {
+    TSUMO: false,
+    REACH: false,
+    AN_KAN: false,
+    SHO_KAN: false,
+    DISCARD: false,
+    DRAWN_GAME_BY_NINE_TERMINALS: false,
+    ...choices,
+  },
+});
+
+// 優先順位の判定は「選べるか」しか見ないので、中身は非空でありさえすればよい。
+/** 中身を見られない鳴きブロック。 */
+export const anyBlock = [
+  { tiles: ["1m", "1m", "1m"], type: "pon" },
+] as never;
+/** 中身を見られない和了結果。 */
+export const anyWinResult = {} as never;
 
 /**
  * 指示された選択だけを行うプレイヤー。
@@ -153,6 +213,8 @@ export const createScenario = (params?: {
   autoAdvance?: boolean;
   /** 山の台本。指定しなかった部分は種つきの乱数で埋まる。 */
   wall?: WallScript;
+  /** 進行ログの出し先。既定は黙る。controller が何を弾いたかを見たいときに渡す。 */
+  logger?: Logger;
 }): Scenario => {
   const rand = createSeededRand(params?.seed ?? 20260801);
   const wall = new ScriptedWall({
@@ -165,7 +227,8 @@ export const createScenario = (params?: {
     shuffle: false,
     rand: rand,
     newWall: () => wall,
-    logger: silentLogger, // 進行ログはテストの出力を埋めるだけなので出さない
+    // 進行ログはテストの出力を埋めるだけなので、既定では出さない
+    logger: params?.logger ?? silentLogger,
     playerInjection: {
       p1: MockPlayer,
       p2: MockPlayer,
