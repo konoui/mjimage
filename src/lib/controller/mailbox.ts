@@ -14,7 +14,9 @@ import {
   ChoiceAfterDrawnEvent,
   ChoiceForChanKan,
   ChoiceForReachAcceptance,
+  ChoiceReply,
   PlayerEvent,
+  orderByTurn,
   prioritizeDiscardedEvents,
   prioritizeDrawnEvents,
 } from "./events";
@@ -24,8 +26,70 @@ import type { Controller } from "./controller";
 // 同じイベント ID には同じ種類のイベントしか入らないので、
 // 先頭 1 件で種類を見分けてから、種類ごとのハンドラに渡す。
 
-/** イベント ID ごとに、各家から返ってきた選択を溜める。 */
-export type MailBox = { [id: string]: PlayerEvent[] };
+/**
+ * イベント ID ごとに、各家から返ってきた選択を溜める。
+ * イベント ID は種別ごとに振られるので、同じ ID には同じ種別の返信しか入らない。
+ */
+export type MailBox = { [id: string]: ChoiceReply[] };
+
+/** その種別の返信か。 */
+const isType = <T extends ChoiceReply["type"]>(
+  e: ChoiceReply,
+  type: T
+): e is Extract<ChoiceReply, { type: T }> => e.type == type;
+
+/**
+ * 溜めた返信を、特定の種別の配列として取り出す。
+ * 種別が混ざるのは進行側の組み立て誤りなので、その場で落とす。
+ */
+const repliesOf = <T extends ChoiceReply["type"]>(
+  events: readonly ChoiceReply[],
+  type: T
+) => {
+  const ret: Extract<ChoiceReply, { type: T }>[] = [];
+  for (const e of events) {
+    assert(
+      isType(e, type),
+      `[bug] mailbox has mixed replies: want ${type} but got ${e.type}`
+    );
+    ret.push(e);
+  }
+  return ret;
+};
+
+/** 和了の申告が入り得る選択イベント。 */
+type WinChoiceEvent =
+  | ChoiceAfterDiscardedEvent
+  | ChoiceAfterDrawnEvent
+  | ChoiceForReachAcceptance
+  | ChoiceForChanKan;
+
+/**
+ * 和了の申告を controller の控え（提示した内容）で置き換えた写しを返す。
+ *
+ * プレイヤーから読むのは「申告したかどうか」だけで、中身は信用しない。
+ * 提示していない和了を申告された場合は、理由をログに出してその申告だけ落とす
+ * （進行は止めず、他家の鳴きや流局へ倒れる）。
+ */
+const withOfferedWin = <E extends WinChoiceEvent, K extends "RON" | "TSUMO">(
+  c: Controller,
+  e: E,
+  key: K
+): E => {
+  // 申告していない（見逃した）ならそのまま。あがるかどうかはプレイヤーが決める。
+  const claimed = (e.choices as Record<string, unknown>)[key];
+  if (!claimed) return e;
+
+  const offered = c.winOffer(e.id, e.wind);
+  if (offered === false) {
+    c.logger.error(
+      `[${e.id}] ${e.wind} claimed ${key} but it was not offered: ` +
+        JSON.stringify(claimed)
+    );
+    return { ...e, choices: { ...e.choices, [key]: false } };
+  }
+  return { ...e, choices: { ...e.choices, [key]: offered } };
+};
 
 export const pollReplies = (
   c: Controller,
@@ -45,17 +109,23 @@ export const pollReplies = (
   const sample = events[0];
   switch (sample.type) {
     case "CHOICE_AFTER_DISCARDED":
-      return afterDiscarded(c, events as ChoiceAfterDiscardedEvent[]);
+      return afterDiscarded(c, repliesOf(events, sample.type));
     case "CHOICE_AFTER_DRAWN":
-      return afterDrawn(c, events as ChoiceAfterDrawnEvent[]);
+      return afterDrawn(c, repliesOf(events, sample.type));
     case "CHOICE_AFTER_CALLED":
       return afterCalled(c, sample);
     case "CHOICE_FOR_REACH_ACCEPTANCE":
-      return forReachAcceptance(c, events as ChoiceForReachAcceptance[]);
+      return forReachAcceptance(c, repliesOf(events, sample.type));
     case "CHOICE_FOR_CHAN_KAN":
-      return forChanKan(c, events as ChoiceForChanKan[]);
-    default:
-      throw new Error(`controller found an unexpected event: ${sample.type}`);
+      return forChanKan(c, repliesOf(events, sample.type));
+    default: {
+      // 型のうえでは網羅済み（sample は never）。復元した記録のように、
+      // 型を通っていない入力が来たときのための保険。
+      const unexpected = sample as PlayerEvent;
+      throw new Error(
+        `controller found an unexpected event: ${unexpected.type}`
+      );
+    }
   }
 };
 
@@ -64,7 +134,9 @@ const afterDiscarded = (
   c: Controller,
   events: readonly ChoiceAfterDiscardedEvent[]
 ) => {
-  const selected = prioritizeDiscardedEvents([...events]);
+  const selected = prioritizeDiscardedEvents(
+    events.map((e) => withOfferedWin(c, e, "RON"))
+  );
   if (selected.events.length == 0) {
     c.actor.send({ type: "" });
     return;
@@ -116,7 +188,9 @@ const afterDrawn = (
   c: Controller,
   events: readonly ChoiceAfterDrawnEvent[]
 ) => {
-  const selected = prioritizeDrawnEvents([...events]);
+  const selected = prioritizeDrawnEvents(
+    events.map((e) => withOfferedWin(c, e, "TSUMO"))
+  );
   assert(
     selected.events.length == 1,
     `found more than one selected: ${JSON.stringify(selected, null, 2)}`
@@ -203,7 +277,11 @@ const forReachAcceptance = (
   c: Controller,
   events: readonly ChoiceForReachAcceptance[]
 ) => {
-  const selected = events.filter((e) => e.choices.RON !== false);
+  // 宣言牌へのロンも頭ハネ。立直した人の下家から順に見る。
+  const selected = orderByTurn(
+    events.map((e) => withOfferedWin(c, e, "RON")),
+    events[0].reacherInfo.wind
+  ).filter((e) => e.choices.RON !== false);
   if (selected.length == 0) {
     const sample = events[0];
     c.actor.send({
@@ -230,7 +308,11 @@ const forReachAcceptance = (
 
 /** 加槓に対する選択（チャンカン）。 */
 const forChanKan = (c: Controller, events: readonly ChoiceForChanKan[]) => {
-  const selected = events.filter((e) => e.choices.RON !== false);
+  // チャンカンも頭ハネ。カンした人の下家から順に見る。
+  const selected = orderByTurn(
+    events.map((e) => withOfferedWin(c, e, "RON")),
+    events[0].callerInfo.wind
+  ).filter((e) => e.choices.RON !== false);
   if (selected.length == 0) {
     c.actor.send({ type: "" });
     return;

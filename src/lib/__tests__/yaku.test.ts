@@ -374,7 +374,7 @@ describe("役ごとの判定/役満", () => {
   runCases(tests);
 
   // 九蓮宝燈は手牌 14 枚が BlockHand 1 つのままの構成になる。
-  // あがり牌の形を取り出せないため、専用の NINE_GATES を返す（M28）。
+  // あがり牌の形を取り出せないため、専用の NINE_GATES を返す。
   test("九蓮宝燈/あがり牌の形は nineGates になる", () => {
     const input = "11112345678999m";
     const lastTile = new Tile(TYPE.M, 1);

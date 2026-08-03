@@ -163,6 +163,31 @@ export interface ChoiceForChanKan {
   choices: Pick<DiscardChoice, "RON">;
 }
 
+/**
+ * プレイヤーが返信する選択イベント。controller が返事を待つのはこの 5 種類だけで、
+ * 残りは盤面を伝えるだけの一方通行のイベント。
+ */
+export type ChoiceReply =
+  | ChoiceAfterDrawnEvent
+  | ChoiceAfterDiscardedEvent
+  | ChoiceAfterCalled
+  | ChoiceForReachAcceptance
+  | ChoiceForChanKan;
+
+/** 返信の種別。`Record` なので `ChoiceReply` を増やすと追記漏れがコンパイルで止まる。 */
+const CHOICE_REPLY_TYPES: Readonly<Record<ChoiceReply["type"], true>> = {
+  CHOICE_AFTER_DRAWN: true,
+  CHOICE_AFTER_DISCARDED: true,
+  CHOICE_AFTER_CALLED: true,
+  CHOICE_FOR_REACH_ACCEPTANCE: true,
+  CHOICE_FOR_CHAN_KAN: true,
+};
+
+/** 返信を待っている種類のイベントか。 */
+export function isChoiceReply(e: PlayerEvent): e is ChoiceReply {
+  return e.type in CHOICE_REPLY_TYPES;
+}
+
 export type PlayerEvent =
   | DistributeEvent
   | EndEvent
@@ -174,11 +199,7 @@ export type PlayerEvent =
   | ReachEvent
   | ReachAcceptedEvent
   | NewDoraEvent
-  | ChoiceAfterDrawnEvent
-  | ChoiceAfterDiscardedEvent
-  | ChoiceAfterCalled
-  | ChoiceForReachAcceptance
-  | ChoiceForChanKan;
+  | ChoiceReply;
 
 interface DiscardChoice {
   RON: false | SerializedWinResult;
@@ -197,57 +218,91 @@ interface DrawChoice {
 }
 
 type ChoiceType = DiscardChoice | DrawChoice;
-type ChoiceOrder<T extends ChoiceType> = (keyof T)[];
+/**
+ * 選択肢の優先順位。数が小さいほど優先される。
+ *
+ * 並びから漏れた選択肢は永久に選ばれないので、`Record` で全種類を要求する
+ * （選択肢を足したときに、ここを直し忘れるとコンパイルで止まる）。
+ */
+type ChoicePriority<T extends ChoiceType> = Readonly<Record<keyof T, number>>;
 
+const DISCARD_PRIORITY: ChoicePriority<DiscardChoice> = {
+  RON: 0,
+  DAI_KAN: 1,
+  PON: 2,
+  CHI: 3,
+};
+
+const DRAWN_PRIORITY: ChoicePriority<DrawChoice> = {
+  TSUMO: 0,
+  REACH: 1,
+  AN_KAN: 2,
+  SHO_KAN: 3,
+  DRAWN_GAME_BY_NINE_TERMINALS: 4,
+  DISCARD: 5,
+};
+
+/**
+ * 捨て牌に対する選択（ロン・大明槓・ポン・チー）から、実際に通るものを選ぶ。
+ *
+ * 同じ優先順位が複数いる場合（ダブロン）は全員を返すが、並びは頭ハネの順
+ * ＝放銃者の下家から反時計回りにしてあるので、1 人だけ選ぶ側は先頭を取ればよい。
+ */
 export function prioritizeDiscardedEvents(events: ChoiceAfterDiscardedEvent[]) {
-  const order: ChoiceOrder<DiscardChoice> = ["RON", "DAI_KAN", "PON", "CHI"];
-  const choices = events.map((e) => e.choices);
-  const indexes = prioritizeEvents(choices, order);
-  const selected = indexes.map((idx) => events[idx]);
+  const discardedBy = events[0]?.discarterInfo.wind;
+  const selected = prioritize(events, DISCARD_PRIORITY);
   return {
-    events: selected,
-    type: priorityIndex(order, selected[0]?.choices),
+    events: discardedBy == null ? selected : orderByTurn(selected, discardedBy),
+    type: highestChoice(DISCARD_PRIORITY, selected[0]?.choices),
   };
 }
 
+/** ツモ番の選択（ツモ・立直・暗槓・加槓・九種九牌・打牌）から、通るものを選ぶ。 */
 export function prioritizeDrawnEvents(events: ChoiceAfterDrawnEvent[]) {
-  const order: ChoiceOrder<DrawChoice> = [
-    "TSUMO",
-    "REACH",
-    "AN_KAN",
-    "SHO_KAN",
-    "DRAWN_GAME_BY_NINE_TERMINALS",
-    "DISCARD",
-  ];
-  const choices = events.map((e) => e.choices);
-  const indexes = prioritizeEvents(choices, order);
-  const selected = indexes.map((idx) => events[idx]);
+  const selected = prioritize(events, DRAWN_PRIORITY);
   return {
     events: selected,
-    type: priorityIndex(order, selected[0]?.choices),
+    type: highestChoice(DRAWN_PRIORITY, selected[0]?.choices),
   };
 }
 
-function prioritizeEvents<T extends ChoiceType>(
-  choices: T[],
-  order: ChoiceOrder<T>
-): number[] {
-  let highestPriorityIndices: number[] = [];
-  let highestPriority = Number.POSITIVE_INFINITY;
-  for (let i = 0; i < choices.length; i++) {
-    const choice = choices[i];
-    if (hasChoices(choice, order)) {
-      const priority = calculatePriority(order, choice);
-      if (priority < highestPriority) {
-        highestPriority = priority;
-        highestPriorityIndices = [i];
-      } else if (priority === highestPriority) {
-        highestPriorityIndices.push(i);
-      }
+/**
+ * 起点（放銃者・カンした人・立直した人）の下家から反時計回りに並べ替える。
+ *
+ * 頭ハネはこの並びの先頭が取る。受け取った配列は変更しない。
+ */
+export function orderByTurn<E extends { wind: Wind }>(
+  events: readonly E[],
+  from: Wind
+): E[] {
+  const distance = (w: Wind) =>
+    (Number(w[0]) - Number(from[0]) + 4) % 4 || 4; // 起点自身は最後
+  return [...events].sort((a, b) => distance(a.wind) - distance(b.wind));
+}
+
+/** 最も優先順位の高い選択肢を持つイベントをすべて返す。 */
+function prioritize<T extends ChoiceType, E extends { choices: T }>(
+  events: readonly E[],
+  priority: ChoicePriority<T>
+): E[] {
+  let selected: E[] = [];
+  let highest = NO_CHOICE;
+  for (const e of events) {
+    const key = highestChoice(priority, e.choices);
+    if (key === false) continue; // 選択肢が無い人は候補にしない
+    const v = priority[key];
+    if (v < highest) {
+      highest = v;
+      selected = [e];
+    } else if (v == highest) {
+      selected.push(e);
     }
   }
-  return highestPriorityIndices;
+  return selected;
 }
+
+/** 選べる選択肢が 1 つも無いことを表す優先順位。 */
+const NO_CHOICE = Number.POSITIVE_INFINITY;
 
 /**
  * その選択肢を実際に選べるか。
@@ -258,30 +313,18 @@ function selectable(v: unknown): boolean {
   return Array.isArray(v) ? v.length > 0 : !!v;
 }
 
-function hasChoices<T extends ChoiceType>(
-  choice: T,
-  order: ChoiceOrder<T>
-): boolean {
-  return order.some((v) => selectable(choice[v]));
-}
-
-function calculatePriority<T extends ChoiceType>(
-  order: ChoiceOrder<T>,
-  choice: T
-): number {
-  for (let i = 0; i < order.length; i++) {
-    const key = order[i];
-    if (selectable(choice[key])) return i; // Higher priority
-  }
-  return Number.POSITIVE_INFINITY; // Same priority
-}
-
-function priorityIndex<T extends ChoiceType>(order: ChoiceOrder<T>, choice: T) {
+/** 選べるもののうち最も優先順位が高いものの名前。何も選べなければ false。 */
+function highestChoice<T extends ChoiceType>(
+  priority: ChoicePriority<T>,
+  choice: T | undefined
+): keyof T | false {
   if (choice == null) return false;
-  for (const key of order) {
-    if (selectable(choice[key])) return key;
+  let best: keyof T | false = false;
+  for (const key of Object.keys(priority) as (keyof T)[]) {
+    if (!selectable(choice[key])) continue;
+    if (best === false || priority[key] < priority[best]) best = key;
   }
-  return false;
+  return best;
 }
 
 export interface EventHandler {

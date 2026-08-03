@@ -59,7 +59,8 @@ export class Wall {
   }
 
   openDoraIndicator() {
-    if (this.openedDoraCount >= 4)
+    // 上限は王牌が抱えている枚数そのもの（カン 1 回につき 1 枚めくる）。
+    if (this.openedDoraCount >= this.walls.doraIndicators.length)
       throw new Error("exceeded maximum open dora");
     this.openedDoraCount++;
     return Tile.from(this.walls.doraIndicators[this.openedDoraCount - 1]);
@@ -115,13 +116,14 @@ export class Wall {
       shuffle(this.walls.drawable, this.rand);
     }
 
+    // 王牌 14 枚の内訳。カンは 4 回まで＝表ドラは最初の 1 枚と合わせて 5 枚要る。
     for (let i = 0; i < 14; i++) {
       this.walls.dead.push(this.walls.drawable.pop()!);
     }
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
       this.walls.hiddenDoraIndicators.push(this.walls.dead.pop()!);
     }
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
       this.walls.doraIndicators.push(this.walls.dead.pop()!);
     }
     for (let i = 0; i < 4; i++) {

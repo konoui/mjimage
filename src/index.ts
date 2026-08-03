@@ -94,8 +94,12 @@ export type { IWall, WallProps } from "./lib/controller/wall";
 export { River } from "./lib/controller/river";
 export type { IRiver } from "./lib/controller/river";
 export { ScoreManager, PlaceManager, Counter } from "./lib/controller/managers";
-export { PlayerEfficiency, RiskRank } from "./lib/controller/player-efficiency";
-export type { PlayerTileAnalysis } from "./lib/controller/player-efficiency";
+export * as PlayerEfficiency from "./lib/controller/player-efficiency";
+export * as RiskRank from "./lib/controller/risk-rank";
+export type {
+  PlayerTileAnalysis,
+  PriorityContext,
+} from "./lib/controller/player-efficiency";
 export {
   createEventPipe,
   createEventEmitter,

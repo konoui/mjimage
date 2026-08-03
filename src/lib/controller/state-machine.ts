@@ -104,16 +104,23 @@ type DrawnChoiceParams = { replacementWin: boolean } | undefined;
  * ロンできるのに見逃せばフリテンになるので、その印もここでつける。
  * 通常の打牌と立直の宣言牌で扱いは同じ。
  */
-const ronChoicesForLastDiscard = (c: Controller, context: ControllerContext) => {
+const ronChoicesForLastDiscard = (
+  c: Controller,
+  context: ControllerContext,
+  eventID: string
+) => {
   const discarded = c.river.lastTile;
   const ltile = discarded.t.clone({ add: OP.HORIZONTAL });
   const rons = createWindMap<SerializedWinResult | false>(() => false);
   // ロンできるのに見逃せばフリテン。呼び出し側が missingMap に反映する。
   const missingMap = { ...context.missingMap };
   for (const w of Object.values(WIND)) {
-    rons[w] = serializeWinResultOrFalse(
+    rons[w] = offerWin(
+      c,
+      eventID,
+      w,
       c.doWin(w, ltile, {
-        discardedBy: discarded.w,
+        winBy: { type: "ron", from: discarded.w },
         oneShot: context.oneShotMap[w],
         missingRon: context.missingMap[w],
       })
@@ -152,9 +159,20 @@ const serializeTileAnalyses = (
   });
 };
 
-const serializeWinResultOrFalse = (ret: WinResult | false) => {
-  if (ret === false) return false;
-  return serializeWinResult(ret);
+/**
+ * 和了を選択肢として提示し、同じ内容を controller に控える。
+ *
+ * 返信では控えの側を使うので（`mailbox.ts`）、プレイヤーが書き換えた写しは点数に影響しない。
+ */
+const offerWin = (
+  c: Controller,
+  eventID: string,
+  w: Wind,
+  ret: WinResult | false
+) => {
+  const serialized = ret === false ? false : serializeWinResult(ret);
+  c.recordWinOffer(eventID, w, serialized);
+  return serialized;
 };
 
 /** 状態機械が受け取るイベント。 */
@@ -226,8 +244,12 @@ export const createControllerMachine = (c: Controller) => {
           wind: w,
           drawerInfo: { wind: w, tile: drawn!.toString() },
           choices: {
-            TSUMO: serializeWinResultOrFalse(
+            TSUMO: offerWin(
+              c,
+              id,
+              w,
               c.doWin(w, drawn, {
+                winBy: { type: "tsumo" },
                 oneShot: context.oneShotMap[w],
                 replacementWin: (params as DrawnChoiceParams)?.replacementWin,
               })
@@ -246,7 +268,7 @@ export const createControllerMachine = (c: Controller) => {
       notify_choice_after_discarded: enqueueActions(({ context, enqueue }) => {
         const id = genEventID();
         const { discarded, ltile, rons, missingMap } =
-          ronChoicesForLastDiscard(c, context);
+          ronChoicesForLastDiscard(c, context, id);
         enqueue.assign({ missingMap: missingMap });
         broadcast(c, (w) => {
           const e: ChoiceAfterDiscardedEvent = {
@@ -302,7 +324,7 @@ export const createControllerMachine = (c: Controller) => {
           // 立直の宣言牌も「捨て牌に対するロン」なので、可否の求め方は
           // notify_choice_after_discarded と同じ（見逃せばフリテンも同じ）。
           const { discarded, ltile, rons, missingMap } =
-            ronChoicesForLastDiscard(c, context);
+            ronChoicesForLastDiscard(c, context, id);
           enqueue.assign({ missingMap: missingMap });
           broadcast(c, (w) => {
             const e: ChoiceForReachAcceptance = {
@@ -327,7 +349,7 @@ export const createControllerMachine = (c: Controller) => {
         const missingMap = { ...context.missingMap };
         broadcast(c, (w) => {
           const ron = c.doWin(w, t, {
-            discardedBy: event.iam,
+            winBy: { type: "ron", from: event.iam },
             quadWin: true,
             oneShot: context.oneShotMap[w],
             missingRon: context.missingMap[w],
@@ -338,10 +360,8 @@ export const createControllerMachine = (c: Controller) => {
             wind: w,
             callerInfo: { wind: event.iam, tile: t.toString() },
             choices: {
-              RON:
-                event.type == "SHO_KAN"
-                  ? serializeWinResultOrFalse(ron)
-                  : false,
+              // 暗槓へのチャンカンは国士無双のみ有効という取り決めがあるが、今は認めていない。
+              RON: offerWin(c, id, w, event.type == "SHO_KAN" ? ron : false),
             },
           };
           // ロン可能であればフリテンをtrueにする。次のツモ番で解除される想定
@@ -638,13 +658,6 @@ export const createControllerMachine = (c: Controller) => {
         c.logger.error(`guards.canPon receive ${event.type}`);
         return false;
       },
-      canWin: ({ event }) => {
-        if (event.type == "TSUMO" || event.type == "RON") {
-          return true; // TODO
-        }
-        c.logger.error(`guards.canWin receive ${event.type}`);
-        return false;
-      },
       canReach: ({ event }) => {
         if (event.type == "REACH") {
           return !!c.doReach(event.iam);
@@ -700,7 +713,6 @@ export const createControllerMachine = (c: Controller) => {
         on: {
           TSUMO: {
             target: "tsumo",
-            guard: "canWin",
           },
           REACH: {
             target: "waiting_reach_acceptance",
@@ -773,9 +785,6 @@ export const createControllerMachine = (c: Controller) => {
           },
           RON: {
             target: "roned",
-            guard: {
-              type: "canWin",
-            },
           },
         },
         description: "リーチに対するアクションは RON か ACCEPT のみである",
@@ -786,7 +795,6 @@ export const createControllerMachine = (c: Controller) => {
         on: {
           RON: {
             target: "roned",
-            guard: "canWin",
           },
           PON: {
             target: "poned",
@@ -961,9 +969,6 @@ export const createControllerMachine = (c: Controller) => {
           },
           RON: {
             target: "roned",
-            guard: {
-              type: "canWin",
-            },
           },
         },
       },

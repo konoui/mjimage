@@ -1,8 +1,11 @@
 import { assert } from "../assert";
-import { TYPE, Wind } from "../core/constants";
+import { OP, TYPE, Type, Wind } from "../core/constants";
 import { Tile } from "../core";
 import { TileAnalysis } from "../calculator";
 import { Counter } from "./managers";
+
+// Player が打牌を決めるための評価。対局の進行には関わらないので、
+// ここが間違っていても不正な局面にはならない（打ち方の質だけが変わる）。
 
 /**
  * 河、手牌、鳴きの枚数を考慮した有効牌の情報を表す。
@@ -30,149 +33,137 @@ export interface PlayerTileAnalysis {
   shanten: number;
 }
 
+/**
+ * 牌の価値を決める盤面の情報を表す。
+ */
+export interface PriorityContext {
+  /** ドラ。表示牌ではないことに注意（`toDora` を通したもの）。 */
+  doras: readonly Tile[];
+  /** 自風。役牌の判定に使う。 */
+  myWind: Wind;
+  /** 場風。役牌の判定に使う。 */
+  roundWind: Wind;
+}
+
+/** 役牌（自風・場風・三元牌）の重み。 */
+const YAKUHAI_WEIGHT = 2;
+
+/** 風（`1z` など）が表す字牌の数字を返す。 */
+const windNumber = (w: Wind) => Number(w[0]);
+
+/** 自風・場風・三元牌のいずれかなら true を返す。 */
+const isYakuhai = (t: Tile, ctx: PriorityContext) => {
+  if (t.t != TYPE.Z) return false;
+  if (t.n >= 5) return true; // 白發中
+  return t.n == windNumber(ctx.myWind) || t.n == windNumber(ctx.roundWind);
+};
+
+/**
+ * ドラとしての重みを返す。ドラ 1 枚につき 2 倍にする。
+ *
+ * `equals` は赤の印を見ないので、表ドラの判定と赤ドラの判定は別に行う。
+ */
 const weight = (t: Tile, doras: readonly Tile[]) => {
-  const base = 1;
-  let v = base;
-  for (let d of doras) if (d.equals(t)) v *= 2;
+  let v = 1;
+  for (const d of doras) if (d.equals(t)) v *= 2;
+  if (t.has(OP.RED)) v *= 2;
   return v;
 };
 
-export class PlayerEfficiency {
-  /**
-   * 有効牌情報から河、手牌、鳴きの枚数を考慮した有効牌情報の配列を返す。
-   */
-  static analyzePlayerEfficiency(
-    counter: Counter,
-    analyses: readonly TileAnalysis[]
-  ) {
-    let playerAnalyses: PlayerTileAnalysis[] = [];
-    for (let s of analyses) {
-      let sum = 0;
-      let pairs: { tile: Tile; count: number }[] = [];
-      for (let c of s.effectiveTiles) {
-        pairs.push({
-          tile: c.clone(),
-          count: counter.get(c),
-        });
-        sum += counter.get(c);
-      }
-      playerAnalyses.push({
-        sum: sum,
-        tile: s.tile,
-        effectiveTiles: pairs,
-        shanten: s.shanten,
+/** 場に見えていない枚数。1〜9 の外は 0 を返す。 */
+const remaining = (c: Counter, t: Type, n: number) => {
+  if (n < 1 || n > 9) return 0;
+  return c.get(new Tile(t, n));
+};
+
+/**
+ * 有効牌情報から河、手牌、鳴きの枚数を考慮した有効牌情報の配列を返す。
+ */
+export function analyzePlayerEfficiency(
+  counter: Counter,
+  analyses: readonly TileAnalysis[]
+) {
+  const playerAnalyses: PlayerTileAnalysis[] = [];
+  for (const s of analyses) {
+    let sum = 0;
+    const pairs: { tile: Tile; count: number }[] = [];
+    for (const c of s.effectiveTiles) {
+      pairs.push({
+        tile: c.clone(),
+        count: counter.get(c),
       });
+      sum += counter.get(c);
     }
-    return playerAnalyses;
+    playerAnalyses.push({
+      sum: sum,
+      tile: s.tile,
+      effectiveTiles: pairs,
+      shanten: s.shanten,
+    });
   }
-  static selectMinPriority(
-    c: Counter,
-    playerAnalyses: readonly PlayerTileAnalysis[],
-    doras: Tile[]
-  ) {
-    assert(playerAnalyses.length > 0);
-    let min = 0;
-    let idx = 0;
-    for (let i = 0; i < playerAnalyses.length; i++) {
-      const p = PlayerEfficiency.calcPriority(c, playerAnalyses[i], doras);
-      if (p < min) {
-        min = p;
-        idx = i;
-      }
-    }
-    return playerAnalyses[idx];
-  }
-  private static calcPriority(
-    c: Counter,
-    playerAnalysis: PlayerTileAnalysis,
-    doras: readonly Tile[]
-  ) {
-    const tile = playerAnalysis.tile;
-    let v = 0;
-    if (tile.t == TYPE.Z) {
-      v = c.get(tile);
-      // FIXME 場風
-      // 自風
-      if (tile.n == 5 || tile.n == 6 || tile.n == 7) v *= 2;
-      return v * weight(tile, doras);
-    } else {
-      const same = c.get(tile);
-      v += same * weight(tile, doras);
-      const np1 = c.get(new Tile(tile.t, tile.n + 1)),
-        np2 = c.get(new Tile(tile.t, tile.n + 2));
-      const nm1 = c.get(new Tile(tile.t, tile.n - 1)),
-        nm2 = c.get(new Tile(tile.t, tile.n - 2));
-      // 5m から 3m を引き 345m を作るには 4m の残り数と 3m の残り枚数の小さい方が有効数となる
-      const left = tile.n - 2 > 0 ? Math.min(nm1, nm2) : 0; // n-2
-      const right = tile.n + 2 <= 9 ? Math.min(np1, np2) : 0; // n+2
-      // 5m から 4m を引き 456m を作るには 4m 残り枚数と 6m の残り枚数の小さい方が有効数となる
-      const cc = tile.n - 1 >= 1 && tile.n + 1 <= 9 ? Math.min(np1, nm1) : 0;
-      const centerLeft = Math.max(left, cc); // n-1;
-      const centerRight = Math.max(cc, right); // n-2;
-
-      v += same * weight(tile, doras);
-      v += left * weight(new Tile(tile.t, tile.n - 2), doras);
-      v += right * weight(new Tile(tile.t, tile.n + 2), doras);
-      v += centerLeft * weight(new Tile(tile.t, tile.n - 1), doras);
-      v += centerRight * weight(new Tile(tile.t, tile.n + 1), doras);
-
-      if (tile.n == 0) v * 2;
-      return v;
-    }
-  }
+  return playerAnalyses;
 }
 
-export class RiskRank {
-  static selectTile(
-    c: Counter,
-    targetUsers: readonly Wind[],
-    tiles: readonly Tile[]
-  ) {
-    assert(targetUsers.length > 0 && tiles.length > 0);
-    let ret = tiles[0];
-    let min = Number.POSITIVE_INFINITY;
-    for (let t of tiles) {
-      const v = RiskRank.rank(c, targetUsers, t);
-      if (v < min) {
-        ret = t;
-        min = v;
-      }
+/**
+ * 優先度が最も低い（＝手に残す価値が最も低い）候補を返す。
+ */
+export function selectMinPriority(
+  c: Counter,
+  playerAnalyses: readonly PlayerTileAnalysis[],
+  ctx: PriorityContext
+) {
+  assert(playerAnalyses.length > 0);
+  let min = Number.POSITIVE_INFINITY;
+  let idx = 0;
+  for (let i = 0; i < playerAnalyses.length; i++) {
+    const p = calcPriority(c, playerAnalyses[i], ctx);
+    if (p < min) {
+      min = p;
+      idx = i;
     }
-    return ret;
   }
-  static rank(c: Counter, targetUsers: readonly Wind[], t: Tile) {
-    let max = 0;
-    const f = t.isNum() ? RiskRank.rankN : RiskRank.rankZ;
-    for (let targetUser of targetUsers) {
-      const v = f(c, targetUser, t);
-      if (max < v) max = v;
-    }
-    return max;
+  return playerAnalyses[idx];
+}
+
+/**
+ * 牌を手に残す価値を返す。大きいほど残したい＝切りたくない。
+ *
+ * 字牌は重ねられる見込み、数牌は「その牌が絡んでできる面子の作りやすさ」を
+ * 残り枚数から見積もる。いずれもドラは 2 倍に重み付けする。
+ */
+function calcPriority(
+  c: Counter,
+  playerAnalysis: PlayerTileAnalysis,
+  ctx: PriorityContext
+) {
+  const tile = playerAnalysis.tile;
+  const doras = ctx.doras;
+  if (tile.t == TYPE.Z) {
+    // 字牌は他の牌と繋がらないので、同じ牌の残り枚数がそのまま価値になる。
+    const v = c.get(tile) * (isYakuhai(tile, ctx) ? YAKUHAI_WEIGHT : 1);
+    return v * weight(tile, doras);
   }
 
-  static rankZ(c: Counter, targetUser: Wind, t: Tile) {
-    if (t.t != TYPE.Z) throw new Error(`expected TYPE.Z but ${t.toString()}`);
-    if (c.isSafeTile(t.t, t.n, targetUser)) return 0;
-    const remaining = c.get(t);
-    return Math.min(remaining, 3);
-  }
+  const t = tile.t;
+  const n = tile.n;
+  const same = c.get(tile);
+  const np1 = remaining(c, t, n + 1),
+    np2 = remaining(c, t, n + 2);
+  const nm1 = remaining(c, t, n - 1),
+    nm2 = remaining(c, t, n - 2);
+  // 5m から 3m を引き 345m を作るには 4m の残り数と 3m の残り枚数の小さい方が有効数となる
+  const left = Math.min(nm1, nm2); // n-2
+  const right = Math.min(np1, np2); // n+2
+  // 5m から 4m を引き 456m を作るには 4m 残り枚数と 6m の残り枚数の小さい方が有効数となる
+  const cc = Math.min(np1, nm1);
+  const centerLeft = Math.max(left, cc); // n-1;
+  const centerRight = Math.max(cc, right); // n-2;
 
-  static rankN(c: Counter, targetUser: Wind, t: Tile) {
-    if (!t.isNum()) throw new Error(`expected TYPE.NUMBER but ${t.toString()}`);
-    const n = t.n;
-    const type = t.t;
-    if (c.isSafeTile(type, n, targetUser)) return 0;
-    if (n == 1) return c.isSafeTile(type, 4, targetUser) ? 3 : 6;
-    if (n == 9) return c.isSafeTile(type, 6, targetUser) ? 3 : 6;
-    if (n == 2) return c.isSafeTile(type, 5, targetUser) ? 4 : 8;
-    if (n == 8) return c.isSafeTile(type, 5, targetUser) ? 4 : 8;
-    if (n == 3) return c.isSafeTile(type, 6, targetUser) ? 5 : 8;
-    if (n == 7) return c.isSafeTile(type, 4, targetUser) ? 5 : 8;
-
-    const left = c.isSafeTile(type, n - 3, targetUser);
-    const right = c.isSafeTile(type, n + 3, targetUser);
-    if (left && right) return 4;
-    if (left || right) return 8;
-    return 12;
-  }
+  let v = 0;
+  v += same * weight(tile, doras);
+  v += left * weight(new Tile(t, n - 2), doras);
+  v += right * weight(new Tile(t, n + 2), doras);
+  v += centerLeft * weight(new Tile(t, n - 1), doras);
+  v += centerRight * weight(new Tile(t, n + 1), doras);
+  return v;
 }

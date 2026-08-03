@@ -12,7 +12,10 @@ import { OP, TYPE, WIND } from "../../core/constants";
 // 山の振る舞いを上書きするのではなく、136 枚の並びを台本どおりに作って本物の Wall に渡す。
 // ツモ・カン・ドラ表示牌・王牌の扱いはすべて本物のまま動くので、局を最後まで回せる。
 
-/** ドラが台本の手牌に乗らない表示牌（中→白 / 發→中 / 白→發 / 北→東）。 */
+/**
+ * ドラが台本の手牌に乗らない表示牌（中→白 / 發→中 / 白→發 / 北→東）。
+ * 5 枚目（カン 4 回目のドラ）は山の余りから埋まる。そこまでカンする台本は今のところ無い。
+ */
 export const HARMLESS_DORA = ["7z", "6z", "5z", "4z"];
 
 /** 136 枚すべて（赤 5 を 1 枚ずつ含む）。Wall の組み立てと同じ。 */
@@ -100,15 +103,16 @@ export const buildWall = (script: WallScript = {}): WallProps => {
   for (const w of Object.values(WIND))
     while (hands[w].length < 13) hands[w].push(pool.pop()!);
 
-  const pad = (tiles: string[], fallback?: readonly string[]) => {
-    while (tiles.length < 4)
+  const pad = (tiles: string[], size: number, fallback?: readonly string[]) => {
+    while (tiles.length < size)
       tiles.push(fallback?.[tiles.length] ?? pool.pop()!);
     return tiles;
   };
-  const dora = pad(doraIndicators);
+  // 本物の Wall と同じ内訳（表ドラ 5 / 裏ドラ 5 / 嶺上 4）にする。
+  const dora = pad(doraIndicators, 5);
   // 裏ドラは既定で表と同じ牌を指す。山からは抜かない（BaseActor が数えるのは表だけ）。
-  const hidden = pad([...(script.hiddenDoraIndicators ?? [])], dora);
-  const rinshan = pad(replacement);
+  const hidden = pad([...(script.hiddenDoraIndicators ?? [])], 5, dora);
+  const rinshan = pad(replacement, 4);
 
   // 配牌が配られる順（4 枚ずつ 3 周 + 1 枚ずつ）
   const order: string[] = [];

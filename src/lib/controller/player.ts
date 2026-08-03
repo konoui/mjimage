@@ -1,13 +1,13 @@
-import { WIND, Tile } from "../core/";
+import { WIND, Tile, roundWind } from "../core/";
 import { BaseActor, ActorHand } from "./actor";
 import { River } from "./river";
-import { PlayerEfficiency, RiskRank } from "./player-efficiency";
-import { ShantenCalculator, calcEffectiveTiles } from "../calculator";
+import * as efficiency from "./player-efficiency";
+import * as risk from "./risk-rank";
+import { ShantenCalculator, calcEffectiveTiles, toDora } from "../calculator";
 import { PlayerEvent, EventHandler, DistributeEvent } from "./events";
 
 export class Player extends BaseActor {
   river = new River();
-  doras: Tile[] = [];
   constructor(playerID: string, eventHandler: EventHandler) {
     super(playerID, eventHandler);
     this.eventHandler.on((e: PlayerEvent) => {
@@ -16,6 +16,10 @@ export class Player extends BaseActor {
   }
   get myWind() {
     return this.placeManager.wind(this.id);
+  }
+  /** 表示牌から見えているドラ。カンドラは `NEW_DORA` で増える。 */
+  get doras(): readonly Tile[] {
+    return this.doraIndicators.map(toDora);
   }
   setHands(e: DistributeEvent): void {
     for (const w of Object.values(WIND))
@@ -28,24 +32,21 @@ export class Player extends BaseActor {
     const shanten = new ShantenCalculator(this.hand(this.myWind)).calc();
     if (reachUsers.length > 0 && shanten >= 2) {
       // ベタオリ
-      const t = RiskRank.selectTile(this.counter, reachUsers, tiles);
+      const t = risk.selectTile(this.counter, reachUsers, tiles);
       return t;
     }
     // 枚数が多いものを優先する
     // 同じ枚数の場合は価値が少ないものを選択する
     // TODO 安全牌を残す
     const c = calcEffectiveTiles(this.hand(this.myWind), tiles);
-    const candidates = PlayerEfficiency.analyzePlayerEfficiency(
-      this.counter,
-      c
-    );
+    const candidates = efficiency.analyzePlayerEfficiency(this.counter, c);
     const sorted = candidates.sort((a, b) => b.sum - a.sum);
     const filtered = sorted.filter((v) => v.sum == sorted[0].sum);
-    const ct = PlayerEfficiency.selectMinPriority(
-      this.counter,
-      filtered,
-      this.doras
-    );
+    const ct = efficiency.selectMinPriority(this.counter, filtered, {
+      doras: this.doras,
+      myWind: this.myWind,
+      roundWind: roundWind(this.placeManager.round),
+    });
     return ct.tile;
   }
   handleEvent(e: PlayerEvent) {

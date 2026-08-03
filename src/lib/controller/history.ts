@@ -1,5 +1,5 @@
 import { Round, Wind } from "../core/";
-import { PlayerEvent } from "./events";
+import type { MailBox } from "./mailbox";
 import { PlaceManager, ScoreManager } from "./managers";
 import { Wall, WallProps } from "./wall";
 import type { Controller } from "./controller";
@@ -13,7 +13,7 @@ export interface RoundHistory {
   players: { [id in string]: Wind };
   sticks: { reach: number; dead: number };
   wall: WallProps;
-  choiceEvents: { [id: string]: PlayerEvent[] };
+  choiceEvents: MailBox;
 }
 
 /** 局を始める直前の状態を記録する。 */

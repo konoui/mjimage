@@ -1,4 +1,9 @@
-import { Hand, calcEffectiveTiles, getEffectiveTiles } from "../calculator";
+import {
+  Hand,
+  ShantenCalculator,
+  calcEffectiveTiles,
+  getEffectiveTiles,
+} from "../calculator";
 import { TYPE } from "../core/constants";
 import { Tile } from "../core";
 
@@ -77,5 +82,24 @@ describe("calcEffectiveTiles", () => {
     expect(() => calcEffectiveTiles(hand, [])).toThrow(
       /no tiles available to discard/,
     );
+  });
+
+  // arrangeRed で赤の印を落とすと、同じ牌を切る候補は 1 つにまとまる。
+  test("赤を揃えても打牌候補は重複しない", () => {
+    const hand = new Hand("5678m05p4567p055s,t6s");
+    const got = calcEffectiveTiles(hand, hand.hands, { arrangeRed: true });
+    expect(got).toHaveLength(6);
+    const tiles = got.map((a) => a.tile.toString());
+    expect(new Set(tiles).size).toBe(tiles.length);
+  });
+
+  // 七対子・国士無双を数えないので、対子ばかりの手では標準形の分だけ遠くなる。
+  test("standardTypeOnly は打牌候補のシャンテン数にも効く", () => {
+    const hand = new Hand("115588s116699p11z");
+    expect(new ShantenCalculator(hand).standardType()).toBe(3);
+    const got = calcEffectiveTiles(hand, hand.hands, {
+      standardTypeOnly: true,
+    });
+    expect(got[0].shanten).toBe(2);
   });
 });
