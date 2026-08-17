@@ -78,6 +78,19 @@ export const decomposeThirteenOrphans = (
       } else return [];
     }
   }
+  // ここまでは么九牌しか見ていないので、中張牌が混ざっていても気づけない。
+  // 総枚数で照合する（decomposeNineGates の cond2 と同じ手口）。
+  //
+  // 「14 枚あること」だけでは足りない。国士テンパイ（13 種を 1 枚ずつ）が
+  // 中張牌を 1 枚引いた形もちょうど 14 枚で、13 ブロックしか説明できていない。
+  // あがりの国士は必ずどれか 1 種が 2 枚になるので、対子の有無も見る。
+  // これが無いと、あがっていない手牌があがりと判定され、
+  // markedHand があがり牌を分解の中に見つけられず投げる。
+  const total = Object.values(TYPE).reduce(
+    (sum, t) => (t == TYPE.BACK ? sum : sum + w.sum(t)),
+    0,
+  );
+  if (!foundPairs || total != 14) return [];
   return [ret];
 };
 

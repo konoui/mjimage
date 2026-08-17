@@ -967,6 +967,35 @@ describe("和了結果の確定値", () => {
   });
 });
 
+describe("国士テンパイからの進行", () => {
+  test("国士テンパイが中張牌を引いても局が落ちない", () => {
+    // decomposeThirteenOrphans が么九牌しか見ておらず、13 種 1 枚ずつの手牌が
+    // 中張牌を引いた形（ちょうど 14 枚）をあがりと判定していた。
+    // doWin は毎ツモ notify_choice_after_drawn から呼ばれるので、
+    // 国士テンパイの次の非么九ツモで状態機械が例外を投げて局が死ぬ。
+    const s = createScenario({
+      wall: {
+        hands: { "1z": "19m19p19s1234567z" },
+        draws: ["2p"], // 1z の第一ツモ。么九牌でないのであがりではない
+      },
+    });
+    const { c } = s;
+    const [mp1] = s.players;
+
+    const errors: unknown[] = [];
+    c.actor.subscribe({ error: (e) => errors.push(e) });
+
+    c.actor.start();
+    stepUntil(c, () => mp1.got("CHOICE_AFTER_DRAWN"));
+
+    expect(errors).toStrictEqual([]);
+    // あがりは提示されない（九種九牌は提示される）
+    const e = mp1.last("CHOICE_AFTER_DRAWN");
+    expect(e?.choices.TSUMO).toBe(false);
+    expect(e?.choices.DRAWN_GAME_BY_NINE_TERMINALS).toBe(true);
+  });
+});
+
 describe("イベント列", () => {
   test("1 局分のイベントの順序を固定する", () => {
     // 状態機械を組み替えても、プレイヤーに届くイベントの並びは変わらないこと。

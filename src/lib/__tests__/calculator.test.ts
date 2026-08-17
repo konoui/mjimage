@@ -429,6 +429,37 @@ describe("Block Calculator2", () => {
   });
 });
 
+describe("国士無双の分解", () => {
+  // decomposeThirteenOrphans は么九牌 13 種しか見ないので、以前は
+  // 中張牌が混ざっていても国士として分解していた。
+  // 13 面待ちのテンパイ（13 種 1 枚ずつ）が中張牌を引くと必ずこの形になるため、
+  // markedHand があがり牌を分解の中に見つけられず、局が落ちていた。
+  const decompose = (hand: string, lastTile: string) =>
+    new BlockCalculator(new Hand(hand)).calc(Tile.from(lastTile));
+
+  test("あがっている国士は分解できる", () => {
+    // 13 種 + 1m が重なった 14 枚。単騎で 1z を discarded した形。
+    expect(handsToString(decompose("119m19p19s1234567z", "1z"))).toStrictEqual([
+      ["11m", "9m", "1p", "9p", "1s", "9s", "v1z", "2z", "3z", "4z", "5z", "6z", "7z"],
+    ]);
+  });
+
+  test("13 面待ちは対子の側であがっても分解できる", () => {
+    expect(handsToString(decompose("119m19p19s1234567z", "1m"))).toStrictEqual([
+      ["v11m", "9m", "1p", "9p", "1s", "9s", "1z", "2z", "3z", "4z", "5z", "6z", "7z"],
+    ]);
+  });
+
+  test("国士テンパイが中張牌を引いてもあがりにならない", () => {
+    // 13 種 1 枚ずつ + 2p。枚数はちょうど 14 枚なので、総数だけでは弾けない。
+    expect(decompose("19m19p19s1234567z2p", "2p")).toStrictEqual([]);
+  });
+
+  test("么九牌以外が混ざった手牌はあがりにならない", () => {
+    expect(decompose("19m19p19s1234567z2p3p", "3p")).toStrictEqual([]);
+  });
+});
+
 describe("combinationsOfNumType/allBlockCombinations", () => {
   test("combinationsOfNumType()", () => {
     const h = new Hand("111222333456m");
