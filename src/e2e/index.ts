@@ -1,9 +1,16 @@
-import { Controller, createLocalGame } from "./../lib/controller";
+import {
+  Controller,
+  PlayerEvent,
+  createLocalGame,
+  silentLogger,
+} from "./../lib/controller";
 import { Replayer } from "../lib/controller/replay";
+import { encodeAll } from "../lib/mjai/encode";
+import { validateMjaiLog } from "../lib/__tests__/utils/mjai-validator";
 import { loadGames, storeGame } from "./fixtures";
 
 const type = process.argv[2];
-if (!["test", "single", "game"].includes(type))
+if (!["test", "single", "game", "mjai"].includes(type))
   throw new Error("unexpected type");
 // Number(undefined) は NaN で ?? は発火しないため、省略時と不正値を明示的に扱う
 const countArg = process.argv[3];
@@ -17,6 +24,49 @@ if (type == "test") {
     const r = new Replayer(game);
     r.auto();
   }
+}
+
+// mjai の送出変換を半荘まるごとで確かめる（テスト戦略の層 5）。
+// 台本つきの局は狙った場面しか通らないので、素の Player に打たせて
+// 立直・各種カン・和了・流局・連荘・局またぎをまとめて踏ませる。
+//
+// vitest に置かないのは 1 半荘で十数秒かかるため。種を固定しているので、
+// 落ちた種はそのまま mjai-encode.test.ts の回帰テストに落とせる。
+if (type == "mjai") {
+  let events = 0;
+  let bad = 0;
+  const kinds = new Map<string, number>();
+  for (let i = 0; i < count; i++) {
+    const seed = 30000 + i;
+    const { c } = createLocalGame({ seed, logger: silentLogger });
+    const src: PlayerEvent[] = [];
+    c.observer.eventHandler.on((e: PlayerEvent) => src.push(e));
+    c.startGame();
+
+    const got = encodeAll(src);
+    events += got.events.length;
+    for (const e of got.events) kinds.set(e.type, (kinds.get(e.type) ?? 0) + 1);
+    for (const w of new Set(got.warnings))
+      console.error(`seed ${seed}: warning: ${w}`);
+
+    // 牌譜（replay mode）なので伏せ牌は残らないはず。
+    const problems = validateMjaiLog(got.events, {
+      dialect: "strict",
+      unmasked: true,
+    });
+    if (problems.length > 0 || got.warnings.length > 0) {
+      bad++;
+      for (const p of problems.slice(0, 5))
+        console.error(`seed ${seed}: ${JSON.stringify(p)}`);
+    }
+  }
+  const coverage = [...kinds]
+    .sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => `${k}:${v}`)
+    .join(" ");
+  console.debug(`coverage: ${coverage}`);
+  console.debug(`${count} hanchan, ${events} mjai events, ${bad} with problems`);
+  if (bad > 0) process.exit(1);
 }
 
 // 落ちた対局だけを games.json に残す。`npm run e2e test` で再生し直せるので、

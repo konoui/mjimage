@@ -1,0 +1,14 @@
+{"type":"start_game","names":["player-1","player-2","player-3","player-4"]}
+{"type":"start_kyoku","bakaze":"E","kyoku":1,"honba":0,"kyotaku":0,"oya":0,"dora_marker":"C","tehais":[["1m","2m","3m","4m","5m","6m","7m","8m","9m","1s","2s","3s","E"],["2p","N","7p","9m","C","5mr","F","7s","F","5m","W","7s","1p"],["4p","3p","5s","9s","1s","7p","6p","6p","8p","5pr","P","9s","2p"],["2p","9p","5s","5p","W","5p","7s","9s","7s","F","S","3m","W"]],"scores":[25000,25000,25000,25000]}
+{"type":"tsumo","actor":0,"pai":"S"}
+{"type":"dahai","actor":0,"pai":"S","tsumogiri":true}
+{"type":"tsumo","actor":1,"pai":"W"}
+{"type":"dahai","actor":1,"pai":"W","tsumogiri":true}
+{"type":"tsumo","actor":2,"pai":"N"}
+{"type":"dahai","actor":2,"pai":"N","tsumogiri":true}
+{"type":"tsumo","actor":3,"pai":"P"}
+{"type":"dahai","actor":3,"pai":"P","tsumogiri":true}
+{"type":"tsumo","actor":0,"pai":"E"}
+{"type":"hora","actor":0,"target":0,"pai":"E","deltas":[6000,-2000,-2000,-2000],"scores":[31000,23000,23000,23000],"yakus":[["menzenchin_tsumoho",1],["ikkitsukan",2]],"fu":30,"fan":3,"hora_points":6000,"hora_tehais":["E","E","1m","2m","3m","4m","5m","6m","7m","8m","9m","1s","2s","3s"]}
+{"type":"end_kyoku"}
+{"type":"end_game"}
