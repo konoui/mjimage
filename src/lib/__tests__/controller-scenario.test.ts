@@ -1,5 +1,6 @@
 import {
   ChoiceAfterDrawnEvent,
+  DiscardEvent,
   Logger,
   createLocalGame,
   createSeededRand,
@@ -822,6 +823,147 @@ describe("局をまたいだ河", () => {
     // canDeclareNineTerminalsAbort は「自分の捨て牌が無いこと」を条件にしている。
     // 以前は River.reset() が呼ばれず、1 局目の捨て牌が残って常に宣言できなかった。
     expect(twoRoundsScenario().nineTerminals()).toBe(true);
+  });
+});
+
+/**
+ * ツモ切りと手出しを 1 回ずつ含むシナリオ。
+ * 1z（東家）は 1 巡目をツモ切りし、2 巡目は手牌の 1z を切る。
+ */
+const tsumogiriScenario = () => {
+  const s = createScenario({
+    wall: {
+      hands: { "1z": "123m456m789m123s1z" },
+      draws: [
+        "2z", // 1: 1z のツモ → ツモ切り
+        "3z", // 2: 2z のツモ
+        "4z", // 3: 3z のツモ
+        "5z", // 4: 4z のツモ
+        "6z", // 5: 1z のツモ → 手出し（手牌の 1z を切る）
+      ],
+    },
+  });
+  const { c } = s;
+  const [mp1] = s.players;
+  const events = recordEvents(c);
+
+  // 1 巡目は MockPlayer の既定（ツモ切り）に任せ、2 巡目だけ手牌から切る。
+  let turn = 0;
+  mp1.mDrawHandlers.push((e, p) => {
+    if (++turn < 2) return false;
+    assert(e.choices.DISCARD);
+    const handTile = e.choices.DISCARD.filter((t) => t == "1z");
+    assert(handTile.length == 1, `手牌の 1z が打牌候補に無い`);
+    e.choices.TSUMO = false;
+    e.choices.REACH = false;
+    e.choices.AN_KAN = false;
+    e.choices.SHO_KAN = false;
+    e.choices.DRAWN_GAME_BY_NINE_TERMINALS = false;
+    e.choices.DISCARD = handTile;
+    p.eventHandler.emit(e);
+    return true;
+  });
+
+  const discards = () =>
+    events.filter(
+      (e): e is DiscardEvent => e.type == "DISCARD" && e.iam == WIND.E
+    );
+
+  c.actor.start();
+  stepUntil(c, () => discards().length >= 2);
+  return { ...s, discards: discards() };
+};
+
+describe("ツモ切りの記録", () => {
+  test("シナリオはツモ切りと手出しを 1 回ずつ通る", () => {
+    const [first, second] = tsumogiriScenario().discards;
+    // 台本の見張り。1 巡目はツモった 2z、2 巡目は手牌の 1z が出ていること。
+    expect(Tile.from(first.tile).equals(Tile.from("2z"))).toBe(true);
+    expect(Tile.from(second.tile).equals(Tile.from("1z"))).toBe(true);
+  });
+
+  test("tsumogiri はツモ切りと手出しを区別する", () => {
+    // ホストは手出しとツモ切りを知っているのに伝えていなかった。
+    // 受け手は他家のツモを見られない（DRAW がマスクされる）ので、
+    // このフィールドが無いと外から算出できない。
+    const [first, second] = tsumogiriScenario().discards;
+    expect(first.tsumogiri).toBe(true);
+    expect(second.tsumogiri).toBe(false);
+  });
+});
+
+/**
+ * 裏ドラが乗る立直ツモのシナリオ。
+ * 1z（東家）が 1z 単騎で立直し、1z を引いてツモ和了する。
+ * 裏ドラ表示牌を 4z（北）にすると裏ドラは 1z（東）になり、あがり手の 1z 2 枚に乗る。
+ */
+const uraDoraScenario = () => {
+  const s = createScenario({
+    autoAdvance: true,
+    wall: {
+      hands: { "1z": "123m456m789m123s1z" },
+      draws: [
+        "5z", // 1: 1z のツモ → これを切って立直
+        "3z", // 2: 2z のツモ
+        "4z", // 3: 3z のツモ
+        "6z", // 4: 4z のツモ
+        "1z", // 5: 1z のツモ → ツモ和了
+      ],
+      // 北 → 東。あがり手の 1z 2 枚が裏ドラになる。
+      hiddenDoraIndicators: ["4z"],
+    },
+  });
+  const { c } = s;
+  const [mp1] = s.players;
+  const events = recordEvents(c);
+
+  mp1.mDrawHandlers.push((e, p) => {
+    if (!e.choices.REACH) return false;
+    e.choices.REACH = e.choices.REACH.filter((t) => t.tile == "5z");
+    assert(e.choices.REACH.length == 1, `5z で立直できない`);
+    p.eventHandler.emit(e);
+    return true;
+  });
+  mp1.mDrawHandlers.push((e, p) => {
+    if (!e.choices.TSUMO) return false;
+    p.eventHandler.emit(e);
+    return true;
+  });
+
+  c.actor.start();
+  const tsumo = events.find((e) => e.type == "TSUMO");
+  assert(tsumo?.type == "TSUMO", "台本どおりにツモ和了していない");
+  const end = events.find((e) => e.type == "END_GAME");
+  assert(end?.type == "END_GAME", "局が終わっていない");
+  return { ...s, offered: tsumo.ret, end: end };
+};
+
+describe("和了結果の確定値", () => {
+  test("シナリオは裏ドラが乗る立直ツモを通る", () => {
+    // 台本の見張り。立直していないと裏ドラは数えられない。
+    // 第一ツモで宣言するのでダブル立直になる。
+    const { offered } = uraDoraScenario();
+    expect(offered.yakus.map((y) => y.name)).toContain("ダブル立直");
+    // controller が提示した時点では裏ドラを見ていない
+    expect(offered.yakus.map((y) => y.name)).not.toContain("裏ドラ");
+  });
+
+  test("EndEvent.ret は裏ドラを含んだ最終結果を持つ", () => {
+    // finalResult() が裏ドラと供託を入れて計算し直しているのに、
+    // 以前は deltas だけ取り出して役・翻・符を捨てていた。
+    // RonEvent / TsumoEvent の ret は裏ドラ計算前なので、これが無いと
+    // 立直の和了で正しい翻・符を表示できない。
+    const { offered, end } = uraDoraScenario();
+    assert(end.ret, "EndEvent に最終結果が載っていない");
+    expect(end.ret.yakus.map((y) => y.name)).toContain("裏ドラ");
+    expect(end.ret.han).toBeGreaterThan(offered.han);
+  });
+
+  test("最終結果の点数移動は EndEvent.deltas と一致する", () => {
+    // deltas は以前から載っていた値。ret を足したことでずれていないこと。
+    const { end } = uraDoraScenario();
+    assert(end.ret);
+    expect(end.ret.deltas).toStrictEqual(end.deltas);
   });
 });
 

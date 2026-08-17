@@ -70,6 +70,19 @@ const broadcast = <E extends PlayerEvent>(
   for (const w of Object.values(WIND)) c.emit(make(w));
 };
 
+/**
+ * 打牌がツモ切りかを返す。
+ *
+ * 手牌はイベントを配ったときに更新される（`Controller.applyToObserver` → `BaseActor.applyDiscard`）ので、
+ * **broadcast より前に**呼ぶこと。後では `drawn` が消えている。
+ * `Tile.equals` はオペレータを見ないため、赤は別に比べる。
+ */
+const isTsumogiri = (c: Controller, iam: Wind, discarded: Tile): boolean => {
+  const drawn = c.hand(iam).drawn;
+  if (drawn == null) return false; // 鳴いた直後の打牌にはツモ牌が無い
+  return drawn.equals(discarded) && drawn.has(OP.RED) == discarded.has(OP.RED);
+};
+
 /** 風ごとのフラグを 1 つだけ変えた新しいマップを返す。 */
 const withWind = <T>(m: WindMap<T>, w: Wind, v: T): WindMap<T> => ({
   ...m,
@@ -400,6 +413,7 @@ export const createControllerMachine = (c: Controller) => {
         const id = genEventID();
         const iam = context.currentWind;
         const t = event.tile;
+        const tsumogiri = isTsumogiri(c, iam, t);
         broadcast(c, (w) => {
           const e: DiscardEvent = {
             id: id,
@@ -407,6 +421,7 @@ export const createControllerMachine = (c: Controller) => {
             iam: iam,
             wind: w,
             tile: t.toString(),
+            tsumogiri: tsumogiri,
           };
           return e;
         });
@@ -483,6 +498,7 @@ export const createControllerMachine = (c: Controller) => {
         const id = genEventID();
         const iam = event.iam;
         const t = event.tile.clone({ add: OP.HORIZONTAL });
+        const tsumogiri = isTsumogiri(c, iam, event.tile);
         // 一発を有効にする
         enqueue.assign({
           oneShotMap: withWind(context.oneShotMap, iam, true),
@@ -494,6 +510,7 @@ export const createControllerMachine = (c: Controller) => {
             iam: iam,
             wind: w,
             tile: t.toString(),
+            tsumogiri: tsumogiri,
           };
           return e;
         });
@@ -563,6 +580,9 @@ export const createControllerMachine = (c: Controller) => {
             event.iam
           );
           hands[event.iam] = c.hand(event.iam).toString();
+          // 裏ドラと供託を含めた最終結果。RonEvent / TsumoEvent の ret は
+          // controller が提示した時点のもので裏ドラ計算前なので、表示にはこちらを使う。
+          const ret = serializeWinResult(finalResults);
           broadcast(c, (w) => {
             const e: EndEvent = {
               id: id,
@@ -575,6 +595,7 @@ export const createControllerMachine = (c: Controller) => {
               scores: c.scoreManager.summary,
               deltas: finalResults.deltas,
               hands: hands,
+              ret: ret,
             };
             return e;
           });

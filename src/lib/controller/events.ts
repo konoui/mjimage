@@ -56,6 +56,13 @@ export interface EndEvent {
   deltas: { readonly [w in Wind]: number };
   hands: { readonly [w in Wind]: string };
   shouldContinue: boolean;
+  /**
+   * `WIN_GAME` のときだけ入る、裏ドラと供託を含めた最終のあがり結果。
+   *
+   * `RonEvent` / `TsumoEvent` の `ret` は controller が提示した時点のもので裏ドラ計算前なので、
+   * 立直の和了では翻・符・点数が食い違う。表示に使うならこちらを見ること。
+   */
+  ret?: SerializedWinResult;
 }
 
 export interface CallEvent {
@@ -90,6 +97,11 @@ export interface DiscardEvent {
   iam: Wind;
   wind: Wind;
   tile: string;
+  /**
+   * ツモ切りなら true。手出しとの区別は卓上で全員が見えるが、
+   * 他家のツモは `DRAW` でマスクされるので受け手には算出できない。
+   */
+  tsumogiri?: boolean;
 }
 
 export interface DrawEvent {
@@ -108,6 +120,8 @@ export interface ReachEvent {
   tile: string;
   iam: Wind;
   wind: Wind;
+  /** 宣言牌がツモ切りなら true。`DiscardEvent.tsumogiri` と同じ意味。 */
+  tsumogiri?: boolean;
 }
 
 export interface ReachAcceptedEvent {
