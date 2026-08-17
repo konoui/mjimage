@@ -1,11 +1,10 @@
 import {
   Controller,
-  PlayerEvent,
   createLocalGame,
   silentLogger,
 } from "./../lib/controller";
 import { Replayer } from "../lib/controller/replay";
-import { encodeAll } from "../lib/mjai/encode";
+import { recordMjaiLog } from "../lib/mjai/log";
 import { validateMjaiLog } from "../lib/__tests__/utils/mjai-validator";
 import { loadGames, storeGame } from "./fixtures";
 
@@ -39,26 +38,29 @@ if (type == "mjai") {
   for (let i = 0; i < count; i++) {
     const seed = 30000 + i;
     const { c } = createLocalGame({ seed, logger: silentLogger });
-    const src: PlayerEvent[] = [];
-    c.observer.eventHandler.on((e: PlayerEvent) => src.push(e));
+    // 牌譜の書き出し（log.ts）まで通す。encode.ts を直に呼ぶのと同じ列になるはずだが、
+    // finish() の呼び忘れや二重書き込みはここでしか出ない。
+    const log = recordMjaiLog(c);
     c.startGame();
+    log.finish(c.scoreManager.summary);
 
-    const got = encodeAll(src);
-    events += got.events.length;
-    for (const e of got.events) kinds.set(e.type, (kinds.get(e.type) ?? 0) + 1);
-    for (const w of new Set(got.warnings))
+    events += log.log.length;
+    for (const e of log.log) kinds.set(e.type, (kinds.get(e.type) ?? 0) + 1);
+    for (const w of new Set(log.warnings))
       console.error(`seed ${seed}: warning: ${w}`);
 
     // 牌譜（replay mode）なので伏せ牌は残らないはず。
-    const problems = validateMjaiLog(got.events, {
+    const problems = validateMjaiLog(log.log, {
       dialect: "strict",
       unmasked: true,
     });
-    if (problems.length > 0 || got.warnings.length > 0) {
+    if (problems.length > 0 || log.warnings.length > 0) {
       bad++;
       for (const p of problems.slice(0, 5))
         console.error(`seed ${seed}: ${JSON.stringify(p)}`);
     }
+    // 各行が単体で JSON として読めること（外部ツールに食わせる前提）。
+    for (const line of log.lines()) JSON.parse(line);
   }
   const coverage = [...kinds]
     .sort((a, b) => b[1] - a[1])

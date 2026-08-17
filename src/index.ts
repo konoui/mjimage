@@ -125,6 +125,61 @@ export type {
   ChoiceForChanKan,
 } from "./lib/controller/events";
 
+// mjai プロトコル。型と変換、Controller に挿すアダプタ、牌譜の書き出しを公開する。
+// bot の実行方法（stdio / WebSocket）は出さない。MjaiBot を実装して渡す側の仕事。
+export {
+  MJAI_TYPE,
+  MJAI_RYUKYOKU_REASON,
+  MJAI_HIDDEN_PAI,
+  isMjaiAction,
+} from "./lib/mjai/types";
+export type {
+  MjaiPai,
+  MjaiMaybeHiddenPai,
+  MjaiHiddenPai,
+  MjaiNumberPai,
+  MjaiHonorPai,
+  MjaiRedPai,
+  MjaiSuit,
+  MjaiBakaze,
+  MjaiActor,
+  MjaiKyoku,
+  MjaiQuad,
+  MjaiTehai,
+  MjaiType,
+  MjaiRyukyokuReason,
+  MjaiYaku,
+  MjaiEvent,
+  MjaiAction,
+  MjaiEventWithCanAct,
+  MjaiLogLine,
+  MjaiHelloEvent,
+  MjaiJoinAction,
+  MjaiStartGameEvent,
+  MjaiStartKyokuEvent,
+  MjaiEndKyokuEvent,
+  MjaiEndGameEvent,
+  MjaiTsumoEvent,
+  MjaiDahaiEvent,
+  MjaiCallEvent,
+  MjaiChiEvent,
+  MjaiPonEvent,
+  MjaiDaiminkanEvent,
+  MjaiKakanEvent,
+  MjaiAnkanEvent,
+  MjaiDoraEvent,
+  MjaiReachEvent,
+  MjaiReachAcceptedEvent,
+  MjaiHoraEvent,
+  MjaiRyukyokuEvent,
+  MjaiNoneAction,
+  MjaiErrorEvent,
+} from "./lib/mjai/types";
+export { toMjaiPai, fromMjaiPai, toMjaiBakaze } from "./lib/mjai/pai";
+export { MjaiPlayer } from "./lib/mjai/session";
+export type { MjaiBot } from "./lib/mjai/session";
+export { MjaiLogWriter, recordMjaiLog } from "./lib/mjai/log";
+
 // 卓の入力言語。
 export { parseTableInput } from "./lib/input/table-input";
 export type {
