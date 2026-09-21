@@ -179,6 +179,13 @@ export { toMjaiPai, fromMjaiPai, toMjaiBakaze } from "./lib/mjai/pai";
 export { MjaiPlayer } from "./lib/mjai/session";
 export type { MjaiBot } from "./lib/mjai/session";
 export { MjaiLogWriter, recordMjaiLog } from "./lib/mjai/log";
+// 線の向こうの bot を MjaiBot として見せるアダプタ。通信路は差し替え式で、
+// ここ自体は依存を持たない（ブラウザ配布物にも安全に入る）。
+export { StdioBot } from "./lib/mjai/bot";
+export type { SyncTransport, StdioBotOptions } from "./lib/mjai/bot";
+// createWorkerTransport（lib/mjai/worker-transport）は node:worker_threads に依存し、
+// ブラウザでは動かない（メインスレッドの Atomics.wait が禁止）ため公開面に出さない。
+// Node から使う場合はサブパスの輸出を足すか、リポジトリ内から直接 import する。
 
 // 卓の入力言語。
 export { parseTableInput } from "./lib/input/table-input";

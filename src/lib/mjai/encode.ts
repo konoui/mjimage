@@ -55,6 +55,13 @@ export class MjaiEncoder {
 
   readonly warnings: MjaiEncodeWarning[] = [];
 
+  /**
+   * @param viewer この列を受け取る人の playerID。渡すと `start_game` に `id`（席番号）が載る。
+   *   bot は `id` で自分の席を知るので、プレイヤーに繋ぐときは必ず渡すこと。
+   *   牌譜（replay mode）では誰の視点でもないので省く。
+   */
+  constructor(private readonly viewer?: string) {}
+
   private warn(message: string) {
     this.warnings.push(message);
   }
@@ -209,10 +216,17 @@ export class MjaiEncoder {
     const out: MjaiEvent[] = [];
     if (!this.started) {
       this.started = true;
-      out.push({
+      const start: MjaiEvent = {
         type: MJAI_TYPE.START_GAME,
         names: [...e.players] as unknown as MjaiQuad<string>,
-      });
+      };
+      if (this.viewer != null) {
+        const i = e.players.indexOf(this.viewer);
+        // bot は id で自分の席を知る。落とすと自分の手番が分からない。
+        if (i < 0) this.warn(`players に viewer が無い: ${this.viewer}`);
+        else (start as { id?: MjaiActor }).id = i as MjaiActor;
+      }
+      out.push(start);
     }
 
     const tehais = this.pendingTehais.map((hand, i) => {

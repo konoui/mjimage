@@ -38,7 +38,7 @@ export interface MjaiBot {
  * `createLocalGame` の `playerInjection` に差し込める。
  */
 export class MjaiPlayer {
-  private readonly encoder = new MjaiEncoder();
+  private readonly encoder: MjaiEncoder;
   /** bot にまだ渡していないイベント。選択イベントを区切りにまとめて渡す（§6.3）。 */
   private queue: MjaiEvent[] = [];
   /** 自分の席番号。DISTRIBUTE で決まる。 */
@@ -53,6 +53,8 @@ export class MjaiPlayer {
     readonly eventHandler: EventHandler,
     private readonly bot: MjaiBot
   ) {
+    // 自分の視点なので start_game に id（席番号）が載る。bot はこれで自分の手番を知る。
+    this.encoder = new MjaiEncoder(id);
     this.eventHandler.on((e: PlayerEvent) => this.handleEvent(e));
   }
 
